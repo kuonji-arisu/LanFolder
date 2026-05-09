@@ -1,0 +1,15 @@
+{
+	"fixed": {
+		"file_version": "0.0.1"
+	},
+	"info": {
+		"0000": {
+			"ProductVersion": "0.0.1",
+			"CompanyName": "LanFolder",
+			"FileDescription": "LAN folder sharing desktop app",
+			"LegalCopyright": "© 2026, LanFolder",
+			"ProductName": "LanFolder",
+			"Comments": "LAN folder sharing for desktop"
+		}
+	}
+}

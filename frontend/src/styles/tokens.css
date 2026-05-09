@@ -1,0 +1,141 @@
+:root {
+  --background: 240 24% 96%;
+  --foreground: 240 4% 11%;
+  --chrome: 240 24% 96%;
+  --control: 0 0% 97%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 4% 11%;
+  --muted: 0 0% 96.5%;
+  --muted-foreground: 240 2% 43%;
+  --border: 0 0% 0% / 0.10;
+  --input: 0 0% 0% / 0.10;
+  --ring: 222 59% 57%;
+  --primary: 222 59% 57%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 11% 96.5%;
+  --secondary-hover: 240 8% 94.5%;
+  --secondary-active: 240 7% 92.5%;
+  --secondary-border: 0 0% 0% / 0.10;
+  --secondary-foreground: 240 4% 11%;
+  --accent: 222 59% 57%;
+  --accent-foreground: 0 0% 100%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 4% 11%;
+  --destructive: 6 78% 57%;
+  --destructive-foreground: 0 0% 100%;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.10);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-safe-bottom: 28px;
+
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  --titlebar-height: 40px;
+  --content-max-width: 960px;
+  --touch-target: 42px;
+  --input-height: 48px;
+  --input-padding-x: 16px;
+  --input-padding-y: 8px;
+  --icon-button-size: 34px;
+  --titlebar-button-size: 28px;
+  --switch-width: 66px;
+  --switch-height: 35px;
+  --switch-thumb-size: 29px;
+  --switch-thumb-offset: 3px;
+  --switch-thumb-checked-offset: 34px;
+
+  --color-bg-base: hsl(var(--background));
+  --color-bg-elevated: hsl(var(--card));
+  --color-bg-chrome: hsl(var(--chrome));
+  --color-bg-control: hsl(var(--control));
+  --color-bg-muted: hsl(var(--muted));
+  --color-bg-overlay: hsl(var(--card) / 0.85);
+  --color-bg-tooltip: hsl(var(--popover));
+  --color-bg-hover: hsl(var(--foreground) / 0.05);
+  --color-bg-active: hsl(var(--foreground) / 0.09);
+  --color-bg-selected: hsl(var(--primary) / 0.12);
+  --color-bg-titlebar: hsl(var(--chrome) / 0.8);
+
+  --color-border: hsl(var(--border));
+  --color-border-strong: hsl(var(--foreground) / 0.18);
+  --color-secondary-hover: hsl(var(--secondary-hover));
+  --color-secondary-active: hsl(var(--secondary-active));
+  --color-secondary-border: hsl(var(--secondary-border));
+
+  --color-text-primary: hsl(var(--foreground));
+  --color-text-secondary: hsl(var(--muted-foreground));
+  --color-text-tertiary: hsl(var(--muted-foreground) / 0.62);
+  --color-text-on-accent: hsl(var(--primary-foreground));
+
+  --color-accent: hsl(var(--primary));
+  --color-accent-hover: color-mix(in srgb, hsl(var(--primary)) 86%, black);
+  --color-accent-subtle: hsl(var(--primary) / 0.12);
+
+  --color-danger: hsl(var(--destructive));
+  --color-danger-hover: color-mix(in srgb, hsl(var(--destructive)) 82%, black);
+  --color-success: #27ae60;
+
+  color-scheme: light;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.dark,
+[data-theme="dark"] {
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.55);
+
+  --background: 240 4% 11%;
+  --foreground: 240 11% 96%;
+  --chrome: 240 4% 11%;
+  --control: 240 2% 23%;
+  --card: 240 2% 18%;
+  --card-foreground: 240 11% 96%;
+  --muted: 240 2% 23%;
+  --muted-foreground: 240 2% 61%;
+  --border: 0 0% 100% / 0.10;
+  --input: 0 0% 100% / 0.18;
+  --ring: 222 64% 65%;
+  --primary: 222 64% 65%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 2% 23%;
+  --secondary-hover: 240 2% 27%;
+  --secondary-active: 240 2% 31%;
+  --secondary-border: 0 0% 100% / 0.14;
+  --secondary-foreground: 240 11% 96%;
+  --accent: 222 64% 65%;
+  --accent-foreground: 0 0% 100%;
+  --popover: 240 2% 18%;
+  --popover-foreground: 240 11% 96%;
+  --destructive: 3 100% 61%;
+
+  --color-bg-overlay: hsl(var(--card) / 0.9);
+  --color-bg-hover: hsl(var(--foreground) / 0.07);
+  --color-bg-active: hsl(var(--foreground) / 0.12);
+  --color-bg-selected: hsl(var(--primary) / 0.25);
+  --color-bg-titlebar: hsl(var(--chrome) / 0.85);
+  --color-accent-subtle: hsl(var(--primary) / 0.18);
+  --color-success: #32d74b;
+
+  color-scheme: dark;
+}

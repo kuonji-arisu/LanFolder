@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Name=LanFolder
+Comment=LAN folder sharing desktop app
+# The Exec line includes %u to pass the URL to the application
+Exec=/usr/local/bin/lanfolder.exe %u
+Terminal=false
+Type=Application
+Icon=lanfolder.exe
+Categories=Utility;
+StartupWMClass=lanfolder.exe
+
+ 
