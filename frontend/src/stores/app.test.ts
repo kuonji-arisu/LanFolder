@@ -50,13 +50,14 @@ describe("useAppStore", () => {
     const store = useAppStore();
     await store.loadSnapshot();
 
-    api.saveSettings.mockRejectedValue(new Error("invalid port"));
+    api.saveSettings.mockRejectedValue({ message: JSON.stringify({ error: "invalid_port" }), kind: "RuntimeError" });
     const saved = await store.saveConfig({ port: 0 });
 
-    expect(saved).toBe(false);
+    expect(saved.ok).toBe(false);
     expect(store.state?.config.port).toBe(8899);
     expect(store.state?.server.port).toBe(8899);
-    expect(store.error).toBe("invalid port");
+    expect(store.error).toBe("端口必须在 1 到 65535 之间");
+    if (!saved.ok) expect(saved.error).toEqual(expect.objectContaining({ kind: "RuntimeError" }));
   });
 
   it("uses the same snapshot commit path for sharing commands", async () => {
@@ -89,6 +90,7 @@ describe("useAppStore", () => {
     expect(api.openSharedFolder).toHaveBeenCalledTimes(1);
     expect(store.state).toEqual(initial);
   });
+
 });
 
 function appState(overrides: { permission?: "readonly" | "upload" | "manage"; running?: boolean; port?: number } = {}): AppState {

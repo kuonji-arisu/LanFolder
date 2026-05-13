@@ -1,5 +1,6 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
+import { taskSuccess } from "@/composables/useAsyncTask";
 import { useLatestAsyncTask } from "@/composables/useLatestAsyncTask";
 import { fileApi, type FileEntry, type ListResult, type ServerStatus } from "@/lib/api";
 
@@ -23,7 +24,7 @@ export const useWebFilesStore = defineStore("webFiles", () => {
   }
 
   async function load(path = currentPath.value) {
-    await runLatest(
+    return runLatest(
       () => Promise.all([fileApi.status(), fileApi.list(path)]),
       ([nextStatus, nextListing]) => {
         status.value = nextStatus;
@@ -33,37 +34,38 @@ export const useWebFilesStore = defineStore("webFiles", () => {
     );
   }
 
-  function openEntry(entry: FileEntry) {
-    if (entry.isDir) void load(entry.path);
+  async function openEntry(entry: FileEntry) {
+    if (entry.isDir) return load(entry.path);
+    return taskSuccess(undefined);
   }
 
   async function uploadFiles(files: FileList | null) {
-    if (!files?.length) return;
-    await run(async () => {
+    if (!files?.length) return taskSuccess(undefined);
+    return run(async () => {
       await fileApi.upload(currentPath.value, files);
       await fetchListing(currentPath.value);
     });
   }
 
   async function deleteEntry(entry: FileEntry) {
-    if (!window.confirm(`删除 ${entry.name}？文件会被移入 .trash。`)) return;
-    await run(async () => {
+    if (!window.confirm(`删除 ${entry.name}？文件会被移入 .trash。`)) return taskSuccess(undefined);
+    return run(async () => {
       await fileApi.delete(entry.path);
       await fetchListing(currentPath.value);
     });
   }
 
   async function createFolder() {
-    if (!newFolderName.value.trim()) return;
-    await run(async () => {
+    if (!newFolderName.value.trim()) return taskSuccess(undefined);
+    return run(async () => {
       await fileApi.mkdir(currentPath.value, newFolderName.value.trim());
       newFolderName.value = "";
       await fetchListing(currentPath.value);
     });
   }
 
-  function jumpToCrumb(index: number) {
-    void load(crumbs.value.slice(0, index + 1).join("/"));
+  async function jumpToCrumb(index: number) {
+    return load(crumbs.value.slice(0, index + 1).join("/"));
   }
 
   return {

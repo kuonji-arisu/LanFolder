@@ -2,6 +2,7 @@
 import { onMounted } from "vue";
 import { RouterView } from "vue-router";
 import AppTitleBar from "@/components/app/AppTitleBar.vue";
+import { Toaster } from "@/components/ui/sonner";
 import { useTheme } from "@/composables/useTheme";
 import { useAppStore } from "@/stores/app";
 
@@ -19,6 +20,7 @@ onMounted(async () => {
   <div class="app-shell">
     <AppTitleBar />
     <RouterView />
+    <Toaster position="top-right" />
   </div>
 </template>
 

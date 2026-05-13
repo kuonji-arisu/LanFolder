@@ -2,6 +2,7 @@
 import { onMounted } from "vue";
 import FileList from "@/components/web/FileList.vue";
 import WebToolbar from "@/components/web/WebToolbar.vue";
+import { Toaster } from "@/components/ui/sonner";
 import { useWebFilesStore } from "@/stores/webFiles";
 
 const files = useWebFilesStore();
@@ -13,6 +14,7 @@ onMounted(() => void files.load(""));
   <div class="web-app">
     <WebToolbar />
     <FileList />
+    <Toaster position="top-right" />
   </div>
 </template>
 

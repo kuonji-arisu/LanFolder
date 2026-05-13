@@ -1,6 +1,7 @@
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { fileApi } from "@/lib/api";
+import { createAppError } from "@/lib/errors";
 import { useWebFilesStore } from "@/stores/webFiles";
 
 vi.mock("@/lib/api", () => ({
@@ -102,6 +103,20 @@ describe("useWebFilesStore", () => {
 
     expect(api.mkdir).toHaveBeenCalledWith("", "docs");
     expect(store.newFolderName).toBe("");
+  });
+
+  it("keeps input and returns failure when a file operation fails", async () => {
+    api.list.mockResolvedValue(listing(""));
+    api.mkdir.mockRejectedValue(createAppError("permission_denied", { status: 403 }));
+    const store = useWebFilesStore();
+    await store.load("");
+    store.newFolderName = "docs";
+
+    const result = await store.createFolder();
+
+    expect(result.ok).toBe(false);
+    expect(store.error).toBe("没有权限执行此操作");
+    expect(store.newFolderName).toBe("docs");
   });
 });
 

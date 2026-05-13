@@ -125,7 +125,14 @@ func TestHTTPWriteRequiresPermission(t *testing.T) {
 	if resp.StatusCode != http.StatusForbidden {
 		t.Fatalf("mkdir status = %d", resp.StatusCode)
 	}
+	var body apiError
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
 	resp.Body.Close()
+	if body.Error != "permission_denied" {
+		t.Fatalf("permission error body = %#v", body)
+	}
 
 	uploadBody, contentType := multipartBody(t, "files", "note.txt", "hello")
 	req, err := http.NewRequest(http.MethodPost, ts.URL+"/api/upload", uploadBody)

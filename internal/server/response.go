@@ -9,7 +9,8 @@ import (
 )
 
 type apiError struct {
-	Error string `json:"error"`
+	Error  string         `json:"error"`
+	Params map[string]any `json:"params,omitempty"`
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {
@@ -18,19 +19,21 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 	_ = json.NewEncoder(w).Encode(payload)
 }
 
-func writeErrorMessage(w http.ResponseWriter, status int, message string) {
-	writeJSON(w, status, apiError{Error: message})
+func writeErrorCode(w http.ResponseWriter, status int, code string, params map[string]any) {
+	writeJSON(w, status, apiError{Error: code, Params: params})
 }
 
 func writeError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, share.ErrPermissionDenied):
-		writeErrorMessage(w, http.StatusForbidden, "permission denied")
-	case errors.Is(err, share.ErrInvalidPath), errors.Is(err, share.ErrPathEscape), errors.Is(err, share.ErrCannotDeleteRoot):
-		writeErrorMessage(w, http.StatusBadRequest, err.Error())
+		writeErrorCode(w, http.StatusForbidden, "permission_denied", nil)
+	case errors.Is(err, share.ErrCannotDeleteRoot):
+		writeErrorCode(w, http.StatusBadRequest, "cannot_delete_root", nil)
+	case errors.Is(err, share.ErrInvalidPath), errors.Is(err, share.ErrPathEscape):
+		writeErrorCode(w, http.StatusBadRequest, "invalid_path", nil)
 	case errors.Is(err, share.ErrNotFound):
-		writeErrorMessage(w, http.StatusNotFound, "not found")
+		writeErrorCode(w, http.StatusNotFound, "not_found", nil)
 	default:
-		writeErrorMessage(w, http.StatusInternalServerError, err.Error())
+		writeErrorCode(w, http.StatusInternalServerError, "server_error", nil)
 	}
 }

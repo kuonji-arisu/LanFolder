@@ -3,14 +3,25 @@ import { ref } from "vue";
 import { ArrowUp, Folder, Plus, RefreshCw, UploadCloud } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { TaskResult } from "@/composables/useAsyncTask";
+import { useErrorToast } from "@/composables/useErrorToast";
 import { useWebFilesStore } from "@/stores/webFiles";
 
 const files = useWebFilesStore();
+const { showResultError } = useErrorToast();
 const uploadInput = ref<HTMLInputElement | null>(null);
 
+async function runWithToast(action: () => Promise<TaskResult<unknown>>) {
+  showResultError(await action());
+}
+
 async function handleUpload(fileList: FileList | null) {
-  await files.uploadFiles(fileList);
+  showResultError(await files.uploadFiles(fileList));
   if (uploadInput.value) uploadInput.value.value = "";
+}
+
+async function createFolder() {
+  showResultError(await files.createFolder());
 }
 </script>
 
@@ -24,21 +35,21 @@ async function handleUpload(fileList: FileList | null) {
         </div>
         <span class="permission-pill">{{ files.permissionLabel }}</span>
       </div>
-      <button class="icon-button" aria-label="刷新" @click="files.load()">
+      <button class="icon-button" aria-label="刷新" @click="runWithToast(() => files.load())">
         <RefreshCw class="h-5 w-5" />
       </button>
     </div>
 
     <nav class="path-bar" aria-label="当前路径">
-      <button class="crumb" @click="files.load('')">根目录</button>
+      <button class="crumb" @click="runWithToast(() => files.load(''))">根目录</button>
       <template v-for="(crumb, index) in files.crumbs" :key="`${crumb}-${index}`">
         <span class="slash">/</span>
-        <button class="crumb crumb-nested" @click="files.jumpToCrumb(index)">{{ crumb }}</button>
+        <button class="crumb crumb-nested" @click="runWithToast(() => files.jumpToCrumb(index))">{{ crumb }}</button>
       </template>
     </nav>
 
     <div class="action-row">
-      <Button variant="secondary" class="touch-button" :disabled="!files.listing?.path || files.loading" @click="files.load(files.listing?.parentPath ?? '')">
+      <Button variant="secondary" class="touch-button" :disabled="!files.listing?.path || files.loading" @click="runWithToast(() => files.load(files.listing?.parentPath ?? ''))">
         <ArrowUp class="h-4 w-4" />上级
       </Button>
       <template v-if="files.canUpload">
@@ -49,7 +60,7 @@ async function handleUpload(fileList: FileList | null) {
       </template>
     </div>
 
-    <form v-if="files.canUpload" class="mkdir-row" @submit.prevent="files.createFolder">
+    <form v-if="files.canUpload" class="mkdir-row" @submit.prevent="createFolder">
       <Input v-model="files.newFolderName" placeholder="新建文件夹名称" />
       <Button variant="secondary" class="touch-button" :disabled="!files.newFolderName.trim() || files.loading" type="submit">
         <Plus class="h-4 w-4" />新建

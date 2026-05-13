@@ -1,7 +1,7 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import { Events } from "@wailsio/runtime";
-import { useAsyncTask } from "@/composables/useAsyncTask";
+import { useAsyncTask, type TaskResult } from "@/composables/useAsyncTask";
 import { appApi } from "@/lib/appApi";
 import { DEFAULT_PORT, type Permission } from "@/lib/constants";
 import type { AccessLog, AppConfig, AppState, PermissionOption } from "@/types/app";
@@ -42,37 +42,40 @@ export const useAppStore = defineStore("app", () => {
     await Promise.all([loadState(), loadLogs()]);
   }
 
-  async function commitSnapshot(task: () => Promise<AppState>) {
-    const snapshot = await runTask(task);
-    if (!snapshot) return false;
-    state.value = snapshot;
+  async function commitSnapshot(task: () => Promise<AppState>): Promise<TaskResult<AppState>> {
+    const result = await runTask(task);
+    if (!result.ok) return result;
+    state.value = result.value;
     await loadLogs();
-    return true;
+    return result;
   }
 
-  async function runCommand(task: () => Promise<unknown>) {
-    await runTask(task);
+  async function runCommand<T>(task: () => Promise<T>): Promise<TaskResult<T>> {
+    return runTask(task);
+  }
+
+  function nextSettings(partial: Partial<AppConfig>) {
+    return { ...config.value, ...partial, port: Number(partial.port ?? config.value.port) };
   }
 
   async function saveConfig(partial: Partial<AppConfig> = {}) {
-    const nextConfig = { ...config.value, ...partial, port: Number(partial.port ?? config.value.port) };
-    return commitSnapshot(() => appApi.saveSettings(nextConfig));
+    return commitSnapshot(() => appApi.saveSettings(nextSettings(partial)));
   }
 
   async function setPermission(permission: Permission) {
-    await saveConfig({ permission });
+    return saveConfig({ permission });
   }
 
   async function chooseFolder() {
-    await commitSnapshot(() => appApi.chooseFolder());
+    return commitSnapshot(() => appApi.chooseFolder());
   }
 
   async function openSharedFolder() {
-    await runCommand(() => appApi.openSharedFolder());
+    return runCommand(() => appApi.openSharedFolder());
   }
 
   async function toggleSharing() {
-    await commitSnapshot(() => (isRunning.value ? appApi.stopSharing() : appApi.startSharing()));
+    return commitSnapshot(() => (isRunning.value ? appApi.stopSharing() : appApi.startSharing()));
   }
 
   function startAutoRefresh() {

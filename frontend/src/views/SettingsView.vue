@@ -3,35 +3,57 @@ import { ref, watch } from "vue";
 import { Moon, Sun, Trash2 } from "lucide-vue-next";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { useErrorToast } from "@/composables/useErrorToast";
 import { useTheme } from "@/composables/useTheme";
+import { normalizeError } from "@/lib/errors";
 import { useAppStore } from "@/stores/app";
+import type { AppConfig } from "@/types/app";
 
 const app = useAppStore();
 const { theme, setTheme } = useTheme();
+const { showResultError } = useErrorToast();
 const portDraft = ref("");
+const portError = ref("");
 
 function syncPortDraft() {
   portDraft.value = String(app.config.port);
+  portError.value = "";
 }
 
 watch(() => app.config.port, syncPortDraft, { immediate: true });
 
 async function savePort() {
   const port = Number(portDraft.value);
-  const saved = await app.saveConfig({ port });
-  if (!saved) syncPortDraft();
+  portError.value = validatePort(portDraft.value, port);
+  if (portError.value) return;
+  const result = await app.saveConfig({ port });
+  if (!result.ok) {
+    syncPortDraft();
+    if (normalizeError(result.error)?.code === "invalid_port") portError.value = result.message;
+    else showResultError(result);
+  }
+}
+
+function validatePort(value: string, port: number) {
+  if (!value.trim()) return "请输入端口";
+  if (!Number.isInteger(port)) return "端口必须是整数";
+  if (port <= 0 || port > 65535) return "端口必须在 1 到 65535 之间";
+  return "";
+}
+
+async function saveSettingWithToast(partial: Partial<AppConfig>) {
+  showResultError(await app.saveConfig(partial));
 }
 </script>
 
 <template>
   <main class="settings-view">
-    <div v-if="app.error" class="notice notice--error">{{ app.error }}</div>
-
     <div class="settings-form">
       <label class="settings-field">
         <span class="field-label">端口</span>
-        <Input v-model="portDraft" type="number" min="1" max="65535" @change="savePort" />
-        <span class="field-hint">默认 8899，修改后自动重启共享服务</span>
+        <Input v-model="portDraft" type="number" min="1" max="65535" :aria-invalid="Boolean(portError)" @input="portError = ''" @change="savePort" />
+        <span v-if="portError" class="field-error">{{ portError }}</span>
+        <span v-else class="field-hint">默认 8899，修改后自动重启共享服务</span>
       </label>
 
       <div class="settings-row">
@@ -54,7 +76,7 @@ async function savePort() {
           <div class="field-label">启动应用后自动共享</div>
           <p class="field-hint">打开应用后使用上次目录自动运行</p>
         </div>
-        <Switch :checked="app.config.autoShare" @update:checked="app.saveConfig({ autoShare: $event })" />
+        <Switch :checked="app.config.autoShare" @update:checked="saveSettingWithToast({ autoShare: $event })" />
       </div>
 
       <div class="settings-row">
@@ -62,7 +84,7 @@ async function savePort() {
           <div class="field-label">开机自动启动</div>
           <p class="field-hint">{{ app.state?.capabilities.startAtLogin ? "登录系统后自动打开 LanFolder" : "当前平台暂不支持" }}</p>
         </div>
-        <Switch :checked="app.config.startAtLogin" :disabled="!app.state?.capabilities.startAtLogin" @update:checked="app.saveConfig({ startAtLogin: $event })" />
+        <Switch :checked="app.config.startAtLogin" :disabled="!app.state?.capabilities.startAtLogin" @update:checked="saveSettingWithToast({ startAtLogin: $event })" />
       </div>
 
       <div class="settings-row">
@@ -70,7 +92,7 @@ async function savePort() {
           <div class="field-label">关闭窗口后保持后台运行</div>
           <p class="field-hint">关闭窗口时隐藏到系统托盘</p>
         </div>
-        <Switch :checked="app.config.keepInTray" @update:checked="app.saveConfig({ keepInTray: $event })" />
+        <Switch :checked="app.config.keepInTray" @update:checked="saveSettingWithToast({ keepInTray: $event })" />
       </div>
 
       <div class="settings-row">
@@ -78,7 +100,7 @@ async function savePort() {
           <div class="field-label">显示隐藏文件</div>
           <p class="field-hint">包括点号文件和 .trash</p>
         </div>
-        <Switch :checked="app.config.showHiddenFiles" @update:checked="app.saveConfig({ showHiddenFiles: $event })" />
+        <Switch :checked="app.config.showHiddenFiles" @update:checked="saveSettingWithToast({ showHiddenFiles: $event })" />
       </div>
 
       <div class="delete-note">
@@ -199,14 +221,10 @@ async function savePort() {
   color: var(--color-text-on-accent);
 }
 
-.delete-note,
-.notice {
+.delete-note {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-}
-
-.delete-note {
   min-height: 58px;
   display: flex;
   align-items: center;
@@ -225,9 +243,8 @@ async function savePort() {
   min-width: 0;
 }
 
-.notice {
-  margin-bottom: var(--space-3);
-  padding: var(--space-3);
+.field-error {
+  margin-top: 4px;
   color: var(--color-danger);
   font-size: var(--font-size-xs);
 }

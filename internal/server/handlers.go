@@ -49,10 +49,10 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(multipartMemoryBytes); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
-			writeErrorMessage(w, http.StatusRequestEntityTooLarge, "upload is too large")
+			writeErrorCode(w, http.StatusRequestEntityTooLarge, "file_too_large", map[string]any{"maxBytes": maxUploadBytes})
 			return
 		}
-		writeErrorMessage(w, http.StatusBadRequest, "invalid multipart upload")
+		writeErrorCode(w, http.StatusBadRequest, "invalid_request", nil)
 		return
 	}
 	defer func() {
@@ -68,7 +68,7 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(files) == 0 {
-		writeErrorMessage(w, http.StatusBadRequest, "no files uploaded")
+		writeErrorCode(w, http.StatusBadRequest, "no_files_uploaded", nil)
 		return
 	}
 	created := make([]share.Entry, 0, len(files))
@@ -88,7 +88,7 @@ func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
 		Path string `json:"path"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeErrorMessage(w, http.StatusBadRequest, "invalid JSON body")
+		writeErrorCode(w, http.StatusBadRequest, "invalid_request", nil)
 		return
 	}
 	if err := s.manager.Delete(body.Path); err != nil {
@@ -104,7 +104,7 @@ func (s *Server) handleMkdir(w http.ResponseWriter, r *http.Request) {
 		Name string `json:"name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeErrorMessage(w, http.StatusBadRequest, "invalid JSON body")
+		writeErrorCode(w, http.StatusBadRequest, "invalid_request", nil)
 		return
 	}
 	entry, err := s.manager.Mkdir(body.Path, body.Name)

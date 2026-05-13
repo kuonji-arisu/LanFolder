@@ -4,6 +4,8 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -16,6 +18,28 @@ import (
 	"lanfolder/internal/server"
 	"lanfolder/internal/share"
 )
+
+var (
+	errInvalidPort       = errors.New("invalid_port")
+	errSharedDirRequired = errors.New("shared_dir_required")
+)
+
+type commandError struct {
+	Code   string         `json:"error"`
+	Params map[string]any `json:"params,omitempty"`
+}
+
+func newCommandError(err error, params map[string]any) error {
+	return commandError{Code: err.Error(), Params: params}
+}
+
+func (e commandError) Error() string {
+	data, err := json.Marshal(e)
+	if err != nil {
+		return e.Code
+	}
+	return string(data)
+}
 
 type AppService struct {
 	mu     sync.Mutex
@@ -65,7 +89,7 @@ func (s *AppService) SaveSettings(cfg config.Config) (desktop.AppState, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if cfg.Port <= 0 || cfg.Port > 65535 {
-		return s.snapshot(s.config), fmt.Errorf("端口必须在 1 到 65535 之间")
+		return s.snapshot(s.config), newCommandError(errInvalidPort, nil)
 	}
 	if !cfg.Permission.Valid() {
 		cfg.Permission = share.PermissionReadOnly
@@ -93,7 +117,7 @@ func (s *AppService) StartSharing() (desktop.AppState, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.config.SharedDir == "" {
-		return s.snapshot(s.config), fmt.Errorf("请先选择共享目录")
+		return s.snapshot(s.config), newCommandError(errSharedDirRequired, nil)
 	}
 	err := s.startSharingLocked()
 	return s.snapshot(s.config), err
@@ -123,7 +147,7 @@ func (s *AppService) OpenSharedFolder() error {
 	sharedDir := s.config.SharedDir
 	s.mu.Unlock()
 	if sharedDir == "" {
-		return fmt.Errorf("请先选择共享目录")
+		return newCommandError(errSharedDirRequired, nil)
 	}
 	return platform.OpenFolder(sharedDir)
 }

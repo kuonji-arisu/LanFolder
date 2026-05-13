@@ -1,4 +1,5 @@
 import type { Permission } from "./constants";
+import { createAppError } from "@/lib/errors";
 import type { PermissionOption } from "@/types/app";
 
 export interface FileEntry {
@@ -25,19 +26,22 @@ export interface ServerStatus {
 
 interface ApiError {
   error: string;
+  params?: Record<string, unknown>;
 }
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, options);
   if (!response.ok) {
-    let message = `${response.status} ${response.statusText}`;
+    let code = "server_error";
+    let params: Record<string, unknown> | undefined;
     try {
       const body = (await response.json()) as ApiError;
-      if (body.error) message = body.error;
+      if (body.error) code = body.error;
+      if (body.params) params = body.params;
     } catch {
-      // Keep the HTTP status as the fallback message.
+      // Keep the generic server error fallback.
     }
-    throw new Error(message);
+    throw createAppError(code, { params, status: response.status });
   }
   return (await response.json()) as T;
 }

@@ -7,16 +7,26 @@ import FieldCard from "@/components/app/FieldCard.vue";
 import IconButton from "@/components/app/IconButton.vue";
 import PermissionSegment from "@/components/app/PermissionSegment.vue";
 import { useClipboard } from "@/composables/useClipboard";
+import { useErrorToast } from "@/composables/useErrorToast";
 import { useAppStore } from "@/stores/app";
+import type { Permission } from "@/lib/constants";
+import type { TaskResult } from "@/composables/useAsyncTask";
 
 const app = useAppStore();
 const { copied, copy } = useClipboard();
+const { showResultError } = useErrorToast();
+
+async function runWithToast(action: () => Promise<TaskResult<unknown>>) {
+  showResultError(await action());
+}
+
+async function setPermission(permission: Permission) {
+  await runWithToast(() => app.setPermission(permission));
+}
 </script>
 
 <template>
   <main class="view-body">
-    <div v-if="app.error" class="notice notice--error">{{ app.error }}</div>
-
     <Card class="share-hero" :class="{ 'share-hero--running': app.isRunning }">
       <div class="hero-left">
         <span class="hero-icon">
@@ -28,7 +38,7 @@ const { copied, copy } = useClipboard();
         </div>
       </div>
 
-      <Button class="hero-action" size="sm" :variant="app.isRunning ? 'destructive' : 'default'" :disabled="app.busy" @click="app.toggleSharing">
+      <Button class="hero-action" size="sm" :variant="app.isRunning ? 'destructive' : 'default'" :disabled="app.busy" @click="runWithToast(app.toggleSharing)">
         <Square v-if="app.isRunning" class="h-4 w-4" />
         <Play v-else class="h-4 w-4" />
         {{ app.isRunning ? "停止" : "开始" }}
@@ -43,15 +53,15 @@ const { copied, copy } = useClipboard();
     </FieldCard>
 
     <FieldCard label="共享目录" :value="app.config.sharedDir || '尚未选择目录'">
-      <IconButton title="更改目录" @click="app.chooseFolder">
+      <IconButton title="更改目录" @click="runWithToast(app.chooseFolder)">
         <FolderOpen class="h-4 w-4" />
       </IconButton>
-      <Button variant="secondary" :disabled="!app.config.sharedDir" @click="app.openSharedFolder">打开</Button>
+      <Button variant="secondary" :disabled="!app.config.sharedDir" @click="runWithToast(app.openSharedFolder)">打开</Button>
     </FieldCard>
 
     <Card class="panel">
       <div class="field-label">访问权限</div>
-      <PermissionSegment :model-value="app.config.permission" :options="app.state?.permissions ?? []" @update:model-value="app.setPermission" />
+      <PermissionSegment :model-value="app.config.permission" :options="app.state?.permissions ?? []" @update:model-value="setPermission" />
       <p class="field-hint">{{ app.activePermission.description }}</p>
     </Card>
 
@@ -76,8 +86,7 @@ const { copied, copy } = useClipboard();
 }
 
 .share-hero,
-.panel,
-.notice {
+.panel {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -165,14 +174,4 @@ const { copied, copy } = useClipboard();
   color: var(--color-text-primary);
 }
 
-.notice {
-  padding: var(--space-3);
-  font-size: var(--font-size-xs);
-}
-
-.notice--error {
-  border-color: color-mix(in srgb, var(--color-danger) 28%, var(--color-border));
-  background: color-mix(in srgb, var(--color-danger) 10%, var(--color-bg-elevated));
-  color: var(--color-danger);
-}
 </style>

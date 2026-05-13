@@ -1,17 +1,25 @@
 <script setup lang="ts">
 import { Download, File, Folder, Loader2, Trash2 } from "lucide-vue-next";
 import { Card } from "@/components/ui/card";
+import { useErrorToast } from "@/composables/useErrorToast";
 import { fileApi } from "@/lib/api";
 import { formatBytes, formatDate } from "@/lib/format";
 import { useWebFilesStore } from "@/stores/webFiles";
 
 const files = useWebFilesStore();
+const { showResultError } = useErrorToast();
+
+async function openEntry(entry: Parameters<typeof files.openEntry>[0]) {
+  showResultError(await files.openEntry(entry));
+}
+
+async function deleteEntry(entry: Parameters<typeof files.deleteEntry>[0]) {
+  showResultError(await files.deleteEntry(entry));
+}
 </script>
 
 <template>
   <main class="web-content">
-    <div v-if="files.error" class="error-card">{{ files.error }}</div>
-
     <Card class="file-panel">
       <div v-if="files.loading" class="state-view">
         <Loader2 class="h-5 w-5 animate-spin" />
@@ -20,7 +28,7 @@ const files = useWebFilesStore();
 
       <div v-else-if="files.error && !files.listing" class="state-view">
         <Folder class="h-8 w-8 text-muted-foreground" />
-        <span>加载失败</span>
+        <span>{{ files.error || "加载失败" }}</span>
       </div>
 
       <div v-else-if="files.listing && !files.listing.entries.length" class="state-view">
@@ -30,7 +38,7 @@ const files = useWebFilesStore();
 
       <div v-else class="file-list">
         <div v-for="entry in files.listing?.entries ?? []" :key="entry.path" class="file-row">
-          <button class="file-main" @click="files.openEntry(entry)">
+          <button class="file-main" @click="openEntry(entry)">
             <span class="file-icon">
               <Folder v-if="entry.isDir" class="h-5 w-5 text-primary" />
               <File v-else class="h-5 w-5 text-muted-foreground" />
@@ -45,7 +53,7 @@ const files = useWebFilesStore();
             <a v-if="!entry.isDir" :href="fileApi.downloadUrl(entry.path)" class="icon-button" aria-label="下载">
               <Download class="h-5 w-5" />
             </a>
-            <button v-if="files.canDelete" class="icon-button danger-button" aria-label="删除" @click="files.deleteEntry(entry)">
+            <button v-if="files.canDelete" class="icon-button danger-button" aria-label="删除" @click="deleteEntry(entry)">
               <Trash2 class="h-5 w-5" />
             </button>
           </div>
@@ -71,21 +79,10 @@ const files = useWebFilesStore();
   padding: var(--web-content-padding-top) var(--web-content-padding-x) calc(var(--space-safe-bottom) + env(safe-area-inset-bottom));
 }
 
-.error-card,
 .file-panel {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-bg-elevated);
-}
-
-.error-card {
-  margin-bottom: var(--space-3);
-  padding: var(--space-3) 14px;
-  color: var(--color-danger);
-  font-size: var(--font-size-base);
-}
-
-.file-panel {
   overflow: hidden;
 }
 

@@ -1,7 +1,7 @@
 import { useAsyncTask } from "@/composables/useAsyncTask";
 
 export function useLatestAsyncTask(initialBusy = false) {
-  const { busy, error, run } = useAsyncTask(initialBusy);
+  const { busy, error, failure, run } = useAsyncTask(initialBusy);
   let latestId = 0;
 
   async function runLatest<T>(task: () => Promise<T>, onSuccess: (value: T) => Promise<void> | void) {
@@ -12,8 +12,11 @@ export function useLatestAsyncTask(initialBusy = false) {
         await onSuccess(value);
       }
       return value;
+    }, undefined, {
+      commit: () => requestId === latestId,
+      stale: () => requestId !== latestId,
     });
   }
 
-  return { busy, error, run, runLatest };
+  return { busy, error, failure, run, runLatest };
 }
