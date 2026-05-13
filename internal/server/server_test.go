@@ -181,6 +181,9 @@ func testServer(t *testing.T, root string, permission share.Permission) (*Server
 	if err := os.WriteFile(filepath.Join(root, "web.html"), []byte("<main>LanFolder</main>"), 0644); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(root, "appicon.png"), []byte("png"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	s := New(os.DirFS(root))
 	if err := s.manager.Configure(root, permission, false); err != nil {
 		t.Fatal(err)
@@ -189,6 +192,24 @@ func testServer(t *testing.T, root string, permission share.Permission) (*Server
 	mux := http.NewServeMux()
 	s.routes(mux)
 	return s, httptest.NewServer(s.logMiddleware(mux))
+}
+
+func TestFaviconUsesAppIcon(t *testing.T) {
+	root := t.TempDir()
+	_, ts := testServer(t, root, share.PermissionReadOnly)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/favicon.ico")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("favicon status = %d", resp.StatusCode)
+	}
+	if contentType := resp.Header.Get("Content-Type"); contentType != "image/png" {
+		t.Fatalf("favicon content type = %q", contentType)
+	}
 }
 
 func postJSON(t *testing.T, url string, body io.Reader) *http.Response {

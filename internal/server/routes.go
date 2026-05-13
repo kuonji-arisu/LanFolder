@@ -26,6 +26,9 @@ func (s *Server) handleStatic(w http.ResponseWriter, r *http.Request) {
 	if cleanPath == "index.html" {
 		cleanPath = "web.html"
 	}
+	if cleanPath == "favicon.ico" {
+		cleanPath = "appicon.png"
+	}
 	if strings.Contains(cleanPath, "..") {
 		http.NotFound(w, r)
 		return
