@@ -135,6 +135,10 @@ func (m *Manager) List(rel string) (ListResult, error) {
 	entries := make([]Entry, 0, len(items))
 	for _, item := range items {
 		name := item.Name()
+		entryPath := path.Join(resolved.CleanRel, name)
+		if isTrashPath(slashRel(entryPath)) {
+			continue
+		}
 		if !showHidden && strings.HasPrefix(name, ".") {
 			continue
 		}
@@ -147,7 +151,6 @@ func (m *Manager) List(rel string) (ListResult, error) {
 		if err != nil {
 			continue
 		}
-		entryPath := path.Join(resolved.CleanRel, name)
 		entries = append(entries, Entry{
 			Name:      name,
 			Path:      slashRel(entryPath),

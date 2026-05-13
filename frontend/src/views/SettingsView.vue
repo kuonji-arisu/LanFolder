@@ -98,7 +98,7 @@ async function saveSettingWithToast(partial: Partial<AppConfig>) {
       <div class="settings-row">
         <div>
           <div class="field-label">显示隐藏文件</div>
-          <p class="field-hint">包括点号文件和 .trash</p>
+          <p class="field-hint">显示点号文件，受管目录 .trash 仍会隐藏</p>
         </div>
         <Switch :checked="app.config.showHiddenFiles" @update:checked="saveSettingWithToast({ showHiddenFiles: $event })" />
       </div>

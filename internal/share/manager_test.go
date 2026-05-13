@@ -99,6 +99,33 @@ func TestDeleteTrashIsAlwaysRejected(t *testing.T) {
 	}
 }
 
+func TestListAlwaysHidesTrash(t *testing.T) {
+	root := t.TempDir()
+	if err := os.Mkdir(filepath.Join(root, ".trash"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".secret"), []byte("hidden"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	m := NewManager()
+	if err := m.Configure(root, PermissionReadOnly, true); err != nil {
+		t.Fatal(err)
+	}
+	result, err := m.List("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range result.Entries {
+		if entry.Name == ".trash" {
+			t.Fatal("expected .trash to be hidden from listings")
+		}
+	}
+	if len(result.Entries) != 1 || result.Entries[0].Name != ".secret" {
+		t.Fatalf("expected other hidden files to remain visible, got %#v", result.Entries)
+	}
+}
+
 func TestUploadSanitizesAndAvoidsOverwrite(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "bad_name.txt"), []byte("existing"), 0644); err != nil {
