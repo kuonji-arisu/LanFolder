@@ -26,6 +26,9 @@ const fallbackMessage = "操作失败，请重试";
 
 const messages: Record<string, ErrorTranslator> = {
   invalid_request: () => "请求格式无效",
+  bad_origin: () => "请求来源不被允许",
+  bad_host: () => "访问地址不被允许",
+  network_not_allowed: () => "仅允许可信局域网访问",
   request_too_large: (params) => {
     const maxBytes = typeof params?.maxBytes === "number" ? params.maxBytes : undefined;
     return maxBytes ? `请求不能超过 ${formatBytes(maxBytes)}` : "请求太大";

@@ -4,6 +4,9 @@ import { createAppError, errorMessage, normalizeError } from "@/lib/errors";
 describe("normalizeError", () => {
   it("translates stable API error codes", () => {
     expect(errorMessage(createAppError("permission_denied", { status: 403 }))).toBe("没有权限执行此操作");
+    expect(errorMessage(createAppError("bad_origin", { status: 403 }))).toBe("请求来源不被允许");
+    expect(errorMessage(createAppError("bad_host", { status: 403 }))).toBe("访问地址不被允许");
+    expect(errorMessage(createAppError("network_not_allowed", { status: 403 }))).toBe("仅允许可信局域网访问");
   });
 
   it("uses params when translating error codes", () => {

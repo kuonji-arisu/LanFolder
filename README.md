@@ -34,6 +34,8 @@ Current version: `0.0.1`
 
 LanFolder is built for trusted local networks, such as your home Wi-Fi or a temporary private hotspot. It does not include accounts, passwords, or token-based access control. Anyone who can reach the displayed server address can use the currently selected permission level.
 
+The LAN server rejects non-private remote addresses by default and blocks cross-site write requests, but it does not provide authentication.
+
 The app focuses on filesystem safety instead:
 
 - Request paths are constrained to the selected shared folder

@@ -392,7 +392,7 @@ func testServer(t *testing.T, root string, permission share.Permission) (*Server
 	s.config = Config{Host: "127.0.0.1", Port: 8899, Root: root, Permission: permission}
 	mux := http.NewServeMux()
 	s.routes(mux)
-	return s, httptest.NewServer(s.logMiddleware(mux))
+	return s, httptest.NewServer(s.logMiddleware(s.secureMiddleware(mux)))
 }
 
 func TestFaviconUsesAppIcon(t *testing.T) {

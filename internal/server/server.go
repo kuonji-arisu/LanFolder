@@ -65,7 +65,7 @@ func (s *Server) Start(cfg Config) error {
 	addr := net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port))
 	httpSrv := &http.Server{
 		Addr:              addr,
-		Handler:           s.logMiddleware(mux),
+		Handler:           s.logMiddleware(s.secureMiddleware(mux)),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       15 * time.Minute,
 		WriteTimeout:      15 * time.Minute,
