@@ -62,18 +62,6 @@ Devices on the same LAN can open the displayed address in a browser. The web int
 
 The browser interface also includes a manual-refresh message panel for short text. Messages are stored as JSONL under `.lanfolder/messages.jsonl` and use a per-browser local client ID only to distinguish devices on the trusted LAN.
 
-## Server Mode
-
-LanFolder also has a server build for running without the desktop window. It reads configuration from the saved desktop config and environment variables such as:
-
-- `LANFOLDER_ROOT`
-- `LANFOLDER_HOST`
-- `LANFOLDER_PORT`
-- `LANFOLDER_PERMISSION`
-- `LANFOLDER_SHOW_HIDDEN`
-
-This mode is useful for lightweight LAN sharing on a trusted machine where a GUI is not needed.
-
 ## From Source
 
 Requirements:
