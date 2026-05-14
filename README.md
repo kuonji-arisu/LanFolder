@@ -12,8 +12,10 @@ Current version: `0.0.1`
 - Shows LAN access addresses in the desktop app
 - Provides a mobile-friendly browser file manager
 - Supports browsing, downloading, uploading, creating folders, and deleting files based on permission
+- Provides a lightweight browser message panel for passing short text between LAN devices
 - Keeps recent access logs in the desktop app
 - Moves deleted files into the shared folder's reserved `.trash` directory
+- Stores message history in the shared folder's reserved `.lanfolder` directory
 - Sanitizes uploaded filenames and avoids overwriting existing files
 - Blocks path traversal so requests stay inside the shared folder
 
@@ -39,7 +41,7 @@ The app focuses on filesystem safety instead:
 - Uploaded names are sanitized
 - Existing files are not overwritten by uploads
 - Deletes are moved into `.trash`
-- `.trash` itself is reserved and cannot be deleted through the web API
+- `.trash` and `.lanfolder` are reserved and cannot be accessed through the file API
 
 Use `readonly` when you only need to send files out, and switch to `upload` or `manage` only when you trust the devices on the LAN.
 
@@ -57,6 +59,8 @@ Devices on the same LAN can open the displayed address in a browser. The web int
 - `readonly`: file list and download actions
 - `upload`: upload and new-folder controls
 - `manage`: delete controls in addition to upload features
+
+The browser interface also includes a manual-refresh message panel for short text. Messages are stored as JSONL under `.lanfolder/messages.jsonl` and use a per-browser local client ID only to distinguish devices on the trusted LAN.
 
 ## Server Mode
 

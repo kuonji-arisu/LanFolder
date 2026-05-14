@@ -31,6 +31,8 @@ func writeError(w http.ResponseWriter, err error) {
 		writeErrorCode(w, http.StatusBadRequest, "cannot_delete_root", nil)
 	case errors.Is(err, share.ErrInvalidPath), errors.Is(err, share.ErrPathEscape):
 		writeErrorCode(w, http.StatusBadRequest, "invalid_path", nil)
+	case errors.Is(err, share.ErrInvalidMessage):
+		writeErrorCode(w, http.StatusBadRequest, "invalid_message", nil)
 	case errors.Is(err, share.ErrNotFound):
 		writeErrorCode(w, http.StatusNotFound, "not_found", nil)
 	default:

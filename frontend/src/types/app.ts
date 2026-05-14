@@ -26,6 +26,13 @@ export interface AccessLog {
   status: number;
 }
 
+export interface MessageEntry {
+  id: string;
+  createdAt: string;
+  clientId: string;
+  text: string;
+}
+
 export interface PermissionOption {
   value: Permission;
   label: string;

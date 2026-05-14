@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -148,6 +149,66 @@ func TestHTTPWriteRequiresPermission(t *testing.T) {
 		t.Fatalf("upload status = %d", resp.StatusCode)
 	}
 	resp.Body.Close()
+}
+
+func TestHTTPMessagesWorkWithReadOnlyPermission(t *testing.T) {
+	root := t.TempDir()
+	_, ts := testServer(t, root, share.PermissionReadOnly)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/api/messages")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var empty []share.Message
+	if err := json.NewDecoder(resp.Body).Decode(&empty); err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK || len(empty) != 0 {
+		t.Fatalf("initial messages status=%d body=%#v", resp.StatusCode, empty)
+	}
+
+	resp = postJSON(t, ts.URL+"/api/messages", bytes.NewBufferString(`{"text":"hello","clientId":"client-1"}`))
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("send message status = %d", resp.StatusCode)
+	}
+	var sent share.Message
+	if err := json.NewDecoder(resp.Body).Decode(&sent); err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if sent.ClientID != "client-1" || sent.Text != "hello" {
+		t.Fatalf("sent message = %#v", sent)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".lanfolder", "messages.jsonl")); err != nil {
+		t.Fatalf("expected messages file to be created: %v", err)
+	}
+
+	resp, err = http.Get(ts.URL + "/api/messages")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var messages []share.Message
+	if err := json.NewDecoder(resp.Body).Decode(&messages); err != nil {
+		t.Fatal(err)
+	}
+	if len(messages) != 1 || messages[0].ID != sent.ID {
+		t.Fatalf("messages = %#v, want sent message", messages)
+	}
+}
+
+func TestHTTPMessageRejectsLargeRequest(t *testing.T) {
+	root := t.TempDir()
+	_, ts := testServer(t, root, share.PermissionReadOnly)
+	defer ts.Close()
+
+	resp := postJSON(t, ts.URL+"/api/messages", bytes.NewBufferString(`{"text":"hello","clientId":"`+strings.Repeat("a", 20<<10)+`"}`))
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("large message request status = %d", resp.StatusCode)
+	}
 }
 
 func TestHTTPRejectsTraversal(t *testing.T) {

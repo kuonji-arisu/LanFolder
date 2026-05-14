@@ -122,8 +122,11 @@ func createUniqueDir(dir, name string, mode os.FileMode) (string, error) {
 	}
 }
 
-func isTrashPath(rel string) bool {
-	return rel == ".trash" || strings.HasPrefix(rel, ".trash/")
+func isManagedPath(rel string) bool {
+	return rel == ".trash" ||
+		strings.HasPrefix(rel, ".trash/") ||
+		rel == ".lanfolder" ||
+		strings.HasPrefix(rel, ".lanfolder/")
 }
 
 func slashRel(rel string) string {

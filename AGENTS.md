@@ -8,7 +8,8 @@
 - Keep permission metadata in Go; frontend code may use literal permission types but must not duplicate labels or descriptions.
 - Preserve the split between desktop Wails commands and LAN HTTP file APIs.
 - Keep path safety and file-operation rules inside `internal/share`.
+- Keep LAN message storage and validation inside `internal/share`; frontend may derive display labels from client IDs.
 - Preserve the trusted-LAN security model. Do not add authentication, password, or token layers unless the product direction changes.
-- Treat `.trash` as a reserved managed directory that cannot be deleted through the LAN web API.
+- Treat `.trash` and `.lanfolder` as reserved managed directories that cannot be accessed through the LAN file API.
 - Preserve server-mode build separation with `//go:build server` and `//go:build !server`.
 - When changing Go service models exposed to the frontend, regenerate Wails TypeScript bindings.

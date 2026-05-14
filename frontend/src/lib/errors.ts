@@ -27,6 +27,7 @@ const fallbackMessage = "操作失败，请重试";
 const messages: Record<string, ErrorTranslator> = {
   invalid_request: () => "请求格式无效",
   invalid_path: () => "路径无效",
+  invalid_message: () => "消息不能为空，且不能超过 2000 个字符",
   cannot_delete_root: () => "不能删除共享根目录",
   permission_denied: () => "没有权限执行此操作",
   not_found: () => "文件或目录不存在",

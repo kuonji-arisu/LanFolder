@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { ArrowUp, Folder, Plus, RefreshCw, UploadCloud } from "lucide-vue-next";
+import { ArrowUp, Folder, MessageSquareText, Plus, RefreshCw, UploadCloud } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { TaskResult } from "@/composables/useAsyncTask";
@@ -10,6 +10,14 @@ import { useWebFilesStore } from "@/stores/webFiles";
 const files = useWebFilesStore();
 const { showResultError } = useErrorToast();
 const uploadInput = ref<HTMLInputElement | null>(null);
+
+defineProps<{
+  messagesOpen?: boolean;
+}>();
+
+const emit = defineEmits<{
+  (event: "toggleMessages"): void;
+}>();
 
 async function runWithToast(action: () => Promise<TaskResult<unknown>>) {
   showResultError(await action());
@@ -37,6 +45,9 @@ async function createFolder() {
       </div>
       <button class="icon-button" aria-label="刷新" @click="runWithToast(() => files.load())">
         <RefreshCw class="h-5 w-5" />
+      </button>
+      <button class="icon-button" :class="{ 'icon-button--active': messagesOpen }" aria-label="传递字符" @click="emit('toggleMessages')">
+        <MessageSquareText class="h-5 w-5" />
       </button>
     </div>
 
@@ -88,13 +99,14 @@ async function createFolder() {
 .toolbar-main {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: var(--space-3);
   max-width: var(--content-max-width);
   margin: 0 auto;
 }
 
 .title-block {
+  flex: 1;
   min-width: 0;
 }
 
@@ -183,6 +195,11 @@ async function createFolder() {
   border-radius: 9px;
   background: var(--color-bg-control);
   color: var(--color-text-primary);
+}
+
+.icon-button--active {
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
 }
 
 @media (min-width: 760px) {

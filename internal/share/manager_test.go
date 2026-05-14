@@ -99,9 +99,32 @@ func TestDeleteTrashIsAlwaysRejected(t *testing.T) {
 	}
 }
 
-func TestListAlwaysHidesTrash(t *testing.T) {
+func TestDeleteManagedPathsAreAlwaysRejected(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, ".lanfolder"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".lanfolder", "messages.jsonl"), []byte("{}\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	m := NewManager()
+	if err := m.Configure(root, PermissionManage, true); err != nil {
+		t.Fatal(err)
+	}
+	for _, target := range []string{".lanfolder", ".lanfolder/messages.jsonl"} {
+		if err := m.Delete(target); !errors.Is(err, ErrInvalidPath) {
+			t.Fatalf("Delete(%q) error = %v, want ErrInvalidPath", target, err)
+		}
+	}
+}
+
+func TestListAlwaysHidesManagedPaths(t *testing.T) {
 	root := t.TempDir()
 	if err := os.Mkdir(filepath.Join(root, ".trash"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(root, ".lanfolder"), 0755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(root, ".secret"), []byte("hidden"), 0644); err != nil {
@@ -117,12 +140,111 @@ func TestListAlwaysHidesTrash(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, entry := range result.Entries {
-		if entry.Name == ".trash" {
-			t.Fatal("expected .trash to be hidden from listings")
+		if entry.Name == ".trash" || entry.Name == ".lanfolder" {
+			t.Fatalf("expected managed path %q to be hidden from listings", entry.Name)
 		}
 	}
 	if len(result.Entries) != 1 || result.Entries[0].Name != ".secret" {
 		t.Fatalf("expected other hidden files to remain visible, got %#v", result.Entries)
+	}
+}
+
+func TestMessagesValidateAndRoundTrip(t *testing.T) {
+	root := t.TempDir()
+	store := NewMessageStore()
+	if _, err := store.Send(root, "client-1", "   "); !errors.Is(err, ErrInvalidMessage) {
+		t.Fatalf("empty message error = %v, want ErrInvalidMessage", err)
+	}
+	if _, err := store.Send(root, "client-1", strings.Repeat("a", MaxMessageTextChars+1)); !errors.Is(err, ErrInvalidMessage) {
+		t.Fatalf("long message error = %v, want ErrInvalidMessage", err)
+	}
+	if _, err := store.Send(root, "", "hello"); !errors.Is(err, ErrInvalidMessage) {
+		t.Fatalf("empty client id error = %v, want ErrInvalidMessage", err)
+	}
+	if _, err := store.Send(root, strings.Repeat("a", maxClientIDChars+1), "hello"); !errors.Is(err, ErrInvalidMessage) {
+		t.Fatalf("long client id error = %v, want ErrInvalidMessage", err)
+	}
+
+	first, err := store.Send(root, "client-1", " hello ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := store.Send(root, "client-2", "收到")
+	if err != nil {
+		t.Fatal(err)
+	}
+	messages, err := store.List(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(messages) != 2 {
+		t.Fatalf("messages = %d, want 2", len(messages))
+	}
+	if messages[0].ID != first.ID || messages[0].Text != "hello" || messages[1].ID != second.ID {
+		t.Fatalf("messages were not returned in write order: %#v", messages)
+	}
+}
+
+func TestConcurrentMessagesDoNotCorruptJSONL(t *testing.T) {
+	root := t.TempDir()
+	store := NewMessageStore()
+	const count = 12
+	var wg sync.WaitGroup
+	errs := make(chan error, count)
+	for i := 0; i < count; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := store.Send(root, "client-1", "hello")
+			errs <- err
+		}()
+	}
+	wg.Wait()
+	close(errs)
+
+	for err := range errs {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	messages, err := store.List(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(messages) != count {
+		t.Fatalf("messages = %d, want %d", len(messages), count)
+	}
+}
+
+func TestListMessagesSkipsInvalidJSONLLines(t *testing.T) {
+	root := t.TempDir()
+	store := NewMessageStore()
+	first, err := store.Send(root, "client-1", "hello")
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, err := os.OpenFile(filepath.Join(root, ".lanfolder", "messages.jsonl"), os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := file.WriteString("{bad json}\n"); err != nil {
+		_ = file.Close()
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	second, err := store.Send(root, "client-1", "again")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	messages, err := store.List(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(messages) != 2 || messages[0].ID != first.ID || messages[1].ID != second.ID {
+		t.Fatalf("messages = %#v, want valid lines only", messages)
 	}
 }
 

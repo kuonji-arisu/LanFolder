@@ -33,6 +33,33 @@ func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
+func (s *Server) handleMessages(w http.ResponseWriter, r *http.Request) {
+	messages, err := s.manager.ListMessages()
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, messages)
+}
+
+func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
+	var body struct {
+		Text     string `json:"text"`
+		ClientID string `json:"clientId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeErrorCode(w, http.StatusBadRequest, "invalid_request", nil)
+		return
+	}
+	message, err := s.manager.SendMessage(body.ClientID, body.Text)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, message)
+}
+
 func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 	file, entry, err := s.manager.OpenForDownload(r.URL.Query().Get("path"))
 	if err != nil {

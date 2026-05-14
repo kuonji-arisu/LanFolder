@@ -18,6 +18,7 @@ type Manager struct {
 	rootReal   string
 	permission Permission
 	showHidden bool
+	messages   *MessageStore
 }
 
 type ResolvedPath struct {
@@ -28,7 +29,7 @@ type ResolvedPath struct {
 }
 
 func NewManager() *Manager {
-	return &Manager{permission: PermissionReadOnly}
+	return &Manager{permission: PermissionReadOnly, messages: NewMessageStore()}
 }
 
 func (m *Manager) Configure(root string, permission Permission, showHidden bool) error {
@@ -80,6 +81,9 @@ func (m *Manager) resolveExisting(rel string) (ResolvedPath, error) {
 	m.mu.RUnlock()
 	if root == "" || rootReal == "" {
 		return ResolvedPath{}, ErrInvalidRoot
+	}
+	if isManagedPath(cleaned) {
+		return ResolvedPath{}, ErrInvalidPath
 	}
 	if !showHidden && containsHiddenSegment(cleaned) {
 		return ResolvedPath{}, ErrNotFound
@@ -136,7 +140,7 @@ func (m *Manager) List(rel string) (ListResult, error) {
 	for _, item := range items {
 		name := item.Name()
 		entryPath := path.Join(resolved.CleanRel, name)
-		if isTrashPath(slashRel(entryPath)) {
+		if isManagedPath(slashRel(entryPath)) {
 			continue
 		}
 		if !showHidden && strings.HasPrefix(name, ".") {
@@ -246,7 +250,7 @@ func (m *Manager) Delete(rel string) error {
 	if cleaned == "" {
 		return ErrCannotDeleteRoot
 	}
-	if isTrashPath(cleaned) {
+	if isManagedPath(cleaned) {
 		return ErrInvalidPath
 	}
 	resolved, err := m.resolveExisting(cleaned)

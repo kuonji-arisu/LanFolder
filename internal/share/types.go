@@ -51,6 +51,13 @@ type ListResult struct {
 	Entries    []Entry `json:"entries"`
 }
 
+type Message struct {
+	ID        string    `json:"id"`
+	CreatedAt time.Time `json:"createdAt"`
+	ClientID  string    `json:"clientId"`
+	Text      string    `json:"text"`
+}
+
 type Status struct {
 	Root       string     `json:"root"`
 	Permission Permission `json:"permission"`

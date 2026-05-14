@@ -1,6 +1,6 @@
 import type { Permission } from "./constants";
 import { createAppError } from "@/lib/errors";
-import type { PermissionOption } from "@/types/app";
+import type { MessageEntry, PermissionOption } from "@/types/app";
 
 export interface FileEntry {
   name: string;
@@ -70,4 +70,14 @@ export const fileApi = {
       body: JSON.stringify({ path, name }),
     }),
   downloadUrl: (path: string) => `/api/download?path=${encodeURIComponent(path)}`,
+};
+
+export const messageApi = {
+  list: () => request<MessageEntry[]>("/api/messages"),
+  send: (text: string, clientId: string) =>
+    request<MessageEntry>("/api/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, clientId }),
+    }),
 };
