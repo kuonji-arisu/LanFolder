@@ -5,6 +5,7 @@ import { useWebMessagesStore } from "@/stores/webMessages";
 
 vi.mock("@/lib/api", () => ({
   messageApi: {
+    clear: vi.fn(),
     list: vi.fn(),
     send: vi.fn(),
   },
@@ -42,6 +43,17 @@ describe("useWebMessagesStore", () => {
     expect(api.send).toHaveBeenCalledWith("sent", "client-1234");
     expect(store.messages).toHaveLength(1);
     expect(store.draft).toBe("");
+  });
+
+  it("clears messages", async () => {
+    api.clear.mockResolvedValue({ ok: true });
+    const store = useWebMessagesStore();
+    store.messages = [message("1", "hello")];
+
+    await store.clear();
+
+    expect(api.clear).toHaveBeenCalledTimes(1);
+    expect(store.messages).toEqual([]);
   });
 });
 

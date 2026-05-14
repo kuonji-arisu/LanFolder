@@ -14,6 +14,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/messages", s.handleMessages)
 	mux.HandleFunc("GET /api/download", s.handleDownload)
 	mux.HandleFunc("POST /api/messages", s.handleSendMessage)
+	mux.HandleFunc("DELETE /api/messages", s.handleClearMessages)
 	mux.HandleFunc("POST /api/upload", s.handleUpload)
 	mux.HandleFunc("POST /api/delete", s.handleDelete)
 	mux.HandleFunc("POST /api/mkdir", s.handleMkdir)

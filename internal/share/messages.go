@@ -112,6 +112,21 @@ func (s *MessageStore) Send(root, clientID, text string) (Message, error) {
 	return message, nil
 }
 
+func (s *MessageStore) Clear(root string) error {
+	root, err := cleanMessageRoot(root)
+	if err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if err := os.Remove(messagesPath(root)); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
+}
+
 func (m *Manager) ListMessages() ([]Message, error) {
 	root, err := m.messageRoot()
 	if err != nil {
@@ -126,6 +141,14 @@ func (m *Manager) SendMessage(clientID, text string) (Message, error) {
 		return Message{}, err
 	}
 	return m.messages.Send(root, clientID, text)
+}
+
+func (m *Manager) ClearMessages() error {
+	root, err := m.messageRoot()
+	if err != nil {
+		return err
+	}
+	return m.messages.Clear(root)
 }
 
 func (m *Manager) messageRoot() (string, error) {

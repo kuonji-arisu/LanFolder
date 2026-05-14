@@ -76,6 +76,11 @@ func (s *Server) Start(cfg Config) error {
 		s.mu.Unlock()
 		return err
 	}
+	if err := s.manager.ClearMessages(); err != nil {
+		_ = ln.Close()
+		s.mu.Unlock()
+		return err
+	}
 	s.httpSrv = httpSrv
 	s.config = cfg
 	s.mu.Unlock()

@@ -61,6 +61,78 @@ func TestStartWhileRunningDoesNotReconfigureManager(t *testing.T) {
 	}
 }
 
+func TestStartClearsExistingMessages(t *testing.T) {
+	root := t.TempDir()
+	messageDir := filepath.Join(root, ".lanfolder")
+	if err := os.MkdirAll(messageDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(messageDir, "messages.jsonl"), []byte("{}\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	s := New(os.DirFS(root))
+	if err := s.Start(Config{
+		Host:       "127.0.0.1",
+		Port:       freePort(t),
+		Root:       root,
+		Permission: share.PermissionReadOnly,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if err := s.Stop(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	if _, err := os.Stat(filepath.Join(messageDir, "messages.jsonl")); !os.IsNotExist(err) {
+		t.Fatalf("expected server start to clear messages file, got %v", err)
+	}
+}
+
+func TestStartDoesNotClearMessagesWhenListenFails(t *testing.T) {
+	root := t.TempDir()
+	messageDir := filepath.Join(root, ".lanfolder")
+	if err := os.MkdirAll(messageDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	messagePath := filepath.Join(messageDir, "messages.jsonl")
+	if err := os.WriteFile(messagePath, []byte("{}\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ln.Close()
+	_, portText, err := net.SplitHostPort(ln.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	port, err := strconv.Atoi(portText)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s := New(os.DirFS(root))
+	err = s.Start(Config{
+		Host:       "127.0.0.1",
+		Port:       port,
+		Root:       root,
+		Permission: share.PermissionReadOnly,
+	})
+	if err == nil {
+		t.Fatal("expected start to fail when port is already in use")
+	}
+	if _, err := os.Stat(messagePath); err != nil {
+		t.Fatalf("messages file should remain when server did not start: %v", err)
+	}
+}
+
 func TestHTTPListMkdirUploadDeleteFlow(t *testing.T) {
 	root := t.TempDir()
 	s, ts := testServer(t, root, share.PermissionManage)
@@ -196,6 +268,22 @@ func TestHTTPMessagesWorkWithReadOnlyPermission(t *testing.T) {
 	}
 	if len(messages) != 1 || messages[0].ID != sent.ID {
 		t.Fatalf("messages = %#v, want sent message", messages)
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, ts.URL+"/api/messages", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("clear messages status = %d", resp.StatusCode)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".lanfolder", "messages.jsonl")); !os.IsNotExist(err) {
+		t.Fatalf("expected messages file to be removed: %v", err)
 	}
 }
 

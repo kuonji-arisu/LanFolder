@@ -80,4 +80,5 @@ export const messageApi = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text, clientId }),
     }),
+  clear: () => request<{ ok: true }>("/api/messages", { method: "DELETE" }),
 };

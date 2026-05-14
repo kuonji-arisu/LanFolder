@@ -28,6 +28,13 @@ export const useWebMessagesStore = defineStore("webMessages", () => {
     });
   }
 
+  async function clear() {
+    return run(async () => {
+      await messageApi.clear();
+      messages.value = [];
+    });
+  }
+
   return {
     messages,
     draft,
@@ -36,5 +43,6 @@ export const useWebMessagesStore = defineStore("webMessages", () => {
     error,
     load,
     send,
+    clear,
   };
 });

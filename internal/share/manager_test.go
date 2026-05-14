@@ -185,6 +185,30 @@ func TestMessagesValidateAndRoundTrip(t *testing.T) {
 	}
 }
 
+func TestClearMessagesRemovesMessageFile(t *testing.T) {
+	root := t.TempDir()
+	store := NewMessageStore()
+	if _, err := store.Send(root, "client-1", "hello"); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Clear(root); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".lanfolder", "messages.jsonl")); !os.IsNotExist(err) {
+		t.Fatalf("messages file still exists after clear: %v", err)
+	}
+	messages, err := store.List(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(messages) != 0 {
+		t.Fatalf("messages = %#v, want empty", messages)
+	}
+	if err := store.Clear(root); err != nil {
+		t.Fatalf("clear should ignore missing messages file: %v", err)
+	}
+}
+
 func TestConcurrentMessagesDoNotCorruptJSONL(t *testing.T) {
 	root := t.TempDir()
 	store := NewMessageStore()

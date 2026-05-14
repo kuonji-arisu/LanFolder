@@ -60,6 +60,14 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, message)
 }
 
+func (s *Server) handleClearMessages(w http.ResponseWriter, r *http.Request) {
+	if err := s.manager.ClearMessages(); err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
 func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 	file, entry, err := s.manager.OpenForDownload(r.URL.Query().Get("path"))
 	if err != nil {
