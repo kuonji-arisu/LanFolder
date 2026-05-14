@@ -8,9 +8,27 @@ import (
 	"lanfolder/internal/share"
 )
 
+const maxJSONBodyBytes int64 = 16 << 10
+
 type apiError struct {
 	Error  string         `json:"error"`
 	Params map[string]any `json:"params,omitempty"`
+}
+
+func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst any) error {
+	r.Body = http.MaxBytesReader(w, r.Body, maxJSONBodyBytes)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	return decoder.Decode(dst)
+}
+
+func writeJSONDecodeError(w http.ResponseWriter, err error) {
+	var maxBytesErr *http.MaxBytesError
+	if errors.As(err, &maxBytesErr) {
+		writeErrorCode(w, http.StatusRequestEntityTooLarge, "request_too_large", map[string]any{"maxBytes": maxJSONBodyBytes})
+		return
+	}
+	writeErrorCode(w, http.StatusBadRequest, "invalid_request", nil)
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {
@@ -33,6 +51,8 @@ func writeError(w http.ResponseWriter, err error) {
 		writeErrorCode(w, http.StatusBadRequest, "invalid_path", nil)
 	case errors.Is(err, share.ErrInvalidMessage):
 		writeErrorCode(w, http.StatusBadRequest, "invalid_message", nil)
+	case errors.Is(err, share.ErrInvalidFilename):
+		writeErrorCode(w, http.StatusBadRequest, "invalid_filename", map[string]any{"maxBytes": share.MaxFilenameBytes})
 	case errors.Is(err, share.ErrNotFound):
 		writeErrorCode(w, http.StatusNotFound, "not_found", nil)
 	default:

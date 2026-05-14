@@ -301,8 +301,46 @@ func TestHTTPMessageRejectsLargeRequest(t *testing.T) {
 
 	resp := postJSON(t, ts.URL+"/api/messages", bytes.NewBufferString(`{"text":"hello","clientId":"`+strings.Repeat("a", 20<<10)+`"}`))
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusBadRequest {
+	if resp.StatusCode != http.StatusRequestEntityTooLarge {
 		t.Fatalf("large message request status = %d", resp.StatusCode)
+	}
+}
+
+func TestHTTPJSONWriteRejectsLargeRequest(t *testing.T) {
+	root := t.TempDir()
+	_, ts := testServer(t, root, share.PermissionManage)
+	defer ts.Close()
+
+	resp := postJSON(t, ts.URL+"/api/mkdir", bytes.NewBufferString(`{"path":"","name":"`+strings.Repeat("a", 20<<10)+`"}`))
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusRequestEntityTooLarge {
+		t.Fatalf("large mkdir request status = %d", resp.StatusCode)
+	}
+	var body apiError
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body.Error != "request_too_large" {
+		t.Fatalf("large request error body = %#v", body)
+	}
+}
+
+func TestHTTPMkdirRejectsOverlongFilename(t *testing.T) {
+	root := t.TempDir()
+	_, ts := testServer(t, root, share.PermissionManage)
+	defer ts.Close()
+
+	resp := postJSON(t, ts.URL+"/api/mkdir", bytes.NewBufferString(`{"path":"","name":"`+strings.Repeat("a", share.MaxFilenameBytes+1)+`"}`))
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("overlong mkdir status = %d", resp.StatusCode)
+	}
+	var body apiError
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body.Error != "invalid_filename" {
+		t.Fatalf("overlong mkdir error body = %#v", body)
 	}
 }
 

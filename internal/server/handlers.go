@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -43,13 +42,12 @@ func (s *Server) handleMessages(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
 	var body struct {
 		Text     string `json:"text"`
 		ClientID string `json:"clientId"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeErrorCode(w, http.StatusBadRequest, "invalid_request", nil)
+	if err := decodeJSONBody(w, r, &body); err != nil {
+		writeJSONDecodeError(w, err)
 		return
 	}
 	message, err := s.manager.SendMessage(body.ClientID, body.Text)
@@ -122,8 +120,8 @@ func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Path string `json:"path"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeErrorCode(w, http.StatusBadRequest, "invalid_request", nil)
+	if err := decodeJSONBody(w, r, &body); err != nil {
+		writeJSONDecodeError(w, err)
 		return
 	}
 	if err := s.manager.Delete(body.Path); err != nil {
@@ -138,8 +136,8 @@ func (s *Server) handleMkdir(w http.ResponseWriter, r *http.Request) {
 		Path string `json:"path"`
 		Name string `json:"name"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeErrorCode(w, http.StatusBadRequest, "invalid_request", nil)
+	if err := decodeJSONBody(w, r, &body); err != nil {
+		writeJSONDecodeError(w, err)
 		return
 	}
 	entry, err := s.manager.Mkdir(body.Path, body.Name)

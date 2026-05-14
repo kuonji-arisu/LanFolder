@@ -291,6 +291,28 @@ func TestUploadSanitizesAndAvoidsOverwrite(t *testing.T) {
 	}
 }
 
+func TestUploadRejectsOverlongFilename(t *testing.T) {
+	root := t.TempDir()
+	m := NewManager()
+	if err := m.Configure(root, PermissionUpload, false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.SaveUpload("", multipartHeader(t, strings.Repeat("a", MaxFilenameBytes+1)+".txt", "hello")); !errors.Is(err, ErrInvalidFilename) {
+		t.Fatalf("upload error = %v, want ErrInvalidFilename", err)
+	}
+}
+
+func TestUniqueNamePreservesFilenameLimit(t *testing.T) {
+	name := strings.Repeat("a", filenameLimit())
+	next := uniqueName(name, 1)
+	if filenameTooLong(next) {
+		t.Fatalf("unique name length = %d, limit = %d", filenameLength(next), filenameLimit())
+	}
+	if !strings.HasSuffix(next, " (1)") {
+		t.Fatalf("unique name = %q, want numeric suffix", next)
+	}
+}
+
 func TestUploadSanitizesWindowsReservedBasename(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("Windows reserved device filenames are platform-specific")
@@ -394,6 +416,17 @@ func TestConcurrentMkdirUsesUniqueNames(t *testing.T) {
 	}
 	if len(seen) != count {
 		t.Fatalf("created folders = %d, want %d", len(seen), count)
+	}
+}
+
+func TestMkdirRejectsOverlongFilename(t *testing.T) {
+	root := t.TempDir()
+	m := NewManager()
+	if err := m.Configure(root, PermissionUpload, false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.Mkdir("", strings.Repeat("a", MaxFilenameBytes+1)); !errors.Is(err, ErrInvalidFilename) {
+		t.Fatalf("mkdir error = %v, want ErrInvalidFilename", err)
 	}
 }
 

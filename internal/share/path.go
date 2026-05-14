@@ -8,11 +8,14 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"unicode/utf8"
 )
 
 var invalidFilenameChars = regexp.MustCompile(`[<>:"/\\|?*\x00-\x1f]`)
 
 const managedDirName = ".lanfolder"
+const MaxFilenameBytes = 255
+const MaxFilenameRunes = 255
 
 func cleanRel(input string) (string, error) {
 	input = strings.TrimSpace(input)
@@ -80,6 +83,50 @@ func sanitizeFilename(name string) string {
 	return name
 }
 
+func cleanFilename(name string) (string, error) {
+	name = sanitizeFilename(name)
+	if filenameTooLong(name) {
+		return "", ErrInvalidFilename
+	}
+	return name, nil
+}
+
+func filenameTooLong(name string) bool {
+	return filenameLength(name) > filenameLimit()
+}
+
+func filenameLimit() int {
+	if runtime.GOOS == "windows" {
+		return MaxFilenameRunes
+	}
+	return MaxFilenameBytes
+}
+
+func filenameLength(name string) int {
+	if runtime.GOOS == "windows" {
+		return len([]rune(name))
+	}
+	return len([]byte(name))
+}
+
+func trimFilename(name string, limit int) string {
+	if limit <= 0 {
+		return ""
+	}
+	if runtime.GOOS == "windows" {
+		runes := []rune(name)
+		if len(runes) <= limit {
+			return name
+		}
+		return string(runes[:limit])
+	}
+	for len(name) > limit {
+		_, size := utf8.DecodeLastRuneInString(name)
+		name = name[:len(name)-size]
+	}
+	return name
+}
+
 func uniquePath(dir, name string) string {
 	candidate := filepath.Join(dir, name)
 	if _, err := os.Stat(candidate); os.IsNotExist(err) {
@@ -99,7 +146,18 @@ func uniqueName(name string, index int) string {
 	}
 	ext := filepath.Ext(name)
 	base := strings.TrimSuffix(name, ext)
-	return fmt.Sprintf("%s (%d)%s", base, index, ext)
+	suffix := fmt.Sprintf(" (%d)%s", index, ext)
+	if filenameLength(suffix) >= filenameLimit() {
+		suffix = fmt.Sprintf(" (%d)", index)
+	}
+	if filenameLength(suffix) >= filenameLimit() {
+		return trimFilename(suffix, filenameLimit())
+	}
+	base = trimFilename(base, filenameLimit()-filenameLength(suffix))
+	if base == "" {
+		base = trimFilename("file", filenameLimit()-filenameLength(suffix))
+	}
+	return base + suffix
 }
 
 func createUniqueFile(dir, name string, mode os.FileMode) (*os.File, string, error) {

@@ -26,7 +26,15 @@ const fallbackMessage = "操作失败，请重试";
 
 const messages: Record<string, ErrorTranslator> = {
   invalid_request: () => "请求格式无效",
+  request_too_large: (params) => {
+    const maxBytes = typeof params?.maxBytes === "number" ? params.maxBytes : undefined;
+    return maxBytes ? `请求不能超过 ${formatBytes(maxBytes)}` : "请求太大";
+  },
   invalid_path: () => "路径无效",
+  invalid_filename: (params) => {
+    const maxBytes = typeof params?.maxBytes === "number" ? params.maxBytes : undefined;
+    return maxBytes ? `名称不能超过 ${maxBytes} 字节` : "名称过长或无效";
+  },
   invalid_message: () => "消息不能为空，且不能超过 2000 个字符",
   cannot_delete_root: () => "不能删除共享根目录",
   permission_denied: () => "没有权限执行此操作",

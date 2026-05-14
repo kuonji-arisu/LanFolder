@@ -10,4 +10,5 @@ var (
 	ErrNotFound         = errors.New("not found")
 	ErrCannotDeleteRoot = errors.New("cannot delete shared root")
 	ErrInvalidMessage   = errors.New("invalid message")
+	ErrInvalidFilename  = errors.New("invalid filename")
 )

@@ -8,6 +8,8 @@ describe("normalizeError", () => {
 
   it("uses params when translating error codes", () => {
     expect(errorMessage(createAppError("file_too_large", { params: { maxBytes: 512 } }))).toBe("文件不能超过 512 B");
+    expect(errorMessage(createAppError("request_too_large", { params: { maxBytes: 16 << 10 } }))).toBe("请求不能超过 16.0 KB");
+    expect(errorMessage(createAppError("invalid_filename", { params: { maxBytes: 255 } }))).toBe("名称不能超过 255 字节");
   });
 
   it("maps structured command errors from Wails runtime objects", () => {

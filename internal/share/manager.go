@@ -208,7 +208,10 @@ func (m *Manager) SaveUpload(rel string, header *multipart.FileHeader) (Entry, e
 	if err != nil {
 		return Entry{}, err
 	}
-	name := sanitizeFilename(header.Filename)
+	name, err := cleanFilename(header.Filename)
+	if err != nil {
+		return Entry{}, err
+	}
 	src, err := header.Open()
 	if err != nil {
 		return Entry{}, err
@@ -263,7 +266,7 @@ func (m *Manager) Delete(rel string) error {
 	if err := os.MkdirAll(trashDir, 0755); err != nil {
 		return err
 	}
-	name := sanitizeFilename(time.Now().Format("20060102-150405.000000000") + "_" + strings.ReplaceAll(resolved.CleanRel, "/", "_"))
+	name := trashName(resolved.CleanRel)
 	dst := uniquePath(trashDir, name)
 	return os.Rename(resolved.UserPath, dst)
 }
@@ -279,7 +282,10 @@ func (m *Manager) Mkdir(rel, name string) (Entry, error) {
 	if err != nil {
 		return Entry{}, err
 	}
-	name = sanitizeFilename(name)
+	name, err = cleanFilename(name)
+	if err != nil {
+		return Entry{}, err
+	}
 	createdName, err := createUniqueDir(resolved.RealPath, name, 0755)
 	if err != nil {
 		return Entry{}, err
@@ -298,4 +304,16 @@ func (m *Manager) isWithinCurrentRoot(real string) bool {
 	rootReal := m.rootReal
 	m.mu.RUnlock()
 	return rootReal != "" && withinRoot(rootReal, real)
+}
+
+func trashName(rel string) string {
+	prefix := time.Now().Format("20060102-150405.000000000") + "_"
+	name := sanitizeFilename(prefix + strings.ReplaceAll(rel, "/", "_"))
+	if filenameTooLong(name) {
+		name = trimFilename(name, filenameLimit())
+		if name == "" || name == prefix[:len(prefix)-1] {
+			return strings.TrimSuffix(prefix, "_")
+		}
+	}
+	return name
 }
