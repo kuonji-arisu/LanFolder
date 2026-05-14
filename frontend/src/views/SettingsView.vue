@@ -22,23 +22,35 @@ function syncPortDraft() {
 
 watch(() => app.config.port, syncPortDraft, { immediate: true });
 
+function handlePortInput(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const digits = input.value.replace(/\D/g, "");
+  if (input.value !== digits) input.value = digits;
+  portDraft.value = digits;
+  portError.value = "";
+}
+
 async function savePort() {
-  const port = Number(portDraft.value);
-  portError.value = validatePort(portDraft.value, port);
-  if (portError.value) return;
+  const validation = validatePort(portDraft.value);
+  if (!validation.ok) {
+    portError.value = validation.message;
+    return;
+  }
+  portError.value = "";
+  const port = validation.port;
   const result = await app.saveConfig({ port });
   if (!result.ok) {
-    syncPortDraft();
-    if (normalizeError(result.error)?.code === "invalid_port") portError.value = result.message;
-    else showResultError(result);
+    if (normalizeError(result.error)?.code !== "invalid_port") syncPortDraft();
+    portError.value = result.message;
   }
 }
 
-function validatePort(value: string, port: number) {
-  if (!value.trim()) return "请输入端口";
-  if (!Number.isInteger(port)) return "端口必须是整数";
-  if (port <= 0 || port > 65535) return "端口必须在 1 到 65535 之间";
-  return "";
+function validatePort(value: string): { ok: true; port: number } | { ok: false; message: string } {
+  const trimmed = value.trim();
+  if (!trimmed) return { ok: false, message: "请输入端口" };
+  const port = Number(trimmed);
+  if (port <= 0 || port > 65535) return { ok: false, message: "端口必须在 1 到 65535 之间" };
+  return { ok: true, port };
 }
 
 async function saveSettingWithToast(partial: Partial<AppConfig>) {
@@ -51,7 +63,7 @@ async function saveSettingWithToast(partial: Partial<AppConfig>) {
     <div class="settings-form">
       <label class="settings-field">
         <span class="field-label">端口</span>
-        <Input v-model="portDraft" type="number" min="1" max="65535" :aria-invalid="Boolean(portError)" @input="portError = ''" @change="savePort" />
+        <Input v-model="portDraft" type="text" inputmode="numeric" pattern="[0-9]*" :aria-invalid="Boolean(portError)" @input="handlePortInput" @change="savePort" />
         <span v-if="portError" class="field-error">{{ portError }}</span>
         <span v-else class="field-hint">默认 8899，修改后自动重启共享服务</span>
       </label>
