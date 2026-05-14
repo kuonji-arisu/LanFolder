@@ -10,7 +10,7 @@
   <Identity 
     Name="com.lanfolder.app"
     Publisher="CN=LanFolder"
-    Version="0.0.1.0" 
+    Version="0.0.1.0"
     ProcessorArchitecture="x64" />
   
   <Properties>

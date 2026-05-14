@@ -4,8 +4,6 @@ LanFolder is a small desktop app for sharing one local folder with nearby device
 
 Pick a folder, choose a permission level, start sharing, and open the shown address from another phone, tablet, or computer. The other device only needs a browser.
 
-Current version: `0.0.1`
-
 ## What It Does
 
 - Shares a selected local folder over HTTP on your local network

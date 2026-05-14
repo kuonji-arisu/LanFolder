@@ -10,6 +10,9 @@ vars:
   APP_NAME: "LanFolder"
   BIN_DIR: "bin"
   VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
+  APP_VERSION:
+    sh: go run ./tools/bumpversion --print
+  VERSION_LDFLAGS: '-X lanfolder/internal/buildinfo.Version={{.APP_VERSION}}'
 
 tasks:
   build:
@@ -21,6 +24,19 @@ tasks:
     summary: Packages a production build of the application
     cmds:
       - task: "{{OS}}:package"
+
+  version:sync:
+    summary: Syncs release metadata from VERSION
+    cmds:
+      - go run ./tools/bumpversion
+
+  bump:version:
+    summary: Updates VERSION and syncs release metadata
+    cmds:
+      - go run ./tools/bumpversion "{{.VERSION}}"
+    preconditions:
+      - sh: test -n "{{.VERSION}}"
+        msg: "Usage: wails3 task bump:version VERSION=0.0.2"
 
   run:
     summary: Runs the application
