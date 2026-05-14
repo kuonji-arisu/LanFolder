@@ -184,6 +184,13 @@ func TestHTTPListMkdirUploadDeleteFlow(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(root, "docs", "note.txt")); !os.IsNotExist(err) {
 		t.Fatalf("expected uploaded file to move to trash, got %v", err)
 	}
+	trashEntries, err := os.ReadDir(filepath.Join(root, ".lanfolder", "trash"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(trashEntries) != 1 {
+		t.Fatalf("trash entries = %d, want 1", len(trashEntries))
+	}
 	if logs := s.Logs(); len(logs) == 0 {
 		t.Fatal("expected access logs")
 	}

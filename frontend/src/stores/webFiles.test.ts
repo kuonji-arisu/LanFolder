@@ -80,7 +80,7 @@ describe("useWebFilesStore", () => {
   });
 
   it("confirms deletion before deleting and refreshing", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     api.list.mockResolvedValue(listing("", [{ name: "note.txt", path: "note.txt", isDir: false }]));
     api.delete.mockResolvedValue({ ok: true });
     const store = useWebFilesStore();
@@ -88,6 +88,7 @@ describe("useWebFilesStore", () => {
 
     await store.deleteEntry({ name: "note.txt", path: "note.txt", isDir: false, size: 1, modTime: new Date().toISOString() });
 
+    expect(confirm).toHaveBeenCalledWith("删除 note.txt？文件会被移入 .lanfolder/trash。");
     expect(api.delete).toHaveBeenCalledWith("note.txt");
     expect(api.list).toHaveBeenCalledTimes(2);
   });

@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const trashDirName = "trash"
+
 type Manager struct {
 	mu         sync.RWMutex
 	root       string
@@ -257,7 +259,7 @@ func (m *Manager) Delete(rel string) error {
 	if err != nil {
 		return err
 	}
-	trashDir := filepath.Join(root, ".trash")
+	trashDir := filepath.Join(root, managedDirName, trashDirName)
 	if err := os.MkdirAll(trashDir, 0755); err != nil {
 		return err
 	}

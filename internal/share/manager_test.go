@@ -42,7 +42,7 @@ func TestDeleteMovesToTrash(t *testing.T) {
 	if _, err := os.Stat(target); !os.IsNotExist(err) {
 		t.Fatalf("expected original file to be moved, got %v", err)
 	}
-	trashEntries, err := os.ReadDir(filepath.Join(root, ".trash"))
+	trashEntries, err := os.ReadDir(filepath.Join(root, ".lanfolder", "trash"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestDeleteSymlinkMovesLinkAndKeepsTarget(t *testing.T) {
 	if _, err := os.Lstat(link); !os.IsNotExist(err) {
 		t.Fatalf("expected symlink to move to trash, got %v", err)
 	}
-	trashEntries, err := os.ReadDir(filepath.Join(root, ".trash"))
+	trashEntries, err := os.ReadDir(filepath.Join(root, ".lanfolder", "trash"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,9 +84,9 @@ func TestDeleteSymlinkMovesLinkAndKeepsTarget(t *testing.T) {
 	}
 }
 
-func TestDeleteTrashIsAlwaysRejected(t *testing.T) {
+func TestDeleteManagedTrashPathIsAlwaysRejected(t *testing.T) {
 	root := t.TempDir()
-	if err := os.Mkdir(filepath.Join(root, ".trash"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, ".lanfolder", "trash"), 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -94,8 +94,8 @@ func TestDeleteTrashIsAlwaysRejected(t *testing.T) {
 	if err := m.Configure(root, PermissionManage, false); err != nil {
 		t.Fatal(err)
 	}
-	if err := m.Delete(".trash"); !errors.Is(err, ErrInvalidPath) {
-		t.Fatalf("expected .trash deletion to be rejected, got %v", err)
+	if err := m.Delete(".lanfolder/trash"); !errors.Is(err, ErrInvalidPath) {
+		t.Fatalf("expected managed trash deletion to be rejected, got %v", err)
 	}
 }
 
@@ -121,9 +121,6 @@ func TestDeleteManagedPathsAreAlwaysRejected(t *testing.T) {
 
 func TestListAlwaysHidesManagedPaths(t *testing.T) {
 	root := t.TempDir()
-	if err := os.Mkdir(filepath.Join(root, ".trash"), 0755); err != nil {
-		t.Fatal(err)
-	}
 	if err := os.Mkdir(filepath.Join(root, ".lanfolder"), 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -140,12 +137,12 @@ func TestListAlwaysHidesManagedPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, entry := range result.Entries {
-		if entry.Name == ".trash" || entry.Name == ".lanfolder" {
+		if entry.Name == ".lanfolder" {
 			t.Fatalf("expected managed path %q to be hidden from listings", entry.Name)
 		}
 	}
 	if len(result.Entries) != 1 || result.Entries[0].Name != ".secret" {
-		t.Fatalf("expected other hidden files to remain visible, got %#v", result.Entries)
+		t.Fatalf("expected non-managed hidden files to remain visible, got %#v", result.Entries)
 	}
 }
 

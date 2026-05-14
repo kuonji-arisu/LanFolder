@@ -15,7 +15,6 @@ import (
 )
 
 const (
-	messageDirName      = ".lanfolder"
 	messagesFileName    = "messages.jsonl"
 	MaxMessageTextChars = 2000
 	maxClientIDChars    = 128
@@ -92,7 +91,7 @@ func (s *MessageStore) Send(root, clientID, text string) (Message, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	dir := filepath.Join(root, messageDirName)
+	dir := filepath.Join(root, managedDirName)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return Message{}, err
 	}
@@ -177,7 +176,7 @@ func cleanMessageRoot(root string) (string, error) {
 }
 
 func messagesPath(root string) string {
-	return filepath.Join(root, messageDirName, messagesFileName)
+	return filepath.Join(root, managedDirName, messagesFileName)
 }
 
 func newMessageID() (string, error) {

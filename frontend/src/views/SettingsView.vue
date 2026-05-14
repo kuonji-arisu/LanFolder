@@ -117,7 +117,7 @@ async function saveSettingWithToast(partial: Partial<AppConfig>) {
 
       <div class="delete-note">
         <Trash2 class="h-4 w-4" />
-        <span>删除会移入共享目录下的 .trash</span>
+        <span>删除会移入共享目录下的 .lanfolder/trash</span>
       </div>
     </div>
   </main>

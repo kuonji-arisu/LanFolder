@@ -48,7 +48,7 @@ export const useWebFilesStore = defineStore("webFiles", () => {
   }
 
   async function deleteEntry(entry: FileEntry) {
-    if (!window.confirm(`删除 ${entry.name}？文件会被移入 .trash。`)) return taskSuccess(undefined);
+    if (!window.confirm(`删除 ${entry.name}？文件会被移入 .lanfolder/trash。`)) return taskSuccess(undefined);
     return run(async () => {
       await fileApi.delete(entry.path);
       await fetchListing(currentPath.value);

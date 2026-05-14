@@ -12,6 +12,8 @@ import (
 
 var invalidFilenameChars = regexp.MustCompile(`[<>:"/\\|?*\x00-\x1f]`)
 
+const managedDirName = ".lanfolder"
+
 func cleanRel(input string) (string, error) {
 	input = strings.TrimSpace(input)
 	input = strings.ReplaceAll(input, "\\", "/")
@@ -123,10 +125,8 @@ func createUniqueDir(dir, name string, mode os.FileMode) (string, error) {
 }
 
 func isManagedPath(rel string) bool {
-	return rel == ".trash" ||
-		strings.HasPrefix(rel, ".trash/") ||
-		rel == ".lanfolder" ||
-		strings.HasPrefix(rel, ".lanfolder/")
+	return rel == managedDirName ||
+		strings.HasPrefix(rel, managedDirName+"/")
 }
 
 func slashRel(rel string) string {

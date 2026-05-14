@@ -14,7 +14,7 @@ Current version: `0.0.1`
 - Supports browsing, downloading, uploading, creating folders, and deleting files based on permission
 - Provides a lightweight browser message panel for passing short text between LAN devices
 - Keeps recent access logs in the desktop app
-- Moves deleted files into the shared folder's reserved `.trash` directory
+- Moves deleted files into the shared folder's reserved `.lanfolder/trash` directory
 - Stores message history in the shared folder's reserved `.lanfolder` directory
 - Sanitizes uploaded filenames and avoids overwriting existing files
 - Blocks path traversal so requests stay inside the shared folder
@@ -40,8 +40,8 @@ The app focuses on filesystem safety instead:
 - Hidden files are blocked unless explicitly enabled
 - Uploaded names are sanitized
 - Existing files are not overwritten by uploads
-- Deletes are moved into `.trash`
-- `.trash` and `.lanfolder` are reserved and cannot be accessed through the file API
+- Deletes are moved into `.lanfolder/trash`
+- `.lanfolder` is reserved and cannot be accessed through the file API
 
 Use `readonly` when you only need to send files out, and switch to `upload` or `manage` only when you trust the devices on the LAN.
 
