@@ -17,7 +17,7 @@
         PackageDisplayName="LanFolder"
         PublisherName="CN=LanFolder"
         PublisherDisplayName="LanFolder"
-        Version="0.0.1.0"
+        Version="0.0.2.0"
         PackageDescription="LAN folder sharing desktop app">
         <Capabilities>
             <Capability Name="runFullTrust" />
