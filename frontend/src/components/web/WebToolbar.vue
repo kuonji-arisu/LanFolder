@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import type { TaskResult } from "@/composables/useAsyncTask";
 import { useErrorToast } from "@/composables/useErrorToast";
 import { useWebFilesStore } from "@/stores/webFiles";
+import { toast } from "vue-sonner";
 
 const files = useWebFilesStore();
 const { showResultError } = useErrorToast();
@@ -24,7 +25,9 @@ async function runWithToast(action: () => Promise<TaskResult<unknown>>) {
 }
 
 async function handleUpload(fileList: FileList | null) {
-  showResultError(await files.uploadFiles(fileList));
+  const result = await files.uploadFiles(fileList);
+  showResultError(result);
+  if (result.ok && result.value) toast.success("上传成功");
   if (uploadInput.value) uploadInput.value.value = "";
 }
 

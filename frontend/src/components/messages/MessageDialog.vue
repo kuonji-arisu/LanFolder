@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useErrorToast } from "@/composables/useErrorToast";
 import { useWebMessagesStore } from "@/stores/webMessages";
+import { toast } from "vue-sonner";
 
 const open = defineModel<boolean>("open", { required: true });
 const messages = useWebMessagesStore();
@@ -23,7 +24,10 @@ async function sendMessage() {
 async function clearMessages() {
   const result = await messages.clear();
   showResultError(result);
-  if (result.ok) clearConfirmOpen.value = false;
+  if (result.ok) {
+    clearConfirmOpen.value = false;
+    toast.success("消息已清空");
+  }
 }
 </script>
 

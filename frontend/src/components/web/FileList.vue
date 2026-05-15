@@ -5,6 +5,7 @@ import { useErrorToast } from "@/composables/useErrorToast";
 import { fileApi } from "@/lib/api";
 import { formatBytes, formatDate } from "@/lib/format";
 import { useWebFilesStore } from "@/stores/webFiles";
+import { toast } from "vue-sonner";
 
 const files = useWebFilesStore();
 const { showResultError } = useErrorToast();
@@ -14,7 +15,9 @@ async function openEntry(entry: Parameters<typeof files.openEntry>[0]) {
 }
 
 async function deleteEntry(entry: Parameters<typeof files.deleteEntry>[0]) {
-  showResultError(await files.deleteEntry(entry));
+  const result = await files.deleteEntry(entry);
+  showResultError(result);
+  if (result.ok && result.value) toast.success("删除成功");
 }
 </script>
 
