@@ -24,6 +24,8 @@ var assets embed.FS
 //go:embed build/appicon.png
 var appIcon []byte
 
+const appSingleInstanceID = "app.lanfolder.desktop"
+
 func main() {
 	staticFS, err := fs.Sub(assets, "frontend/dist")
 	if err != nil {
@@ -41,9 +43,10 @@ func main() {
 	}
 
 	app := application.New(application.Options{
-		Name:         "LanFolder",
-		Description:  "A minimal LAN folder sharing desktop app",
-		MarshalError: marshalCommandError,
+		Name:           "LanFolder",
+		Description:    "A minimal LAN folder sharing desktop app",
+		MarshalError:   marshalCommandError,
+		SingleInstance: singleInstanceOptions(appService),
 		Services: []application.Service{
 			application.NewService(appService),
 		},
@@ -73,7 +76,9 @@ func main() {
 		BackgroundColour: application.NewRGB(246, 247, 250),
 		URL:              "/",
 	})
+	appService.mu.Lock()
 	appService.window = window
+	appService.mu.Unlock()
 	app.Event.OnApplicationEvent(events.Common.ThemeChanged, func(event *application.ApplicationEvent) {
 		appService.emitStateChanged("theme")
 	})
@@ -81,6 +86,15 @@ func main() {
 
 	if err := app.Run(); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func singleInstanceOptions(appService *AppService) *application.SingleInstanceOptions {
+	return &application.SingleInstanceOptions{
+		UniqueID: appSingleInstanceID,
+		OnSecondInstanceLaunch: func(application.SecondInstanceData) {
+			appService.showMainWindow()
+		},
 	}
 }
 

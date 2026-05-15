@@ -162,6 +162,18 @@ func (s *AppService) Logs() []server.LogEntry {
 	return s.server.Logs()
 }
 
+func (s *AppService) showMainWindow() {
+	s.mu.Lock()
+	window := s.window
+	s.mu.Unlock()
+	if window == nil {
+		return
+	}
+	window.Show()
+	window.Restore()
+	window.Focus()
+}
+
 func (s *AppService) restartLocked() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 func TestCommandErrorMessageIsStableCode(t *testing.T) {
@@ -34,4 +36,18 @@ func TestMarshalCommandErrorFallsBackForUnknownErrors(t *testing.T) {
 	if data := marshalCommandError(errors.New("boom")); data != nil {
 		t.Fatalf("unknown error marshal = %s, want nil", data)
 	}
+}
+
+func TestSingleInstanceOptions(t *testing.T) {
+	options := singleInstanceOptions(&AppService{})
+	if options == nil {
+		t.Fatal("single instance options should not be nil")
+	}
+	if options.UniqueID != appSingleInstanceID {
+		t.Fatalf("unique ID = %q, want %q", options.UniqueID, appSingleInstanceID)
+	}
+	if options.OnSecondInstanceLaunch == nil {
+		t.Fatal("second instance callback should be set")
+	}
+	options.OnSecondInstanceLaunch(application.SecondInstanceData{})
 }
