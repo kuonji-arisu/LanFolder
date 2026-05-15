@@ -21,6 +21,16 @@ describe("normalizeError", () => {
     expect(errorMessage(err)).toBe("端口必须在 1 到 65535 之间");
   });
 
+  it("maps desktop command errors from Wails CallError causes", () => {
+    const err = new Error(JSON.stringify({
+      message: "shared_dir_required",
+      cause: { error: "shared_dir_required" },
+      kind: "RuntimeError",
+    }));
+    expect(normalizeError(err)?.code).toBe("shared_dir_required");
+    expect(errorMessage(err)).toBe("请先选择共享目录");
+  });
+
   it("does not infer codes from plain error messages", () => {
     expect(normalizeError(new Error("invalid_port"))).toBeNull();
     expect(errorMessage(new Error("invalid_port"))).toBe("操作失败，请重试");

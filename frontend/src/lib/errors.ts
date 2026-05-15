@@ -20,6 +20,12 @@ type ErrorPayload = {
   params?: ErrorParams;
 };
 
+type WailsCallErrorPayload = {
+  message?: string;
+  cause?: unknown;
+  kind?: string;
+};
+
 type ErrorTranslator = (params?: ErrorParams) => string;
 
 const fallbackMessage = "操作失败，请重试";
@@ -83,6 +89,8 @@ export function translateError(error: AppError) {
 }
 
 function readPayload(value: unknown): ErrorPayload | null {
+  if (typeof value === "string") return parsePayload(value);
+
   if (isRecord(value) && typeof value.error === "string") {
     return {
       error: value.error,
@@ -98,6 +106,8 @@ function readPayload(value: unknown): ErrorPayload | null {
 function parsePayload(value: string): ErrorPayload | null {
   try {
     const parsed = JSON.parse(value) as unknown;
+    const wailsPayload = readWailsCallErrorPayload(parsed);
+    if (wailsPayload) return wailsPayload;
     if (isRecord(parsed) && typeof parsed.error === "string") {
       return {
         error: parsed.error,
@@ -110,8 +120,17 @@ function parsePayload(value: string): ErrorPayload | null {
   return null;
 }
 
+function readWailsCallErrorPayload(value: unknown): ErrorPayload | null {
+  if (!isWailsCallErrorPayload(value)) return null;
+  return readPayload(value.cause);
+}
+
 function isAppError(value: unknown): value is AppError {
   return value instanceof Error && typeof (value as AppError).code === "string";
+}
+
+function isWailsCallErrorPayload(value: unknown): value is WailsCallErrorPayload {
+  return isRecord(value) && typeof value.kind === "string" && "cause" in value;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

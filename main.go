@@ -41,8 +41,9 @@ func main() {
 	}
 
 	app := application.New(application.Options{
-		Name:        "LanFolder",
-		Description: "A minimal LAN folder sharing desktop app",
+		Name:         "LanFolder",
+		Description:  "A minimal LAN folder sharing desktop app",
+		MarshalError: marshalCommandError,
 		Services: []application.Service{
 			application.NewService(appService),
 		},

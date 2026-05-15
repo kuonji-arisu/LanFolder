@@ -32,11 +32,19 @@ func newCommandError(err error, params map[string]any) error {
 }
 
 func (e commandError) Error() string {
-	data, err := json.Marshal(e)
-	if err != nil {
-		return e.Code
+	return e.Code
+}
+
+func marshalCommandError(err error) []byte {
+	var commandErr commandError
+	if !errors.As(err, &commandErr) {
+		return nil
 	}
-	return string(data)
+	data, jsonErr := json.Marshal(commandErr)
+	if jsonErr != nil {
+		return nil
+	}
+	return data
 }
 
 type AppService struct {
