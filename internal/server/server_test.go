@@ -133,6 +133,37 @@ func TestStartDoesNotClearMessagesWhenListenFails(t *testing.T) {
 	}
 }
 
+func TestStopClearsMessages(t *testing.T) {
+	root := t.TempDir()
+	messagePath := filepath.Join(root, ".lanfolder", "messages.jsonl")
+
+	s := New(os.DirFS(root))
+	if err := s.Start(Config{
+		Host:       "127.0.0.1",
+		Port:       freePort(t),
+		Root:       root,
+		Permission: share.PermissionReadOnly,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.manager.SendMessage("client-1", "hello"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(messagePath); err != nil {
+		t.Fatalf("expected messages file before stop: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := s.Stop(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Stat(messagePath); !os.IsNotExist(err) {
+		t.Fatalf("expected server stop to clear messages file, got %v", err)
+	}
+}
+
 func TestHTTPListMkdirUploadDeleteFlow(t *testing.T) {
 	root := t.TempDir()
 	s, ts := testServer(t, root, share.PermissionManage)

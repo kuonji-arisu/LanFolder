@@ -106,7 +106,7 @@ func (s *Server) Stop(ctx context.Context) error {
 	if srv == nil {
 		return nil
 	}
-	return srv.Shutdown(ctx)
+	return errors.Join(srv.Shutdown(ctx), s.manager.ClearMessages())
 }
 
 func (s *Server) Status() RuntimeStatus {
