@@ -15,12 +15,16 @@ type Config struct {
 }
 
 type LogEntry struct {
-	Time   time.Time `json:"time"`
-	Method string    `json:"method"`
-	Path   string    `json:"path"`
-	Remote string    `json:"remote"`
-	Status int       `json:"status"`
-	Error  string    `json:"error,omitempty"`
+	Time       time.Time `json:"time"`
+	Method     string    `json:"method"`
+	Path       string    `json:"path"`
+	Remote     string    `json:"remote"`
+	Status     int       `json:"status"`
+	Action     string    `json:"action"`
+	Target     string    `json:"target,omitempty"`
+	TargetPath string    `json:"targetPath,omitempty"`
+	Detail     string    `json:"detail,omitempty"`
+	Error      string    `json:"error,omitempty"`
 }
 
 type RuntimeStatus struct {

@@ -18,6 +18,10 @@ export class LogEntry {
     "path": string;
     "remote": string;
     "status": number;
+    "action": string;
+    "target"?: string;
+    "targetPath"?: string;
+    "detail"?: string;
     "error"?: string;
 
     /** Creates a new LogEntry instance. */
@@ -36,6 +40,9 @@ export class LogEntry {
         }
         if (!("status" in $$source)) {
             this["status"] = 0;
+        }
+        if (!("action" in $$source)) {
+            this["action"] = "";
         }
 
         Object.assign(this, $$source);

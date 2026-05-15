@@ -227,6 +227,80 @@ func TestHTTPListMkdirUploadDeleteFlow(t *testing.T) {
 	}
 }
 
+func TestAccessLogsSkipStaticAssetsAndStatusPolling(t *testing.T) {
+	root := t.TempDir()
+	s, ts := testServer(t, root, share.PermissionReadOnly)
+	defer ts.Close()
+
+	for _, url := range []string{
+		ts.URL + "/",
+		ts.URL + "/favicon.ico",
+		ts.URL + "/api/status",
+	} {
+		resp, err := http.Get(url)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+	}
+
+	logs := s.Logs()
+	if len(logs) != 1 {
+		t.Fatalf("logs = %#v, want only the page open", logs)
+	}
+	if logs[0].Action != "打开分享页" {
+		t.Fatalf("log action = %q", logs[0].Action)
+	}
+}
+
+func TestAccessLogsUseHumanReadableActions(t *testing.T) {
+	root := t.TempDir()
+	s, ts := testServer(t, root, share.PermissionManage)
+	defer ts.Close()
+
+	resp := postJSON(t, ts.URL+"/api/mkdir", bytes.NewBufferString(`{"path":"","name":"docs"}`))
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("mkdir status = %d", resp.StatusCode)
+	}
+
+	resp, err := http.Get(ts.URL + "/api/list?path=docs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+
+	logs := s.Logs()
+	if len(logs) != 2 {
+		t.Fatalf("logs = %#v, want two meaningful entries", logs)
+	}
+	if logs[0].Action != "浏览" || logs[0].Target != "docs" {
+		t.Fatalf("list log = %#v", logs[0])
+	}
+	if logs[0].TargetPath != "docs" {
+		t.Fatalf("list target path = %q", logs[0].TargetPath)
+	}
+	if logs[1].Action != "新建文件夹" || logs[1].Target != "docs" {
+		t.Fatalf("mkdir log = %#v", logs[1])
+	}
+}
+
+func TestAccessLogsUseBasenameWithFullTargetPath(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/download?path=music/live/song.mp3", nil)
+	req.RemoteAddr = "10.0.0.2:12345"
+
+	log, ok := newLogEntry(req, http.StatusOK, &accessLogMetadata{})
+	if !ok {
+		t.Fatal("expected download request to be logged")
+	}
+	if log.Target != "song.mp3" {
+		t.Fatalf("target = %q", log.Target)
+	}
+	if log.TargetPath != "music/live/song.mp3" {
+		t.Fatalf("target path = %q", log.TargetPath)
+	}
+}
+
 func TestHTTPWriteRequiresPermission(t *testing.T) {
 	root := t.TempDir()
 	_, ts := testServer(t, root, share.PermissionReadOnly)

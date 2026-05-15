@@ -3,9 +3,28 @@ import { ArrowLeft } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { useAppStore } from "@/stores/app";
 import { formatDate } from "@/lib/format";
+import type { AccessLog } from "@/types/app";
 
 const app = useAppStore();
 const router = useRouter();
+
+function logTitle(log: AccessLog) {
+  if (!log.target) return log.action || "访问共享";
+  if (log.action === "上传") return `上传到 ${log.target}`;
+  return `${log.action || "访问共享"} ${log.target}`;
+}
+
+function logTitleHint(log: AccessLog) {
+  if (!log.targetPath) return logTitle(log);
+  if (log.action === "上传") return `上传到 ${log.targetPath}`;
+  return `${log.action || "访问共享"} ${log.targetPath}`;
+}
+
+function remoteLabel(log: AccessLog) {
+  const parts = [log.remote];
+  if (log.detail) parts.push(log.detail);
+  return parts.filter(Boolean).join(" · ");
+}
 </script>
 
 <template>
@@ -14,10 +33,7 @@ const router = useRouter();
       <button class="back-button" title="返回" @click="router.push({ name: 'share' })">
         <ArrowLeft class="h-4 w-4" />
       </button>
-      <div>
-        <div class="field-label">访问日志</div>
-        <p class="field-hint">{{ app.logs.length }} 条记录</p>
-      </div>
+      <p class="field-hint">{{ app.logs.length }} 条记录</p>
     </div>
 
     <div v-if="!app.logs.length" class="empty-state">暂无访问记录</div>
@@ -25,12 +41,12 @@ const router = useRouter();
     <div v-else class="log-list">
       <div v-for="log in app.logs" :key="`${log.time}-${log.remote}-${log.path}`" class="log-row">
         <div class="log-main">
-          <span class="log-path">{{ log.method }} {{ log.path }}</span>
-          <span :class="['status-code', log.status >= 400 && 'status-code--error']">{{ log.status }}</span>
+          <span class="log-title" :title="logTitleHint(log)">{{ logTitle(log) }}</span>
+          <span v-if="log.status >= 400" class="status-code status-code--error">{{ log.status }}</span>
         </div>
         <div class="log-meta">
-          <span class="mono">{{ log.remote }}</span>
-          <span>{{ formatDate(log.time) }}</span>
+          <span class="log-remote">{{ remoteLabel(log) }}</span>
+          <span class="log-time">{{ formatDate(log.time) }}</span>
         </div>
       </div>
     </div>
@@ -52,19 +68,11 @@ const router = useRouter();
   height: 0;
 }
 
-.logs-header,
-.empty-state,
-.log-list {
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-
 .logs-header {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3);
+  padding: 0 0 var(--space-2);
 }
 
 .back-button {
@@ -84,19 +92,16 @@ const router = useRouter();
   background: var(--color-bg-hover);
 }
 
-.field-label {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
-}
-
 .field-hint {
-  margin: var(--space-1) 0 0;
+  margin: 0;
   color: var(--color-text-tertiary);
   font-size: var(--font-size-xs);
 }
 
 .empty-state {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
   display: flex;
   min-height: 110px;
   align-items: center;
@@ -107,12 +112,14 @@ const router = useRouter();
 }
 
 .log-list {
-  margin-top: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
   overflow: hidden;
 }
 
 .log-row {
-  padding: var(--space-3);
+  padding: 13px var(--space-3);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -120,35 +127,49 @@ const router = useRouter();
   border-bottom: 0;
 }
 
-.log-main,
-.log-meta {
+.log-main {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
 }
 
-.log-path {
+.log-title {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--color-text-primary);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
 }
 
 .log-meta {
-  margin-top: var(--space-2);
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: 6px;
   color: var(--color-text-tertiary);
   font-size: var(--font-size-xs);
+}
+
+.log-remote {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.log-time {
+  flex-shrink: 0;
 }
 
 .status-code {
   flex-shrink: 0;
   border-radius: 999px;
   padding: 3px 8px;
-  background: color-mix(in srgb, var(--color-success) 12%, transparent);
-  color: color-mix(in srgb, var(--color-success) 78%, var(--color-text-primary));
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
 }
@@ -156,9 +177,5 @@ const router = useRouter();
 .status-code--error {
   background: color-mix(in srgb, var(--color-danger) 12%, transparent);
   color: var(--color-danger);
-}
-
-.mono {
-  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
 }
 </style>

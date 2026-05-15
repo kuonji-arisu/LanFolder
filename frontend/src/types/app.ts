@@ -24,6 +24,10 @@ export interface AccessLog {
   path: string;
   remote: string;
   status: number;
+  action: string;
+  target?: string;
+  targetPath?: string;
+  detail?: string;
 }
 
 export interface MessageEntry {
