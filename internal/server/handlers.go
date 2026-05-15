@@ -76,7 +76,7 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer file.Close()
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", entry.Name))
+	w.Header().Set("Content-Disposition", attachmentDisposition(entry.Name))
 	http.ServeContent(w, r, entry.Name, entry.ModTime, file)
 }
 

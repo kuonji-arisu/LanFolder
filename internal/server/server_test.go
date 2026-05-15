@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -298,6 +299,45 @@ func TestAccessLogsUseBasenameWithFullTargetPath(t *testing.T) {
 	}
 	if log.TargetPath != "music/live/song.mp3" {
 		t.Fatalf("target path = %q", log.TargetPath)
+	}
+}
+
+func TestAttachmentDispositionEncodesUTF8Filename(t *testing.T) {
+	got := attachmentDisposition("中文-日本語-😀.txt")
+	want := `attachment; filename="_-_-_.txt"; filename*=UTF-8''%E4%B8%AD%E6%96%87-%E6%97%A5%E6%9C%AC%E8%AA%9E-%F0%9F%98%80.txt`
+	if got != want {
+		t.Fatalf("content disposition = %q, want %q", got, want)
+	}
+}
+
+func TestHTTPDownloadUsesUTF8ContentDisposition(t *testing.T) {
+	root := t.TempDir()
+	name := "中文-日本語-😀.txt"
+	if err := os.WriteFile(filepath.Join(root, name), []byte("hello"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	_, ts := testServer(t, root, share.PermissionReadOnly)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/api/download?path=" + url.QueryEscape(name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("download status = %d", resp.StatusCode)
+	}
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "hello" {
+		t.Fatalf("download body = %q", string(data))
+	}
+	got := resp.Header.Get("Content-Disposition")
+	want := attachmentDisposition(name)
+	if got != want {
+		t.Fatalf("content disposition = %q, want %q", got, want)
 	}
 }
 
