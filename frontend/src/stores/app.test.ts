@@ -60,6 +60,35 @@ describe("useAppStore", () => {
     if (!saved.ok) expect(saved.error).toEqual(expect.objectContaining({ kind: "RuntimeError" }));
   });
 
+  it("serializes settings saves and builds each save from the latest snapshot", async () => {
+    const first = deferred<AppState>();
+    const second = deferred<AppState>();
+    api.state.mockResolvedValue(appState({ config: { autoShare: false, keepInTray: false } }));
+    api.saveSettings.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    const store = useAppStore();
+    await store.loadSnapshot();
+
+    const firstSave = store.saveConfig({ autoShare: true });
+    const secondSave = store.saveConfig({ keepInTray: true });
+    await Promise.resolve();
+
+    expect(api.saveSettings).toHaveBeenCalledTimes(1);
+    expect(api.saveSettings).toHaveBeenNthCalledWith(1, expect.objectContaining({ autoShare: true, keepInTray: false }));
+
+    first.resolve(appState({ config: { autoShare: true, keepInTray: false } }));
+    await firstSave;
+    await Promise.resolve();
+
+    expect(api.saveSettings).toHaveBeenCalledTimes(2);
+    expect(api.saveSettings).toHaveBeenNthCalledWith(2, expect.objectContaining({ autoShare: true, keepInTray: true }));
+
+    second.resolve(appState({ config: { autoShare: true, keepInTray: true } }));
+    await secondSave;
+
+    expect(store.state?.config.autoShare).toBe(true);
+    expect(store.state?.config.keepInTray).toBe(true);
+  });
+
   it("uses the same snapshot commit path for sharing commands", async () => {
     api.state.mockResolvedValue(appState({ running: false }));
     const store = useAppStore();
@@ -93,18 +122,31 @@ describe("useAppStore", () => {
 
 });
 
-function appState(overrides: { permission?: "readonly" | "upload" | "manage"; running?: boolean; port?: number } = {}): AppState {
-  const permission = overrides.permission ?? "readonly";
-  const port = overrides.port ?? 8899;
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
+function appState(
+  overrides: { permission?: "readonly" | "upload" | "manage"; running?: boolean; port?: number; config?: Partial<AppState["config"]> } = {},
+): AppState {
+  const permission = overrides.permission ?? overrides.config?.permission ?? "readonly";
+  const port = overrides.port ?? overrides.config?.port ?? 8899;
   return {
     config: {
       sharedDir: "C:/Share",
-      port,
-      permission,
       autoShare: false,
       startAtLogin: false,
       keepInTray: false,
       showHiddenFiles: false,
+      ...overrides.config,
+      permission,
+      port,
     },
     server: {
       running: overrides.running ?? false,

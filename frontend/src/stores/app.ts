@@ -24,6 +24,7 @@ export const useAppStore = defineStore("app", () => {
   const { busy, error, run: runTask } = useAsyncTask();
   let refreshTimer: number | undefined;
   let stopStateChangedListener: (() => void) | undefined;
+  let settingsSaveQueue = Promise.resolve();
 
   const config = computed(() => state.value?.config ?? defaultConfig);
   const isRunning = computed(() => Boolean(state.value?.server.running));
@@ -58,8 +59,17 @@ export const useAppStore = defineStore("app", () => {
     return { ...config.value, ...partial, port: Number(partial.port ?? config.value.port) };
   }
 
-  async function saveConfig(partial: Partial<AppConfig> = {}) {
-    return commitSnapshot(() => appApi.saveSettings(nextSettings(partial)));
+  function enqueueSettingsSave(task: () => Promise<TaskResult<AppState>>) {
+    const run = settingsSaveQueue.then(task, task);
+    settingsSaveQueue = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  }
+
+  function saveConfig(partial: Partial<AppConfig> = {}) {
+    return enqueueSettingsSave(() => commitSnapshot(() => appApi.saveSettings(nextSettings(partial))));
   }
 
   async function setPermission(permission: Permission) {

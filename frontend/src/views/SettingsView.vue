@@ -60,10 +60,10 @@ async function saveSettingWithToast(partial: Partial<AppConfig>) {
 
 <template>
   <main class="settings-view">
-    <div class="settings-form" :aria-busy="app.busy">
+    <div class="settings-form">
       <label class="settings-field">
         <span class="field-label">端口</span>
-        <Input v-model="portDraft" type="text" inputmode="numeric" pattern="[0-9]*" :disabled="app.busy" :aria-invalid="Boolean(portError)" @input="handlePortInput" @change="savePort" />
+        <Input v-model="portDraft" type="text" inputmode="numeric" pattern="[0-9]*" :aria-invalid="Boolean(portError)" @input="handlePortInput" @change="savePort" />
         <span v-if="portError" class="field-error">{{ portError }}</span>
         <span v-else class="field-hint">默认 8899，修改后自动重启共享服务</span>
       </label>
@@ -88,7 +88,7 @@ async function saveSettingWithToast(partial: Partial<AppConfig>) {
           <div class="field-label">启动应用后自动共享</div>
           <p class="field-hint">打开应用后使用上次目录自动运行</p>
         </div>
-        <Switch :checked="app.config.autoShare" :disabled="app.busy" @update:checked="saveSettingWithToast({ autoShare: $event })" />
+        <Switch :checked="app.config.autoShare" @update:checked="saveSettingWithToast({ autoShare: $event })" />
       </div>
 
       <div class="settings-row">
@@ -96,7 +96,7 @@ async function saveSettingWithToast(partial: Partial<AppConfig>) {
           <div class="field-label">开机自动启动</div>
           <p class="field-hint">{{ app.state?.capabilities.startAtLogin ? "登录系统后自动打开 LanFolder" : "当前平台暂不支持" }}</p>
         </div>
-        <Switch :checked="app.config.startAtLogin" :disabled="app.busy || !app.state?.capabilities.startAtLogin" @update:checked="saveSettingWithToast({ startAtLogin: $event })" />
+        <Switch :checked="app.config.startAtLogin" :disabled="!app.state?.capabilities.startAtLogin" @update:checked="saveSettingWithToast({ startAtLogin: $event })" />
       </div>
 
       <div class="settings-row">
@@ -104,7 +104,7 @@ async function saveSettingWithToast(partial: Partial<AppConfig>) {
           <div class="field-label">关闭窗口后保持后台运行</div>
           <p class="field-hint">关闭窗口时隐藏到系统托盘</p>
         </div>
-        <Switch :checked="app.config.keepInTray" :disabled="app.busy" @update:checked="saveSettingWithToast({ keepInTray: $event })" />
+        <Switch :checked="app.config.keepInTray" @update:checked="saveSettingWithToast({ keepInTray: $event })" />
       </div>
 
       <div class="settings-row">
@@ -112,7 +112,7 @@ async function saveSettingWithToast(partial: Partial<AppConfig>) {
           <div class="field-label">显示隐藏文件</div>
           <p class="field-hint">显示点号文件，受管目录仍会隐藏</p>
         </div>
-        <Switch :checked="app.config.showHiddenFiles" :disabled="app.busy" @update:checked="saveSettingWithToast({ showHiddenFiles: $event })" />
+        <Switch :checked="app.config.showHiddenFiles" @update:checked="saveSettingWithToast({ showHiddenFiles: $event })" />
       </div>
 
       <div class="delete-note">
