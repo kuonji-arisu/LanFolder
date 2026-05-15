@@ -56,15 +56,19 @@ func Load() Config {
 }
 
 func Save(cfg Config) error {
+	p, err := Path()
+	if err != nil {
+		return err
+	}
+	return saveToPath(p, cfg)
+}
+
+func saveToPath(p string, cfg Config) error {
 	if cfg.Port == 0 {
 		cfg.Port = 8899
 	}
 	if !cfg.Permission.Valid() {
 		cfg.Permission = share.PermissionReadOnly
-	}
-	p, err := Path()
-	if err != nil {
-		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(p), 0755); err != nil {
 		return err
@@ -73,5 +77,5 @@ func Save(cfg Config) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(p, data, 0600)
+	return writeFileAtomic(p, data, 0600)
 }
