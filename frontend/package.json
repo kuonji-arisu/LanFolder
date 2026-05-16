@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@vueuse/core": "^14.3.0",
-    "@wailsio/runtime": "latest",
+    "@wailsio/runtime": "3.0.0-alpha.79",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-vue-next": "^0.468.0",

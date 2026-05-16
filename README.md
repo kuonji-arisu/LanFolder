@@ -1,98 +1,123 @@
 # LanFolder
 
+[English](README.md) | [中文](README.zh-CN.md)
+
 LanFolder is a small desktop app for sharing one local folder with nearby devices on the same trusted LAN.
 
-Pick a folder, choose a permission level, start sharing, and open the shown address from another phone, tablet, or computer. The other device only needs a browser.
+It started as a personal vibe-coding project: I wanted a quick way to move files between my computer, phone, and tablet without setting up SMB, plugging in a cable, or sending files through a chat app.
 
-## What It Does
+It is not meant to be a full file server, NAS, sync service, or internet-facing app. It is a simple local-network utility with a desktop control panel and a browser-based file manager.
 
-- Shares a selected local folder over HTTP on your local network
-- Shows LAN access addresses in the desktop app
-- Provides a mobile-friendly browser file manager
-- Supports browsing, downloading, uploading, creating folders, and deleting files based on permission
-- Provides a lightweight browser message panel for passing short text between LAN devices
-- Keeps recent access logs in the desktop app
-- Moves deleted files into the shared folder's reserved `.lanfolder/trash` directory
-- Stores message history in the shared folder's reserved `.lanfolder` directory
-- Sanitizes uploaded filenames and avoids overwriting existing files
-- Blocks path traversal so requests stay inside the shared folder
+## Features
+
+- Share one selected local folder over HTTP on your LAN
+- Show available LAN addresses in the desktop app
+- Open the shared folder from a phone, tablet, or another computer with a browser
+- Browse and download files
+- Upload files when upload permission is enabled
+- Create folders when upload permission is enabled
+- Delete files when manage permission is enabled
+- Move deleted files into `.lanfolder/trash`
+- Send short text messages between LAN devices
+- Store messages in `.lanfolder/messages.jsonl`
+- Show recent access logs in the desktop app
+- Hide dotfiles by default
+- Keep running in the tray if enabled
+- Start sharing automatically if enabled
 
 ## Permission Levels
 
-`readonly`
-: Browse and download files.
+LanFolder has three permission modes.
 
-`upload`
-: Browse, download, upload files, and create folders.
+### `readonly`
 
-`manage`
-: Browse, download, upload, create folders, and delete files.
+Devices on the LAN can browse and download files.
+
+This is the safest default mode.
+
+### `upload`
+
+Devices on the LAN can browse, download, upload files, and create folders.
+
+Use this when you want to receive files from trusted devices.
+
+### `manage`
+
+Devices on the LAN can browse, download, upload, create folders, and delete files.
+
+Deleted files are moved into `.lanfolder/trash` instead of being removed directly.
+
+Use this only on a trusted network.
 
 ## Safety Model
 
-LanFolder is built for trusted local networks, such as your home Wi-Fi or a temporary private hotspot. It does not include accounts, passwords, or token-based access control. Anyone who can reach the displayed server address can use the currently selected permission level.
+LanFolder is designed for trusted local networks, such as home Wi-Fi, a private hotspot, or a temporary LAN between your own devices.
 
-The LAN server rejects non-private remote addresses by default and blocks cross-site write requests, but it does not provide authentication.
+It does not provide authentication. Anyone who can reach the displayed LAN address can use the current permission level.
 
-The app focuses on filesystem safety instead:
+The server rejects non-private remote addresses by default and blocks cross-site write requests, but these checks are not a replacement for authentication. Do not expose LanFolder to the internet or use it on networks with untrusted devices.
 
-- Request paths are constrained to the selected shared folder
-- Hidden files are blocked unless explicitly enabled
-- Uploaded names are sanitized
-- Existing files are not overwritten by uploads
-- Deletes are moved into `.lanfolder/trash`
-- `.lanfolder` is reserved and cannot be accessed through the file API
+Use `readonly` by default, and switch to `upload` or `manage` only when the network and devices around you are trusted.
 
-Use `readonly` when you only need to send files out, and switch to `upload` or `manage` only when you trust the devices on the LAN.
+## Managed Directory
 
-## Desktop App
+LanFolder creates a reserved `.lanfolder` directory inside the shared folder for app-managed data:
 
-The desktop app has two main screens:
+```text
+.lanfolder/
+├── trash/
+└── messages.jsonl
+````
 
-- Share: choose the shared folder, start or stop sharing, copy the access address, and view recent requests.
-- Settings: change the port, permission level, auto-share behavior, tray behavior, startup behavior, theme, and hidden-file visibility.
+The `.lanfolder` directory is hidden from the LAN file API and cannot be accessed or deleted through the browser interface.
 
-## Browser File Manager
+## Project Scope
 
-Devices on the same LAN can open the displayed address in a browser. The web interface adapts to the selected permission level:
+LanFolder is a personal tool first. The goal is to keep it small, direct, and easy to use.
 
-- `readonly`: file list and download actions
-- `upload`: upload and new-folder controls
-- `manage`: delete controls in addition to upload features
+The code still pays attention to the risky parts, especially filesystem behavior: path traversal, symlink escape, reserved managed paths, upload filenames, accidental overwrite, hidden files, and delete behavior.
 
-The browser interface also includes a manual-refresh message panel for short text. Messages are stored as JSONL under `.lanfolder/messages.jsonl` and use a per-browser local client ID only to distinguish devices on the trusted LAN.
+## Tech Stack
 
-## From Source
+* Go
+* Wails 3
+* Vue 3
+* TypeScript
+* Pinia
+* Tailwind CSS
+* shadcn-vue style components
+
+## Development
 
 Requirements:
 
-- Go
-- pnpm
-- Wails 3
+* Go
+* pnpm
+* Wails 3
 
 Install frontend dependencies:
 
-```powershell
+```bash
 cd frontend
 pnpm install
 ```
 
-Run the desktop app:
+Run in development mode:
 
-```powershell
+```bash
 cd ..
 wails3 dev
 ```
 
 Build:
 
-```powershell
+```bash
 wails3 build
 ```
 
 Run checks:
 
-```powershell
+```bash
 go test ./...
 cd frontend
 pnpm test
