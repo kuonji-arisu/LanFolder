@@ -39,6 +39,7 @@ const messages: Record<string, ErrorTranslator> = {
   access_not_required: () => "当前不需要访问批准",
   access_approval_required: () => "请先启用新设备访问批准",
   access_request_unavailable: () => "访问请求已过期或不存在",
+  access_request_limited: () => "当前访问请求过多，请稍后再试",
   request_too_large: (params) => {
     const maxBytes = typeof params?.maxBytes === "number" ? params.maxBytes : undefined;
     return maxBytes ? `请求不能超过 ${formatBytes(maxBytes)}` : "请求太大";

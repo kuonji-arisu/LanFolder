@@ -534,6 +534,72 @@ func TestAccessApprovalProtectsDataRoutes(t *testing.T) {
 	}
 }
 
+func TestAccessRequestDedupesPendingClient(t *testing.T) {
+	root := t.TempDir()
+	s, ts := testServerWithAccess(t, root, share.PermissionReadOnly)
+	defer ts.Close()
+
+	first := postJSON(t, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
+	defer first.Body.Close()
+	if first.StatusCode != http.StatusCreated {
+		t.Fatalf("first request status = %d", first.StatusCode)
+	}
+
+	second := postJSON(t, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
+	defer second.Body.Close()
+	if second.StatusCode != http.StatusOK {
+		t.Fatalf("duplicate request status = %d", second.StatusCode)
+	}
+	if pending := s.PendingAccessRequests(); len(pending) != 1 {
+		t.Fatalf("pending = %#v, want one request", pending)
+	}
+}
+
+func TestAccessRequestLimitReturnsTooManyRequests(t *testing.T) {
+	root := t.TempDir()
+	_, ts := testServerWithAccess(t, root, share.PermissionReadOnly)
+	defer ts.Close()
+
+	for i := 0; i < share.MaxAccessPendingCount; i++ {
+		req, err := http.NewRequest(http.MethodPost, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("User-Agent", "client-"+strconv.Itoa(i))
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("request %d status = %d", i, resp.StatusCode)
+		}
+	}
+
+	req, err := http.NewRequest(http.MethodPost, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "overflow")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusTooManyRequests {
+		t.Fatalf("overflow status = %d, want %d", resp.StatusCode, http.StatusTooManyRequests)
+	}
+	var body apiError
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body.Error != "access_request_limited" {
+		t.Fatalf("overflow body = %#v", body)
+	}
+}
+
 func TestAccessApprovalApproveSetsCookieAndAllowsAPI(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "note.txt"), []byte("hello"), 0644); err != nil {

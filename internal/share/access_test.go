@@ -1,6 +1,7 @@
 package share
 
 import (
+	"strconv"
 	"testing"
 	"time"
 )
@@ -10,7 +11,7 @@ func TestAccessPendingRequestExpiresBeforeApprove(t *testing.T) {
 	now := time.Date(2026, 5, 16, 12, 0, 0, 0, time.UTC)
 	manager.now = func() time.Time { return now }
 
-	req, err := manager.CreateRequest("192.168.1.20", "test")
+	req, _, err := manager.CreateRequest("192.168.1.20", "test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -19,7 +20,10 @@ func TestAccessPendingRequestExpiresBeforeApprove(t *testing.T) {
 	if err := manager.Approve(req.ID); err != ErrAccessRequestNotFound {
 		t.Fatalf("approve expired request error = %v, want %v", err, ErrAccessRequestNotFound)
 	}
-	result, token := manager.Poll(req.ID)
+	result, token, err := manager.Poll(req.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if result.State != AccessPollExpired || token != "" {
 		t.Fatalf("poll expired = %#v token %q", result, token)
 	}
@@ -27,14 +31,20 @@ func TestAccessPendingRequestExpiresBeforeApprove(t *testing.T) {
 
 func TestAccessApproveCreatesValidSessionToken(t *testing.T) {
 	manager := NewAccessManager()
-	req, err := manager.CreateRequest("192.168.1.20", "test")
+	req, _, err := manager.CreateRequest("192.168.1.20", "test")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := manager.Approve(req.ID); err != nil {
 		t.Fatal(err)
 	}
-	result, token := manager.Poll(req.ID)
+	if sessions := manager.Sessions(); len(sessions) != 0 {
+		t.Fatalf("sessions before poll = %#v, want none", sessions)
+	}
+	result, token, err := manager.Poll(req.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if result.State != AccessPollApproved || token == "" {
 		t.Fatalf("poll approved = %#v token %q", result, token)
 	}
@@ -44,5 +54,41 @@ func TestAccessApproveCreatesValidSessionToken(t *testing.T) {
 	manager.Clear()
 	if manager.Validate(token) {
 		t.Fatal("cleared token should not validate")
+	}
+}
+
+func TestAccessCreateRequestDedupesPendingClient(t *testing.T) {
+	manager := NewAccessManager()
+	first, created, err := manager.CreateRequest("192.168.1.20", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !created {
+		t.Fatal("first request should be created")
+	}
+	second, created, err := manager.CreateRequest("192.168.1.20", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created {
+		t.Fatal("duplicate request should reuse existing pending request")
+	}
+	if second.ID != first.ID || second.Code != first.Code {
+		t.Fatalf("duplicate request = %#v, want %#v", second, first)
+	}
+	if pending := manager.Pending(); len(pending) != 1 {
+		t.Fatalf("pending = %#v, want one request", pending)
+	}
+}
+
+func TestAccessCreateRequestLimitsPendingCount(t *testing.T) {
+	manager := NewAccessManager()
+	for i := 0; i < MaxAccessPendingCount; i++ {
+		if _, created, err := manager.CreateRequest("192.168.1.20", "test-"+strconv.Itoa(i)); err != nil || !created {
+			t.Fatalf("request %d created=%v err=%v", i, created, err)
+		}
+	}
+	if _, _, err := manager.CreateRequest("192.168.1.21", "overflow"); err != ErrAccessRequestLimited {
+		t.Fatalf("overflow err = %v, want %v", err, ErrAccessRequestLimited)
 	}
 }

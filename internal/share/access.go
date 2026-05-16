@@ -12,11 +12,14 @@ import (
 	"time"
 )
 
-const AccessRequestTTL = 2 * time.Minute
+const (
+	AccessRequestTTL      = 2 * time.Minute
+	MaxAccessPendingCount = 32
+)
 
 var (
 	ErrAccessRequestNotFound = errors.New("access_request_not_found")
-	ErrAccessRequestExpired  = errors.New("access_request_expired")
+	ErrAccessRequestLimited  = errors.New("access_request_limited")
 )
 
 type AccessRequest struct {
@@ -29,6 +32,9 @@ type AccessRequest struct {
 }
 
 type AccessSession struct {
+	// IP and UserAgent are display-only metadata for the desktop approval UI.
+	// Validate treats the session cookie as a bearer token and does not bind it
+	// to either value.
 	ID        string    `json:"id"`
 	IP        string    `json:"ip"`
 	UserAgent string    `json:"userAgent"`
@@ -50,7 +56,7 @@ type AccessPollResult struct {
 
 type completedAccessRequest struct {
 	state     AccessPollState
-	token     string
+	request   AccessRequest
 	expiresAt time.Time
 }
 
@@ -73,16 +79,28 @@ func NewAccessManager() *AccessManager {
 	}
 }
 
-func (m *AccessManager) CreateRequest(ip, userAgent string) (AccessRequest, error) {
+func (m *AccessManager) CreateRequest(ip, userAgent string) (AccessRequest, bool, error) {
+	now := m.now()
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.pruneExpiredLocked(now)
+	for _, req := range m.pending {
+		if req.IP == ip && req.UserAgent == userAgent {
+			return req, false, nil
+		}
+	}
+	if len(m.pending) >= MaxAccessPendingCount {
+		return AccessRequest{}, false, ErrAccessRequestLimited
+	}
 	id, err := accessRandomToken(32)
 	if err != nil {
-		return AccessRequest{}, err
+		return AccessRequest{}, false, err
 	}
 	code, err := accessDisplayCode()
 	if err != nil {
-		return AccessRequest{}, err
+		return AccessRequest{}, false, err
 	}
-	now := m.now()
 	req := AccessRequest{
 		ID:        id,
 		Code:      code,
@@ -91,12 +109,8 @@ func (m *AccessManager) CreateRequest(ip, userAgent string) (AccessRequest, erro
 		CreatedAt: now,
 		ExpiresAt: now.Add(AccessRequestTTL),
 	}
-
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.pruneExpiredLocked(now)
 	m.pending[req.ID] = req
-	return req, nil
+	return req, true, nil
 }
 
 func (m *AccessManager) Pending() []AccessRequest {
@@ -123,29 +137,12 @@ func (m *AccessManager) Approve(id string) error {
 	if !ok {
 		return ErrAccessRequestNotFound
 	}
-	if !now.Before(req.ExpiresAt) {
-		delete(m.pending, id)
-		m.completed[id] = completedAccessRequest{state: AccessPollExpired, expiresAt: now.Add(AccessRequestTTL)}
-		return ErrAccessRequestExpired
-	}
-	token, err := accessRandomToken(32)
-	if err != nil {
-		return err
-	}
-	sessionID, err := accessRandomToken(16)
-	if err != nil {
-		return err
-	}
-	hash := sha256.Sum256([]byte(token))
-	m.sessions[hash] = AccessSession{
-		ID:        sessionID,
-		IP:        req.IP,
-		UserAgent: req.UserAgent,
-		CreatedAt: now,
-	}
-	m.sessionID[sessionID] = hash
 	delete(m.pending, id)
-	m.completed[id] = completedAccessRequest{state: AccessPollApproved, token: token, expiresAt: now.Add(AccessRequestTTL)}
+	m.completed[id] = completedAccessRequest{
+		state:     AccessPollApproved,
+		request:   req,
+		expiresAt: now.Add(AccessRequestTTL),
+	}
 	return nil
 }
 
@@ -162,19 +159,47 @@ func (m *AccessManager) Deny(id string) error {
 	return nil
 }
 
-func (m *AccessManager) Poll(id string) (AccessPollResult, string) {
+func (m *AccessManager) Poll(id string) (AccessPollResult, string, error) {
 	now := m.now()
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.pruneExpiredLocked(now)
 	if completed, ok := m.completed[id]; ok {
+		if completed.state == AccessPollApproved {
+			token, err := m.createSessionLocked(completed.request, now)
+			if err != nil {
+				return AccessPollResult{}, "", err
+			}
+			delete(m.completed, id)
+			return AccessPollResult{State: completed.state}, token, nil
+		}
 		delete(m.completed, id)
-		return AccessPollResult{State: completed.state}, completed.token
+		return AccessPollResult{State: completed.state}, "", nil
 	}
 	if _, ok := m.pending[id]; ok {
-		return AccessPollResult{State: AccessPollPending}, ""
+		return AccessPollResult{State: AccessPollPending}, "", nil
 	}
-	return AccessPollResult{State: AccessPollExpired}, ""
+	return AccessPollResult{State: AccessPollExpired}, "", nil
+}
+
+func (m *AccessManager) createSessionLocked(req AccessRequest, now time.Time) (string, error) {
+	token, err := accessRandomToken(32)
+	if err != nil {
+		return "", err
+	}
+	sessionID, err := accessRandomToken(16)
+	if err != nil {
+		return "", err
+	}
+	hash := sha256.Sum256([]byte(token))
+	m.sessions[hash] = AccessSession{
+		ID:        sessionID,
+		IP:        req.IP,
+		UserAgent: req.UserAgent,
+		CreatedAt: now,
+	}
+	m.sessionID[sessionID] = hash
+	return token, nil
 }
 
 func (m *AccessManager) Validate(token string) bool {

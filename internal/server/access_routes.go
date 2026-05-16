@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"net"
 	"net/http"
 
@@ -23,13 +24,23 @@ func (s *Server) handleAccessRequest(w http.ResponseWriter, r *http.Request) {
 		writeErrorCode(w, http.StatusBadRequest, "access_not_required", nil)
 		return
 	}
-	req, err := s.access.CreateRequest(clientIP(r), r.UserAgent())
+	req, created, err := s.access.CreateRequest(clientIP(r), r.UserAgent())
 	if err != nil {
+		if errors.Is(err, share.ErrAccessRequestLimited) {
+			writeErrorCode(w, http.StatusTooManyRequests, "access_request_limited", nil)
+			return
+		}
 		writeErrorCode(w, http.StatusInternalServerError, "server_error", nil)
 		return
 	}
-	s.notifyAccessRequest()
-	writeJSON(w, http.StatusCreated, map[string]any{
+	if created {
+		s.notifyAccessRequest()
+	}
+	status := http.StatusOK
+	if created {
+		status = http.StatusCreated
+	}
+	writeJSON(w, status, map[string]any{
 		"id":        req.ID,
 		"code":      req.Code,
 		"expiresAt": req.ExpiresAt,
@@ -42,7 +53,11 @@ func (s *Server) handleAccessPoll(w http.ResponseWriter, r *http.Request) {
 		writeErrorCode(w, http.StatusBadRequest, "invalid_request", nil)
 		return
 	}
-	result, token := s.access.Poll(id)
+	result, token, err := s.access.Poll(id)
+	if err != nil {
+		writeErrorCode(w, http.StatusInternalServerError, "server_error", nil)
+		return
+	}
 	if result.State == share.AccessPollApproved && token != "" {
 		http.SetCookie(w, &http.Cookie{
 			Name:     sessionCookieName,

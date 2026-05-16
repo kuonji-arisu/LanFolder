@@ -7,6 +7,7 @@ describe("normalizeError", () => {
     expect(errorMessage(createAppError("bad_origin", { status: 403 }))).toBe("请求来源不被允许");
     expect(errorMessage(createAppError("bad_host", { status: 403 }))).toBe("访问地址不被允许");
     expect(errorMessage(createAppError("network_not_allowed", { status: 403 }))).toBe("仅允许可信局域网访问");
+    expect(errorMessage(createAppError("access_request_limited", { status: 429 }))).toBe("当前访问请求过多，请稍后再试");
   });
 
   it("uses params when translating error codes", () => {
