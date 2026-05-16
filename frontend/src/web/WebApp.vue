@@ -4,14 +4,19 @@ import FileList from "@/components/web/FileList.vue";
 import MessageDialog from "@/components/messages/MessageDialog.vue";
 import WebToolbar from "@/components/web/WebToolbar.vue";
 import { Toaster } from "@/components/ui/sonner";
+import { useTheme } from "@/composables/useTheme";
 import { useWebFilesStore } from "@/stores/webFiles";
 import { useWebMessagesStore } from "@/stores/webMessages";
 
 const files = useWebFilesStore();
 const messages = useWebMessagesStore();
+const { initTheme } = useTheme();
 const messagesOpen = ref(false);
 
-onMounted(() => void files.load(""));
+onMounted(() => {
+  initTheme();
+  void files.load("");
+});
 
 watch(messagesOpen, (open) => {
   if (open && !messages.messages.length) void messages.load();

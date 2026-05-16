@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { ArrowUp, Folder, MessageSquareText, Plus, RefreshCw, UploadCloud } from "lucide-vue-next";
+import { computed, ref } from "vue";
+import { ArrowUp, Folder, MessageSquareText, Moon, Plus, Sun, UploadCloud } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { TaskResult } from "@/composables/useAsyncTask";
+import { useTheme } from "@/composables/useTheme";
 import { useNoticeStore } from "@/stores/notices";
 import { useWebFilesStore } from "@/stores/webFiles";
 
 const files = useWebFilesStore();
 const notices = useNoticeStore();
+const { theme, setTheme } = useTheme();
 const uploadInput = ref<HTMLInputElement | null>(null);
+const themeToggleLabel = computed(() => (theme.value === "dark" ? "切换到浅色" : "切换到深色"));
 
 defineProps<{
   messagesOpen?: boolean;
@@ -33,6 +36,10 @@ async function handleUpload(fileList: FileList | null) {
 async function createFolder() {
   notices.showTaskResult(await files.createFolder());
 }
+
+function toggleTheme() {
+  setTheme(theme.value === "dark" ? "light" : "dark");
+}
 </script>
 
 <template>
@@ -45,8 +52,9 @@ async function createFolder() {
         </div>
         <span class="permission-pill">{{ files.permissionLabel }}</span>
       </div>
-      <button class="icon-button" aria-label="刷新" @click="runWithNotice(() => files.load())">
-        <RefreshCw class="h-5 w-5" />
+      <button class="icon-button" :aria-label="themeToggleLabel" :title="themeToggleLabel" @click="toggleTheme">
+        <Sun v-if="theme === 'dark'" class="h-5 w-5" />
+        <Moon v-else class="h-5 w-5" />
       </button>
       <button class="icon-button" :class="{ 'icon-button--active': messagesOpen }" aria-label="传递字符" @click="emit('toggleMessages')">
         <MessageSquareText class="h-5 w-5" />
