@@ -4,7 +4,7 @@ import { toast } from "vue-sonner";
 import type { TaskResult } from "@/composables/useAsyncTask";
 import { createAppError, errorMessage, normalizeError } from "@/lib/errors";
 import { noticeApi } from "@/lib/noticeApi";
-import type { AppNotice, NoticeLevel, NoticeSource } from "@/types/app";
+import type { AppNotice, NoticeLevel, NoticePresentation, NoticeSource } from "@/types/app";
 
 const maxNotices = 50;
 
@@ -23,10 +23,7 @@ export const useNoticeStore = defineStore("notices", () => {
     }
 
     const message = noticeMessage(notice);
-    if (notice.level === "error") toast.error(message);
-    else if (notice.level === "warning") toast.warning(message);
-    else if (notice.level === "success") toast.success(message);
-    else toast(message);
+    void presentNotice(notice, message);
   }
 
   function showTaskResult(result: TaskResult<unknown>, source: NoticeSource = "command") {
@@ -76,6 +73,23 @@ export const useNoticeStore = defineStore("notices", () => {
 
   return { notices, show, showTaskResult, showError, showSuccess, drain, startListening, stopListening };
 });
+
+async function presentNotice(notice: AppNotice, message: string) {
+  let presentation: NoticePresentation = "toast";
+  try {
+    presentation = await noticeApi.presentNotice(notice, message);
+  } catch {
+    presentation = "toast";
+  }
+  if (presentation === "toast") showToast(notice.level, message);
+}
+
+function showToast(level: NoticeLevel, message: string) {
+  if (level === "error") toast.error(message);
+  else if (level === "warning") toast.warning(message);
+  else if (level === "success") toast.success(message);
+  else toast(message);
+}
 
 function noticeMessage(notice: AppNotice) {
   if (notice.error) {

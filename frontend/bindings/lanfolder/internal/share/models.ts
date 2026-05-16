@@ -51,6 +51,11 @@ export class AccessRequest {
 }
 
 export class AccessSession {
+    /**
+     * IP and UserAgent are display-only metadata for the desktop approval UI.
+     * Validate treats the session cookie as a bearer token and does not bind it
+     * to either value.
+     */
     "id": string;
     "ip": string;
     "userAgent": string;

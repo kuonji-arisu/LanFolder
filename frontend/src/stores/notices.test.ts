@@ -9,6 +9,7 @@ vi.mock("@/lib/noticeApi", () => ({
   noticeApi: {
     drainNotices: vi.fn(),
     listenNotices: vi.fn(),
+    presentNotice: vi.fn(),
   },
 }));
 
@@ -27,6 +28,7 @@ describe("useNoticeStore", () => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
     api.drainNotices.mockResolvedValue([]);
+    api.presentNotice.mockResolvedValue("toast");
   });
 
   it("drains pending backend notices and translates error payloads", async () => {
@@ -37,7 +39,7 @@ describe("useNoticeStore", () => {
     await store.drain();
 
     expect(store.notices).toHaveLength(1);
-    expect(toast.error).toHaveBeenCalledWith("端口必须在 1 到 65535 之间");
+    await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith("端口必须在 1 到 65535 之间"));
   });
 
   it("listens for realtime backend notices", async () => {
@@ -53,7 +55,7 @@ describe("useNoticeStore", () => {
     handler?.(notice({ id: "live", level: "warning", message: "warning" }));
 
     expect(store.notices[0].id).toBe("live");
-    expect(toast.warning).toHaveBeenCalledWith("warning");
+    await vi.waitFor(() => expect(toast.warning).toHaveBeenCalledWith("warning"));
   });
 
   it("deduplicates notices by ID", async () => {
@@ -65,7 +67,7 @@ describe("useNoticeStore", () => {
     store.show(item);
 
     expect(store.notices).toHaveLength(1);
-    expect(toast.error).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(toast.error).toHaveBeenCalledTimes(1));
   });
 
   it("shows task failures through the same notice path", async () => {
@@ -79,7 +81,7 @@ describe("useNoticeStore", () => {
     });
 
     expect(store.notices[0].error?.error).toBe("shared_dir_required");
-    expect(toast.error).toHaveBeenCalledWith("请先选择共享目录");
+    await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith("请先选择共享目录"));
   });
 
   it("uses the common fallback for backend notices without payloads", async () => {
@@ -88,7 +90,27 @@ describe("useNoticeStore", () => {
 
     store.show(notice());
 
-    expect(toast.error).toHaveBeenCalledWith("操作失败，请重试");
+    await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith("操作失败，请重试"));
+  });
+
+  it("delegates presentation through the notice API", async () => {
+    const store = useNoticeStore();
+    const item = notice({ id: "present", message: "hello" });
+
+    store.show(item);
+
+    await vi.waitFor(() => expect(api.presentNotice).toHaveBeenCalledWith(item, "hello"));
+  });
+
+  it("does not show a page toast when the backend handles attention or system notification", async () => {
+    const { toast } = await import("vue-sonner");
+    api.presentNotice.mockResolvedValue("attention");
+    const store = useNoticeStore();
+
+    store.show(notice({ message: "background" }));
+
+    await vi.waitFor(() => expect(api.presentNotice).toHaveBeenCalled());
+    expect(toast.error).not.toHaveBeenCalled();
   });
 });
 

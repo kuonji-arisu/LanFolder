@@ -62,6 +62,7 @@ type AppService struct {
 	mu        sync.Mutex
 	app       *application.App
 	window    application.Window
+	notifier  noticeNotifier
 	server    *server.Server
 	config    config.Config
 	notices   []desktop.Notice
@@ -279,6 +280,7 @@ func (s *AppService) showMainWindow() {
 	if window == nil {
 		return
 	}
+	window.Flash(false)
 	window.Show()
 	window.Restore()
 	window.Focus()

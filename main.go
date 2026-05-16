@@ -7,6 +7,7 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
+	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 
 	"lanfolder/internal/config"
 	"lanfolder/internal/platform"
@@ -37,10 +38,17 @@ func main() {
 		cfg.StartAtLogin = startAtLogin
 	}
 
+	notificationRuntime := &notificationRuntimeService{notifier: notifications.New()}
 	appService := &AppService{
-		server: server.New(staticFS),
-		config: cfg,
+		server:   server.New(staticFS),
+		config:   cfg,
+		notifier: notificationRuntime,
 	}
+	notificationRuntime.notifier.OnNotificationResponse(func(result notifications.NotificationResult) {
+		if result.Error == nil {
+			appService.showMainWindow()
+		}
+	})
 	appService.server.SetAccessRequestCallback(func() {
 		appService.addNotice("info", "system", nil, "有新设备请求访问共享")
 		appService.emitStateChanged("access")
@@ -53,6 +61,7 @@ func main() {
 		SingleInstance: singleInstanceOptions(appService),
 		Services: []application.Service{
 			application.NewService(appService),
+			application.NewService(notificationRuntime),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -84,6 +93,15 @@ func main() {
 	app.Event.OnApplicationEvent(events.Common.ThemeChanged, func(event *application.ApplicationEvent) {
 		appService.emitStateChanged("theme")
 	})
+	window.OnWindowEvent(events.Common.WindowFocus, func(event *application.WindowEvent) {
+		window.Flash(false)
+	})
+	window.OnWindowEvent(events.Common.WindowShow, func(event *application.WindowEvent) {
+		window.Flash(false)
+	})
+	window.OnWindowEvent(events.Common.WindowRestore, func(event *application.WindowEvent) {
+		window.Flash(false)
+	})
 	setupTray(app, window, appService)
 
 	if err := app.Run(); err != nil {
@@ -108,8 +126,7 @@ func setupTray(app *application.App, window application.Window, appService *AppS
 
 	menu := app.NewMenu()
 	menu.Add("显示 LanFolder").OnClick(func(*application.Context) {
-		window.Show()
-		window.Focus()
+		appService.showMainWindow()
 	})
 	menu.AddSeparator()
 	menu.Add("退出").OnClick(func(*application.Context) {
@@ -118,8 +135,7 @@ func setupTray(app *application.App, window application.Window, appService *AppS
 	})
 	tray.SetMenu(menu)
 	tray.OnClick(func() {
-		window.Show()
-		window.Focus()
+		appService.showMainWindow()
 	})
 
 	window.RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {

@@ -60,6 +60,10 @@ export function PendingAccessRequests(): $CancellablePromise<share$0.AccessReque
     });
 }
 
+export function PresentNotice(notice: desktop$0.Notice, message: string): $CancellablePromise<string> {
+    return $Call.ByID(1685920497, notice, message);
+}
+
 export function RevokeAccessSession(id: string): $CancellablePromise<void> {
     return $Call.ByID(1707732686, id);
 }
