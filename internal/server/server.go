@@ -18,18 +18,21 @@ import (
 var errServerAlreadyRunning = errors.New("server is already running")
 
 type Server struct {
-	mu       sync.RWMutex
-	manager  *share.Manager
-	staticFS fs.FS
-	httpSrv  *http.Server
-	config   Config
-	logs     []LogEntry
-	maxLogs  int
+	mu              sync.RWMutex
+	manager         *share.Manager
+	access          *share.AccessManager
+	staticFS        fs.FS
+	httpSrv         *http.Server
+	config          Config
+	logs            []LogEntry
+	maxLogs         int
+	onAccessRequest func()
 }
 
 func New(staticFS fs.FS) *Server {
 	return &Server{
 		manager:  share.NewManager(),
+		access:   share.NewAccessManager(),
 		staticFS: staticFS,
 		config: Config{
 			Host:       "0.0.0.0",
@@ -65,7 +68,7 @@ func (s *Server) Start(cfg Config) error {
 	addr := net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port))
 	httpSrv := &http.Server{
 		Addr:              addr,
-		Handler:           s.logMiddleware(s.secureMiddleware(mux)),
+		Handler:           s.logMiddleware(s.secureMiddleware(s.accessMiddleware(mux))),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       15 * time.Minute,
 		WriteTimeout:      15 * time.Minute,
@@ -81,6 +84,7 @@ func (s *Server) Start(cfg Config) error {
 		s.mu.Unlock()
 		return err
 	}
+	s.access.Clear()
 	s.httpSrv = httpSrv
 	s.config = cfg
 	s.mu.Unlock()
@@ -106,6 +110,7 @@ func (s *Server) Stop(ctx context.Context) error {
 	if srv == nil {
 		return nil
 	}
+	s.access.Clear()
 	return errors.Join(srv.Shutdown(ctx), s.manager.ClearMessages())
 }
 
@@ -113,11 +118,12 @@ func (s *Server) Status() RuntimeStatus {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return RuntimeStatus{
-		Running:    s.httpSrv != nil,
-		Host:       s.config.Host,
-		Port:       s.config.Port,
-		Root:       s.config.Root,
-		Permission: s.config.Permission,
+		Running:        s.httpSrv != nil,
+		Host:           s.config.Host,
+		Port:           s.config.Port,
+		Root:           s.config.Root,
+		Permission:     s.config.Permission,
+		AccessApproval: s.config.AccessApproval,
 	}
 }
 
@@ -127,4 +133,10 @@ func (s *Server) Logs() []LogEntry {
 	out := make([]LogEntry, len(s.logs))
 	copy(out, s.logs)
 	return out
+}
+
+func (s *Server) SetAccessRequestCallback(fn func()) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.onAccessRequest = fn
 }

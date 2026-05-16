@@ -3,7 +3,7 @@ import { Config as WailsConfig } from "../../bindings/lanfolder/internal/config/
 import { Permission as WailsPermission } from "../../bindings/lanfolder/internal/share/models";
 import type { Permission } from "@/lib/constants";
 import { normalizeError } from "@/lib/errors";
-import type { AccessLog, AppConfig, AppState } from "@/types/app";
+import type { AccessLog, AccessRequest, AccessSession, AppConfig, AppState } from "@/types/app";
 
 function toWailsPermission(permission: Permission) {
   switch (permission) {
@@ -34,6 +34,11 @@ async function callDesktop<T>(command: () => Promise<T>) {
 export const appApi = {
   state: async () => (await callDesktop(() => AppService.State())) as AppState,
   logs: async () => (await callDesktop(() => AppService.Logs())) as AccessLog[],
+  pendingAccessRequests: async () => (await callDesktop(() => AppService.PendingAccessRequests())) as AccessRequest[],
+  accessSessions: async () => (await callDesktop(() => AppService.AccessSessions())) as AccessSession[],
+  approveAccessRequest: (id: string) => callDesktop(() => AppService.ApproveAccessRequest(id)),
+  denyAccessRequest: (id: string) => callDesktop(() => AppService.DenyAccessRequest(id)),
+  revokeAccessSession: (id: string) => callDesktop(() => AppService.RevokeAccessSession(id)),
   chooseFolder: async () => (await callDesktop(() => AppService.ChooseFolder())) as AppState,
   openSharedFolder: () => callDesktop(() => AppService.OpenSharedFolder()),
   startSharing: async () => (await callDesktop(() => AppService.StartSharing())) as AppState,

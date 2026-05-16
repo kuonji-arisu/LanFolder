@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { Check, Copy, FolderOpen, HardDrive, Play, Square } from "lucide-vue-next";
+import { computed, ref } from "vue";
+import { Check, Copy, FolderOpen, HardDrive, Play, ShieldCheck, Square } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import AccessLogPanel from "@/components/app/AccessLogPanel.vue";
+import AccessDialog from "@/components/app/AccessDialog.vue";
 import FieldCard from "@/components/app/FieldCard.vue";
 import IconButton from "@/components/app/IconButton.vue";
 import PermissionSegment from "@/components/app/PermissionSegment.vue";
@@ -15,6 +17,8 @@ import type { TaskResult } from "@/composables/useAsyncTask";
 const app = useAppStore();
 const notices = useNoticeStore();
 const { copied, copy } = useClipboard();
+const accessDialogOpen = ref(false);
+const accessCount = computed(() => app.pendingAccessRequests.length + app.accessSessions.length);
 
 async function runWithNotice(action: () => Promise<TaskResult<unknown>>) {
   notices.showTaskResult(await action());
@@ -46,6 +50,12 @@ async function setPermission(permission: Permission) {
     </Card>
 
     <FieldCard label="访问地址" :value="app.primaryAddress" mono>
+      <span v-if="app.config.accessApproval" class="access-button-wrap">
+        <IconButton title="访问管理" :accent="Boolean(app.pendingAccessRequests.length)" @click="accessDialogOpen = true">
+          <ShieldCheck class="h-4 w-4" />
+        </IconButton>
+        <span v-if="accessCount" class="access-badge">{{ accessCount }}</span>
+      </span>
       <IconButton title="复制地址" accent @click="copy(app.primaryAddress)">
         <Check v-if="copied" class="h-4 w-4" />
         <Copy v-else class="h-4 w-4" />
@@ -66,6 +76,7 @@ async function setPermission(permission: Permission) {
     </Card>
 
     <AccessLogPanel :logs="app.logs" />
+    <AccessDialog v-model:open="accessDialogOpen" />
   </main>
 </template>
 
@@ -172,6 +183,28 @@ async function setPermission(permission: Permission) {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
+}
+
+.access-button-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.access-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  font-size: 10px;
+  line-height: 1;
 }
 
 </style>

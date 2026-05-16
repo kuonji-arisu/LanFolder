@@ -19,8 +19,10 @@ import (
 )
 
 var (
-	errInvalidPort       = errors.New("invalid_port")
-	errSharedDirRequired = errors.New("shared_dir_required")
+	errInvalidPort              = errors.New("invalid_port")
+	errSharedDirRequired        = errors.New("shared_dir_required")
+	errAccessApprovalRequired   = errors.New("access_approval_required")
+	errAccessRequestUnavailable = errors.New("access_request_unavailable")
 )
 
 type commandError struct {
@@ -112,6 +114,9 @@ func (s *AppService) SaveSettings(cfg config.Config) (desktop.AppState, error) {
 	if !cfg.Permission.Valid() {
 		cfg.Permission = share.PermissionReadOnly
 	}
+	if cfg.AutoShare && !cfg.AccessApproval {
+		return s.snapshot(s.config), newCommandError(errAccessApprovalRequired, nil)
+	}
 	if cfg.StartAtLogin != s.config.StartAtLogin {
 		if err := platform.SetStartAtLogin(cfg.StartAtLogin); err != nil {
 			return s.snapshot(s.config), err
@@ -144,9 +149,14 @@ func (s *AppService) StartSharing() (desktop.AppState, error) {
 func (s *AppService) autoStartSharing() {
 	s.mu.Lock()
 	autoShare := s.config.AutoShare
+	accessApproval := s.config.AccessApproval
 	sharedDir := s.config.SharedDir
 	s.mu.Unlock()
 	if !autoShare {
+		return
+	}
+	if !accessApproval {
+		s.addNotice(desktop.NoticeError, desktop.NoticeSourceStartup, newCommandError(errAccessApprovalRequired, nil), "")
 		return
 	}
 	if sharedDir == "" {
@@ -169,11 +179,12 @@ func (s *AppService) StopSharing() (desktop.AppState, error) {
 
 func (s *AppService) startSharingLocked() error {
 	return s.server.Start(server.Config{
-		Host:       "0.0.0.0",
-		Port:       s.config.Port,
-		Root:       s.config.SharedDir,
-		Permission: s.config.Permission,
-		ShowHidden: s.config.ShowHiddenFiles,
+		Host:           "0.0.0.0",
+		Port:           s.config.Port,
+		Root:           s.config.SharedDir,
+		Permission:     s.config.Permission,
+		ShowHidden:     s.config.ShowHiddenFiles,
+		AccessApproval: s.config.AccessApproval,
 	})
 }
 
@@ -189,6 +200,38 @@ func (s *AppService) OpenSharedFolder() error {
 
 func (s *AppService) Logs() []server.LogEntry {
 	return s.server.Logs()
+}
+
+func (s *AppService) PendingAccessRequests() []share.AccessRequest {
+	return s.server.PendingAccessRequests()
+}
+
+func (s *AppService) AccessSessions() []share.AccessSession {
+	return s.server.AccessSessions()
+}
+
+func (s *AppService) ApproveAccessRequest(id string) error {
+	if err := s.server.ApproveAccessRequest(id); err != nil {
+		return newCommandError(errAccessRequestUnavailable, nil)
+	}
+	s.emitStateChanged("access")
+	return nil
+}
+
+func (s *AppService) DenyAccessRequest(id string) error {
+	if err := s.server.DenyAccessRequest(id); err != nil {
+		return newCommandError(errAccessRequestUnavailable, nil)
+	}
+	s.emitStateChanged("access")
+	return nil
+}
+
+func (s *AppService) RevokeAccessSession(id string) error {
+	if ok := s.server.RevokeAccessSession(id); !ok {
+		return newCommandError(errAccessRequestUnavailable, nil)
+	}
+	s.emitStateChanged("access")
+	return nil
 }
 
 func (s *AppService) DrainNotices() []desktop.Notice {
@@ -276,5 +319,6 @@ func serverConfigChanged(previous config.Config, next config.Config) bool {
 	return previous.SharedDir != next.SharedDir ||
 		previous.Port != next.Port ||
 		previous.Permission != next.Permission ||
-		previous.ShowHiddenFiles != next.ShowHiddenFiles
+		previous.ShowHiddenFiles != next.ShowHiddenFiles ||
+		previous.AccessApproval != next.AccessApproval
 }

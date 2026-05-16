@@ -10,6 +10,10 @@ import (
 
 func (s *Server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/status", s.handleStatus)
+	mux.HandleFunc("GET /api/access/status", s.handleAccessStatus)
+	mux.HandleFunc("POST /api/access/request", s.handleAccessRequest)
+	mux.HandleFunc("GET /api/access/poll", s.handleAccessPoll)
+	mux.HandleFunc("POST /api/access/logout", s.handleAccessLogout)
 	mux.HandleFunc("GET /api/list", s.handleList)
 	mux.HandleFunc("GET /api/messages", s.handleMessages)
 	mux.HandleFunc("GET /api/download", s.handleDownload)

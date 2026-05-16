@@ -13,6 +13,7 @@ export class Config {
     "sharedDir": string;
     "port": number;
     "permission": share$0.Permission;
+    "accessApproval": boolean;
     "autoShare": boolean;
     "startAtLogin": boolean;
     "keepInTray": boolean;
@@ -28,6 +29,9 @@ export class Config {
         }
         if (!("permission" in $$source)) {
             this["permission"] = share$0.Permission.$zero;
+        }
+        if (!("accessApproval" in $$source)) {
+            this["accessApproval"] = false;
         }
         if (!("autoShare" in $$source)) {
             this["autoShare"] = false;

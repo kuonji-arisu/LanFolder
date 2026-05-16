@@ -504,6 +504,141 @@ func TestHTTPRejectsTraversal(t *testing.T) {
 	}
 }
 
+func TestAccessApprovalProtectsDataRoutes(t *testing.T) {
+	root := t.TempDir()
+	_, ts := testServerWithAccess(t, root, share.PermissionReadOnly)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/api/list")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("unauthorized list status = %d", resp.StatusCode)
+	}
+
+	resp, err = http.Get(ts.URL + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("static page status = %d", resp.StatusCode)
+	}
+
+	resp = postJSON(t, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("access request status = %d", resp.StatusCode)
+	}
+}
+
+func TestAccessApprovalApproveSetsCookieAndAllowsAPI(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "note.txt"), []byte("hello"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	s, ts := testServerWithAccess(t, root, share.PermissionReadOnly)
+	defer ts.Close()
+
+	requestResp := postJSON(t, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
+	var requested struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(requestResp.Body).Decode(&requested); err != nil {
+		t.Fatal(err)
+	}
+	requestResp.Body.Close()
+	if requested.ID == "" {
+		t.Fatal("request id should not be empty")
+	}
+	if err := s.ApproveAccessRequest(requested.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	pollResp, err := http.Get(ts.URL + "/api/access/poll?id=" + url.QueryEscape(requested.ID))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var pollBody struct {
+		State string `json:"state"`
+	}
+	if err := json.NewDecoder(pollResp.Body).Decode(&pollBody); err != nil {
+		t.Fatal(err)
+	}
+	pollResp.Body.Close()
+	if pollBody.State != "approved" {
+		t.Fatalf("poll state = %q", pollBody.State)
+	}
+	cookies := pollResp.Cookies()
+	if len(cookies) != 1 || cookies[0].Name != sessionCookieName {
+		t.Fatalf("cookies = %#v", cookies)
+	}
+
+	req, err := http.NewRequest(http.MethodGet, ts.URL+"/api/list", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.AddCookie(cookies[0])
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("authorized list status = %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	s.access.Clear()
+	req, err = http.NewRequest(http.MethodGet, ts.URL+"/api/list", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.AddCookie(cookies[0])
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("cleared session status = %d", resp.StatusCode)
+	}
+}
+
+func TestAccessApprovalDenyReturnsRejectedPoll(t *testing.T) {
+	root := t.TempDir()
+	s, ts := testServerWithAccess(t, root, share.PermissionReadOnly)
+	defer ts.Close()
+
+	requestResp := postJSON(t, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
+	var requested struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(requestResp.Body).Decode(&requested); err != nil {
+		t.Fatal(err)
+	}
+	requestResp.Body.Close()
+	if err := s.DenyAccessRequest(requested.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	pollResp, err := http.Get(ts.URL + "/api/access/poll?id=" + url.QueryEscape(requested.ID))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pollResp.Body.Close()
+	var pollBody struct {
+		State string `json:"state"`
+	}
+	if err := json.NewDecoder(pollResp.Body).Decode(&pollBody); err != nil {
+		t.Fatal(err)
+	}
+	if pollBody.State != "denied" {
+		t.Fatalf("poll state = %q", pollBody.State)
+	}
+}
+
 func freePort(t *testing.T) int {
 	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
@@ -523,6 +658,14 @@ func freePort(t *testing.T) int {
 }
 
 func testServer(t *testing.T, root string, permission share.Permission) (*Server, *httptest.Server) {
+	return testServerConfigured(t, root, permission, false)
+}
+
+func testServerWithAccess(t *testing.T, root string, permission share.Permission) (*Server, *httptest.Server) {
+	return testServerConfigured(t, root, permission, true)
+}
+
+func testServerConfigured(t *testing.T, root string, permission share.Permission, accessApproval bool) (*Server, *httptest.Server) {
 	t.Helper()
 	if err := os.WriteFile(filepath.Join(root, "web.html"), []byte("<main>LanFolder</main>"), 0644); err != nil {
 		t.Fatal(err)
@@ -534,10 +677,10 @@ func testServer(t *testing.T, root string, permission share.Permission) (*Server
 	if err := s.manager.Configure(root, permission, false); err != nil {
 		t.Fatal(err)
 	}
-	s.config = Config{Host: "127.0.0.1", Port: 8899, Root: root, Permission: permission}
+	s.config = Config{Host: "127.0.0.1", Port: 8899, Root: root, Permission: permission, AccessApproval: accessApproval}
 	mux := http.NewServeMux()
 	s.routes(mux)
-	return s, httptest.NewServer(s.logMiddleware(s.secureMiddleware(mux)))
+	return s, httptest.NewServer(s.logMiddleware(s.secureMiddleware(s.accessMiddleware(mux))))
 }
 
 func TestFaviconUsesAppIcon(t *testing.T) {

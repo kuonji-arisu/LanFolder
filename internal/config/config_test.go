@@ -17,9 +17,10 @@ func TestSaveToPathReplacesExistingConfig(t *testing.T) {
 	}
 
 	if err := saveToPath(path, Config{
-		Port:       9000,
-		Permission: share.PermissionManage,
-		AutoShare:  true,
+		Port:           9000,
+		Permission:     share.PermissionManage,
+		AccessApproval: true,
+		AutoShare:      true,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +33,7 @@ func TestSaveToPathReplacesExistingConfig(t *testing.T) {
 	if err := json.Unmarshal(data, &got); err != nil {
 		t.Fatal(err)
 	}
-	if got.Port != 9000 || got.Permission != share.PermissionManage || !got.AutoShare {
+	if got.Port != 9000 || got.Permission != share.PermissionManage || !got.AccessApproval || !got.AutoShare {
 		t.Fatalf("saved config = %#v", got)
 	}
 	assertNoConfigTemps(t, dir)

@@ -41,6 +41,10 @@ func main() {
 		server: server.New(staticFS),
 		config: cfg,
 	}
+	appService.server.SetAccessRequestCallback(func() {
+		appService.addNotice("info", "system", nil, "有新设备请求访问共享")
+		appService.emitStateChanged("access")
+	})
 
 	app := application.New(application.Options{
 		Name:           "LanFolder",

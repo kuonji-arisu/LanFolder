@@ -109,7 +109,7 @@ func TestAddNoticeDoesNotRequeueAfterDrain(t *testing.T) {
 }
 
 func TestAutoStartSharingReportsMissingSharedDir(t *testing.T) {
-	service := &AppService{config: config.Config{AutoShare: true}}
+	service := &AppService{config: config.Config{AutoShare: true, AccessApproval: true}}
 	service.autoStartSharing()
 
 	notices := service.DrainNotices()
@@ -126,7 +126,7 @@ func TestAutoStartSharingReportsStartFailure(t *testing.T) {
 	missing := filepath.Join(root, "missing")
 	service := &AppService{
 		server: server.New(os.DirFS(root)),
-		config: config.Config{AutoShare: true, SharedDir: missing, Port: 8899},
+		config: config.Config{AutoShare: true, AccessApproval: true, SharedDir: missing, Port: 8899},
 	}
 	service.autoStartSharing()
 
@@ -136,6 +136,34 @@ func TestAutoStartSharingReportsStartFailure(t *testing.T) {
 	}
 	if notices[0].Level != desktop.NoticeError || notices[0].Error != nil || notices[0].Message != "" {
 		t.Fatalf("notice = %#v", notices[0])
+	}
+}
+
+func TestAutoStartSharingRequiresAccessApproval(t *testing.T) {
+	service := &AppService{config: config.Config{AutoShare: true, SharedDir: "C:/Share"}}
+	service.autoStartSharing()
+
+	notices := service.DrainNotices()
+	if len(notices) != 1 {
+		t.Fatalf("notices = %d, want 1", len(notices))
+	}
+	if notices[0].Level != desktop.NoticeError || notices[0].Error == nil || notices[0].Error.Error != "access_approval_required" {
+		t.Fatalf("notice = %#v", notices[0])
+	}
+}
+
+func TestSaveSettingsRejectsAutoShareWithoutAccessApproval(t *testing.T) {
+	service := &AppService{
+		server: server.New(os.DirFS(t.TempDir())),
+		config: config.Default(),
+	}
+
+	_, err := service.SaveSettings(config.Config{Port: 8899, AutoShare: true})
+	if err == nil {
+		t.Fatal("expected access approval error")
+	}
+	if err.Error() != "access_approval_required" {
+		t.Fatalf("error = %v", err)
 	}
 }
 

@@ -25,6 +25,7 @@ describe("useWebFilesStore", () => {
       running: true,
       port: 8899,
       permission: "manage",
+      accessApproval: false,
       permissions: [
         { value: "readonly", label: "Read", description: "" },
         { value: "upload", label: "Upload", description: "" },

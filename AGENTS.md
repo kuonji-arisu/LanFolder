@@ -15,6 +15,8 @@
 - Keep settings as single-setting commits; do not replace this with a whole-form workflow or optimistic shared-store updates.
 - Keep `AppService.SaveSettings()` simple and non-transactional: validate, apply platform side effects, save JSON, update memory, restart if needed, then return the current snapshot plus any error.
 - Keep app notifications on the AppNotice pipeline; do not add parallel event or toast paths.
+- Keep LAN access approval small and Go-owned: new browser access is approved on the desktop, the browser receives an opaque in-memory session cookie, and the session only means "allowed to enter". Current share permission remains the source of truth for what the browser can do.
+- Do not make the access display code a PIN, password, secret, or login mechanism. It is only a human-readable request code for matching the browser page to the desktop prompt.
 
 ## Safety Constraints
 

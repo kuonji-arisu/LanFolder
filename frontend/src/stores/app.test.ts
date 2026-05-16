@@ -16,6 +16,11 @@ vi.mock("@/lib/appApi", () => ({
     logs: vi.fn(),
     chooseFolder: vi.fn(),
     openSharedFolder: vi.fn(),
+    pendingAccessRequests: vi.fn(),
+    accessSessions: vi.fn(),
+    approveAccessRequest: vi.fn(),
+    denyAccessRequest: vi.fn(),
+    revokeAccessSession: vi.fn(),
     startSharing: vi.fn(),
     stopSharing: vi.fn(),
     saveSettings: vi.fn(),
@@ -29,6 +34,8 @@ describe("useAppStore", () => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
     api.logs.mockResolvedValue([]);
+    api.pendingAccessRequests.mockResolvedValue([]);
+    api.accessSessions.mockResolvedValue([]);
   });
 
   it("commits the snapshot returned by saveSettings", async () => {
@@ -140,6 +147,7 @@ function appState(
   return {
     config: {
       sharedDir: "C:/Share",
+      accessApproval: false,
       autoShare: false,
       startAtLogin: false,
       keepInTray: false,
@@ -154,6 +162,7 @@ function appState(
       port,
       root: "C:/Share",
       permission,
+      accessApproval: overrides.config?.accessApproval ?? false,
     },
     appInfo: {
       name: "LanFolder",

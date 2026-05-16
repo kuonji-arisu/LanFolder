@@ -4,6 +4,7 @@ export interface AppConfig {
   sharedDir: string;
   port: number;
   permission: Permission;
+  accessApproval: boolean;
   autoShare: boolean;
   startAtLogin: boolean;
   keepInTray: boolean;
@@ -16,6 +17,7 @@ export interface ServerRuntime {
   port: number;
   root: string;
   permission: Permission;
+  accessApproval: boolean;
 }
 
 export interface AccessLog {
@@ -28,6 +30,22 @@ export interface AccessLog {
   target?: string;
   targetPath?: string;
   detail?: string;
+}
+
+export interface AccessRequest {
+  id: string;
+  code: string;
+  ip: string;
+  userAgent: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export interface AccessSession {
+  id: string;
+  ip: string;
+  userAgent: string;
+  createdAt: string;
 }
 
 export interface MessageEntry {

@@ -12,6 +12,7 @@ type Config struct {
 	SharedDir       string           `json:"sharedDir"`
 	Port            int              `json:"port"`
 	Permission      share.Permission `json:"permission"`
+	AccessApproval  bool             `json:"accessApproval"`
 	AutoShare       bool             `json:"autoShare"`
 	StartAtLogin    bool             `json:"startAtLogin"`
 	KeepInTray      bool             `json:"keepInTray"`
@@ -52,6 +53,9 @@ func Load() Config {
 	if !cfg.Permission.Valid() {
 		cfg.Permission = share.PermissionReadOnly
 	}
+	if cfg.AutoShare && !cfg.AccessApproval {
+		cfg.AutoShare = false
+	}
 	return cfg
 }
 
@@ -69,6 +73,9 @@ func saveToPath(p string, cfg Config) error {
 	}
 	if !cfg.Permission.Valid() {
 		cfg.Permission = share.PermissionReadOnly
+	}
+	if cfg.AutoShare && !cfg.AccessApproval {
+		cfg.AutoShare = false
 	}
 	if err := os.MkdirAll(filepath.Dir(p), 0755); err != nil {
 		return err

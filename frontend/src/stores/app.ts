@@ -4,12 +4,13 @@ import { Events } from "@wailsio/runtime";
 import { useAsyncTask, type TaskResult } from "@/composables/useAsyncTask";
 import { appApi } from "@/lib/appApi";
 import { DEFAULT_PORT, type Permission } from "@/lib/constants";
-import type { AccessLog, AppConfig, AppState, PermissionOption } from "@/types/app";
+import type { AccessLog, AccessRequest, AccessSession, AppConfig, AppState, PermissionOption } from "@/types/app";
 
 const defaultConfig: AppConfig = {
   sharedDir: "",
   port: DEFAULT_PORT,
   permission: "readonly",
+  accessApproval: false,
   autoShare: false,
   startAtLogin: false,
   keepInTray: false,
@@ -21,6 +22,8 @@ const defaultPermission: PermissionOption = { value: "readonly", label: "只读"
 export const useAppStore = defineStore("app", () => {
   const state = ref<AppState | null>(null);
   const logs = ref<AccessLog[]>([]);
+  const pendingAccessRequests = ref<AccessRequest[]>([]);
+  const accessSessions = ref<AccessSession[]>([]);
   const { busy, error, run: runTask } = useAsyncTask();
   let refreshTimer: number | undefined;
   let stopStateChangedListener: (() => void) | undefined;
@@ -39,15 +42,25 @@ export const useAppStore = defineStore("app", () => {
     logs.value = await appApi.logs();
   }
 
+  async function loadPendingAccessRequests() {
+    pendingAccessRequests.value = await appApi.pendingAccessRequests();
+  }
+
+  async function loadAccess() {
+    const [requests, sessions] = await Promise.all([appApi.pendingAccessRequests(), appApi.accessSessions()]);
+    pendingAccessRequests.value = requests;
+    accessSessions.value = sessions;
+  }
+
   async function loadSnapshot() {
-    await Promise.all([loadState(), loadLogs()]);
+    await Promise.all([loadState(), loadLogs(), loadAccess()]);
   }
 
   async function commitSnapshot(task: () => Promise<AppState>): Promise<TaskResult<AppState>> {
     const result = await runTask(task);
     if (!result.ok) return result;
     state.value = result.value;
-    await loadLogs();
+    await Promise.all([loadLogs(), loadAccess()]);
     return result;
   }
 
@@ -88,10 +101,28 @@ export const useAppStore = defineStore("app", () => {
     return commitSnapshot(() => (isRunning.value ? appApi.stopSharing() : appApi.startSharing()));
   }
 
+  async function approveAccessRequest(id: string) {
+    const result = await runTask(() => appApi.approveAccessRequest(id));
+    await loadAccess();
+    return result;
+  }
+
+  async function denyAccessRequest(id: string) {
+    const result = await runTask(() => appApi.denyAccessRequest(id));
+    await loadAccess();
+    return result;
+  }
+
+  async function revokeAccessSession(id: string) {
+    const result = await runTask(() => appApi.revokeAccessSession(id));
+    await loadAccess();
+    return result;
+  }
+
   function startAutoRefresh() {
     if (refreshTimer !== undefined) return;
     refreshTimer = window.setInterval(() => {
-      if (state.value?.server.running) void loadLogs();
+      if (state.value?.server.running) void Promise.all([loadLogs(), loadAccess()]);
     }, 2500);
     stopStateChangedListener = Events.On("app:state-changed", () => void loadSnapshot());
   }
@@ -108,6 +139,8 @@ export const useAppStore = defineStore("app", () => {
   return {
     state,
     logs,
+    pendingAccessRequests,
+    accessSessions,
     busy,
     error,
     config,
@@ -116,12 +149,16 @@ export const useAppStore = defineStore("app", () => {
     activePermission,
     loadState,
     loadLogs,
+    loadAccess,
     loadSnapshot,
     saveConfig,
     setPermission,
     chooseFolder,
     openSharedFolder,
     toggleSharing,
+    approveAccessRequest,
+    denyAccessRequest,
+    revokeAccessSession,
     startAutoRefresh,
     stopAutoRefresh,
   };

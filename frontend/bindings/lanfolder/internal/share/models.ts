@@ -5,6 +5,84 @@
 // @ts-ignore: Unused imports
 import { Create as $Create } from "@wailsio/runtime";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as time$0 from "../../../time/models.js";
+
+export class AccessRequest {
+    "id": string;
+    "code": string;
+    "ip": string;
+    "userAgent": string;
+    "createdAt": time$0.Time;
+    "expiresAt": time$0.Time;
+
+    /** Creates a new AccessRequest instance. */
+    constructor($$source: Partial<AccessRequest> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("code" in $$source)) {
+            this["code"] = "";
+        }
+        if (!("ip" in $$source)) {
+            this["ip"] = "";
+        }
+        if (!("userAgent" in $$source)) {
+            this["userAgent"] = "";
+        }
+        if (!("createdAt" in $$source)) {
+            this["createdAt"] = null;
+        }
+        if (!("expiresAt" in $$source)) {
+            this["expiresAt"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AccessRequest instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AccessRequest {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AccessRequest($$parsedSource as Partial<AccessRequest>);
+    }
+}
+
+export class AccessSession {
+    "id": string;
+    "ip": string;
+    "userAgent": string;
+    "createdAt": time$0.Time;
+
+    /** Creates a new AccessSession instance. */
+    constructor($$source: Partial<AccessSession> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("ip" in $$source)) {
+            this["ip"] = "";
+        }
+        if (!("userAgent" in $$source)) {
+            this["userAgent"] = "";
+        }
+        if (!("createdAt" in $$source)) {
+            this["createdAt"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AccessSession instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AccessSession {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AccessSession($$parsedSource as Partial<AccessSession>);
+    }
+}
+
 export enum Permission {
     /**
      * The Go zero value for the underlying type of the enum.

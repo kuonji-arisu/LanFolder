@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { Moon, Sun, Trash2 } from "lucide-vue-next";
+import { Moon, Sun } from "lucide-vue-next";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/composables/useTheme";
@@ -85,10 +85,22 @@ async function saveSettingWithNotice(partial: Partial<AppConfig>) {
 
       <div class="settings-row">
         <div>
+          <div class="field-label">新设备访问批准</div>
+          <p class="field-hint">新浏览器需要在这台电脑上批准后访问</p>
+        </div>
+        <span class="switch-tooltip" :title="app.config.autoShare ? '请先关闭常驻共享' : ''">
+          <Switch :checked="app.config.accessApproval" :disabled="app.config.autoShare" @update:checked="saveSettingWithNotice({ accessApproval: $event })" />
+        </span>
+      </div>
+
+      <div class="settings-row">
+        <div>
           <div class="field-label">启动应用后自动共享</div>
           <p class="field-hint">打开应用后使用上次目录自动运行</p>
         </div>
-        <Switch :checked="app.config.autoShare" @update:checked="saveSettingWithNotice({ autoShare: $event })" />
+        <span class="switch-tooltip" :title="app.config.accessApproval ? '' : '常驻共享需要先启用新设备访问批准'">
+          <Switch :checked="app.config.autoShare" :disabled="!app.config.accessApproval" @update:checked="saveSettingWithNotice({ autoShare: $event })" />
+        </span>
       </div>
 
       <div class="settings-row">
@@ -113,11 +125,6 @@ async function saveSettingWithNotice(partial: Partial<AppConfig>) {
           <p class="field-hint">显示点号文件，受管目录仍会隐藏</p>
         </div>
         <Switch :checked="app.config.showHiddenFiles" @update:checked="saveSettingWithNotice({ showHiddenFiles: $event })" />
-      </div>
-
-      <div class="delete-note">
-        <Trash2 class="h-4 w-4" />
-        <span>删除会移入共享目录下的 .lanfolder/trash</span>
       </div>
     </div>
   </main>
@@ -176,6 +183,10 @@ async function saveSettingWithNotice(partial: Partial<AppConfig>) {
   flex-shrink: 0;
 }
 
+.switch-tooltip {
+  display: inline-flex;
+}
+
 .field-label {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
@@ -231,28 +242,6 @@ async function saveSettingWithNotice(partial: Partial<AppConfig>) {
 .theme-option--active:hover {
   background: var(--color-accent-hover);
   color: var(--color-text-on-accent);
-}
-
-.delete-note {
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  min-height: 58px;
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: 0 var(--space-4);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-}
-
-.delete-note svg {
-  flex-shrink: 0;
-  color: var(--color-text-tertiary);
-}
-
-.delete-note span {
-  min-width: 0;
 }
 
 .field-error {

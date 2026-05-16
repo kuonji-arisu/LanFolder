@@ -17,10 +17,11 @@ const (
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	status := s.Status()
 	writeJSON(w, http.StatusOK, map[string]any{
-		"running":     true,
-		"port":        status.Port,
-		"permission":  status.Permission,
-		"permissions": share.PermissionOptions(),
+		"running":        true,
+		"port":           status.Port,
+		"permission":     status.Permission,
+		"permissions":    share.PermissionOptions(),
+		"accessApproval": status.AccessApproval,
 	})
 }
 

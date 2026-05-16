@@ -14,22 +14,39 @@ import * as desktop$0 from "./internal/desktop/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as server$0 from "./internal/server/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as share$0 from "./internal/share/models.js";
+
+export function AccessSessions(): $CancellablePromise<share$0.AccessSession[]> {
+    return $Call.ByID(2201376577).then(($result: any) => {
+        return $$createType1($result);
+    });
+}
+
+export function ApproveAccessRequest(id: string): $CancellablePromise<void> {
+    return $Call.ByID(473904750, id);
+}
 
 export function ChooseFolder(): $CancellablePromise<desktop$0.AppState> {
     return $Call.ByID(1337902351).then(($result: any) => {
-        return $$createType0($result);
+        return $$createType2($result);
     });
+}
+
+export function DenyAccessRequest(id: string): $CancellablePromise<void> {
+    return $Call.ByID(2545213615, id);
 }
 
 export function DrainNotices(): $CancellablePromise<desktop$0.Notice[]> {
     return $Call.ByID(2812011285).then(($result: any) => {
-        return $$createType2($result);
+        return $$createType4($result);
     });
 }
 
 export function Logs(): $CancellablePromise<server$0.LogEntry[]> {
     return $Call.ByID(391321321).then(($result: any) => {
-        return $$createType4($result);
+        return $$createType6($result);
     });
 }
 
@@ -37,33 +54,47 @@ export function OpenSharedFolder(): $CancellablePromise<void> {
     return $Call.ByID(3288064515);
 }
 
+export function PendingAccessRequests(): $CancellablePromise<share$0.AccessRequest[]> {
+    return $Call.ByID(2038523565).then(($result: any) => {
+        return $$createType8($result);
+    });
+}
+
+export function RevokeAccessSession(id: string): $CancellablePromise<void> {
+    return $Call.ByID(1707732686, id);
+}
+
 export function SaveSettings(cfg: config$0.Config): $CancellablePromise<desktop$0.AppState> {
     return $Call.ByID(3784651466, cfg).then(($result: any) => {
-        return $$createType0($result);
+        return $$createType2($result);
     });
 }
 
 export function StartSharing(): $CancellablePromise<desktop$0.AppState> {
     return $Call.ByID(3733241914).then(($result: any) => {
-        return $$createType0($result);
+        return $$createType2($result);
     });
 }
 
 export function State(): $CancellablePromise<desktop$0.AppState> {
     return $Call.ByID(2460789311).then(($result: any) => {
-        return $$createType0($result);
+        return $$createType2($result);
     });
 }
 
 export function StopSharing(): $CancellablePromise<desktop$0.AppState> {
     return $Call.ByID(2464149370).then(($result: any) => {
-        return $$createType0($result);
+        return $$createType2($result);
     });
 }
 
 // Private type creation functions
-const $$createType0 = desktop$0.AppState.createFrom;
-const $$createType1 = desktop$0.Notice.createFrom;
-const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = server$0.LogEntry.createFrom;
+const $$createType0 = share$0.AccessSession.createFrom;
+const $$createType1 = $Create.Array($$createType0);
+const $$createType2 = desktop$0.AppState.createFrom;
+const $$createType3 = desktop$0.Notice.createFrom;
 const $$createType4 = $Create.Array($$createType3);
+const $$createType5 = server$0.LogEntry.createFrom;
+const $$createType6 = $Create.Array($$createType5);
+const $$createType7 = share$0.AccessRequest.createFrom;
+const $$createType8 = $Create.Array($$createType7);

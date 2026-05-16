@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from "vue";
+import AccessGate from "@/components/web/AccessGate.vue";
 import FileList from "@/components/web/FileList.vue";
 import MessageDialog from "@/components/messages/MessageDialog.vue";
 import WebToolbar from "@/components/web/WebToolbar.vue";
@@ -12,22 +13,33 @@ const files = useWebFilesStore();
 const messages = useWebMessagesStore();
 const { initTheme } = useTheme();
 const messagesOpen = ref(false);
+const authorized = ref(false);
+const accessReady = ref(false);
 
 onMounted(() => {
   initTheme();
-  void files.load("");
 });
 
 watch(messagesOpen, (open) => {
   if (open && !messages.messages.length) void messages.load();
 });
+
+function handleAuthorized() {
+  authorized.value = true;
+  accessReady.value = true;
+  void files.load("");
+}
 </script>
 
 <template>
   <div class="web-app">
-    <WebToolbar :messages-open="messagesOpen" @toggle-messages="messagesOpen = !messagesOpen" />
-    <MessageDialog v-model:open="messagesOpen" />
-    <FileList />
+    <AccessGate v-if="!authorized" @authorized="handleAuthorized" />
+
+    <template v-if="authorized && accessReady">
+      <WebToolbar :messages-open="messagesOpen" @toggle-messages="messagesOpen = !messagesOpen" />
+      <MessageDialog v-model:open="messagesOpen" />
+      <FileList />
+    </template>
     <Toaster position="top-right" />
   </div>
 </template>

@@ -21,9 +21,10 @@ It is not meant to be a full file server, NAS, sync service, or internet-facing 
 - Send short text messages between LAN devices
 - Store messages in `.lanfolder/messages.jsonl`
 - Show recent access logs in the desktop app
+- Require desktop approval for new browser access when enabled
 - Hide dotfiles by default
 - Keep running in the tray if enabled
-- Start sharing automatically if enabled
+- Start sharing automatically when access approval is enabled
 
 ## Permission Levels
 
@@ -53,9 +54,13 @@ Use this only on a trusted network.
 
 LanFolder is designed for trusted local networks, such as home Wi-Fi, a private hotspot, or a temporary LAN between your own devices.
 
-It does not provide authentication. Anyone who can reach the displayed LAN address can use the current permission level.
+When new-device access approval is enabled, an unknown browser can only request access. The desktop app must approve the request before that browser receives a temporary in-memory session cookie. The request code shown in the browser is only for matching the request on the desktop; it is not a PIN or password.
 
-The server rejects non-private remote addresses by default and blocks cross-site write requests, but these checks are not a replacement for authentication. Do not expose LanFolder to the internet or use it on networks with untrusted devices.
+Access sessions are kept in memory and are cleared when sharing stops, the shared folder or permission changes, the server restarts, or the app exits. Automatic sharing requires new-device access approval to be enabled first.
+
+When access approval is disabled, anyone who can reach the displayed LAN address can use the current permission level.
+
+The server rejects non-private remote addresses by default and blocks cross-site write requests, but HTTP access is still not encrypted. Do not expose LanFolder to the internet or use it on networks with untrusted devices.
 
 Use `readonly` by default, and switch to `upload` or `manage` only when the network and devices around you are trusted.
 
