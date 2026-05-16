@@ -58,6 +58,7 @@ const toastOptions: ToasterProps["toastOptions"] = {
   --lan-toast-tone: var(--lan-toast-info);
   --lan-toast-fill: color-mix(in srgb, var(--lan-toast-tone) 4%, var(--color-bg-elevated));
   --lan-toast-border: color-mix(in srgb, var(--lan-toast-tone) 22%, var(--color-border));
+  --lan-toast-icon-size: 16px;
   min-height: 50px;
   align-items: center;
   gap: 10px;
@@ -91,33 +92,46 @@ const toastOptions: ToasterProps["toastOptions"] = {
 }
 
 .lan-toaster [data-icon].lan-toast-icon {
-  width: 18px;
-  height: 18px;
+  width: var(--lan-toast-icon-size);
+  height: var(--lan-toast-icon-size);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 18px;
+  flex: 0 0 var(--lan-toast-icon-size);
+  line-height: 0;
   margin: 0;
   color: var(--lan-toast-tone);
+}
+
+.lan-toaster [data-icon].lan-toast-icon > *,
+.lan-toaster [data-icon].lan-toast-icon svg {
+  width: var(--lan-toast-icon-size);
+  height: var(--lan-toast-icon-size);
+  display: block;
 }
 
 .lan-toaster [data-content].lan-toast-content {
   min-width: 0;
   flex: 1 1 auto;
   gap: 2px;
+  justify-content: center;
 }
 
 .lan-toaster [data-title].lan-toast-title {
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-  line-height: 1.35;
+  line-height: 16px;
 }
 
 .lan-toaster [data-description].lan-toast-description {
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
-  line-height: 1.38;
+  line-height: 15px;
+}
+
+.lan-toaster .lan-toast:has([data-description]) {
+  align-items: flex-start;
 }
 
 .lan-toaster [data-button].lan-toast-action,
