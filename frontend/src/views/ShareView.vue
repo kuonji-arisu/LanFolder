@@ -7,21 +7,21 @@ import FieldCard from "@/components/app/FieldCard.vue";
 import IconButton from "@/components/app/IconButton.vue";
 import PermissionSegment from "@/components/app/PermissionSegment.vue";
 import { useClipboard } from "@/composables/useClipboard";
-import { useErrorToast } from "@/composables/useErrorToast";
 import { useAppStore } from "@/stores/app";
+import { useNoticeStore } from "@/stores/notices";
 import type { Permission } from "@/lib/constants";
 import type { TaskResult } from "@/composables/useAsyncTask";
 
 const app = useAppStore();
+const notices = useNoticeStore();
 const { copied, copy } = useClipboard();
-const { showResultError } = useErrorToast();
 
-async function runWithToast(action: () => Promise<TaskResult<unknown>>) {
-  showResultError(await action());
+async function runWithNotice(action: () => Promise<TaskResult<unknown>>) {
+  notices.showTaskResult(await action());
 }
 
 async function setPermission(permission: Permission) {
-  await runWithToast(() => app.setPermission(permission));
+  await runWithNotice(() => app.setPermission(permission));
 }
 </script>
 
@@ -38,7 +38,7 @@ async function setPermission(permission: Permission) {
         </div>
       </div>
 
-      <Button class="hero-action" size="sm" :variant="app.isRunning ? 'destructive' : 'default'" :disabled="app.busy" @click="runWithToast(app.toggleSharing)">
+      <Button class="hero-action" size="sm" :variant="app.isRunning ? 'destructive' : 'default'" :disabled="app.busy" @click="runWithNotice(app.toggleSharing)">
         <Square v-if="app.isRunning" class="h-4 w-4" />
         <Play v-else class="h-4 w-4" />
         {{ app.isRunning ? "停止" : "开始" }}
@@ -53,10 +53,10 @@ async function setPermission(permission: Permission) {
     </FieldCard>
 
     <FieldCard label="共享目录" :value="app.config.sharedDir || '尚未选择目录'">
-      <IconButton title="更改目录" @click="runWithToast(app.chooseFolder)">
+      <IconButton title="更改目录" @click="runWithNotice(app.chooseFolder)">
         <FolderOpen class="h-4 w-4" />
       </IconButton>
-      <Button variant="secondary" :disabled="!app.config.sharedDir" @click="runWithToast(app.openSharedFolder)">打开</Button>
+      <Button variant="secondary" :disabled="!app.config.sharedDir" @click="runWithNotice(app.openSharedFolder)">打开</Button>
     </FieldCard>
 
     <Card class="panel">

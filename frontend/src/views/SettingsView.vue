@@ -3,15 +3,15 @@ import { ref, watch } from "vue";
 import { Moon, Sun, Trash2 } from "lucide-vue-next";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { useErrorToast } from "@/composables/useErrorToast";
 import { useTheme } from "@/composables/useTheme";
 import { normalizeError } from "@/lib/errors";
 import { useAppStore } from "@/stores/app";
+import { useNoticeStore } from "@/stores/notices";
 import type { AppConfig } from "@/types/app";
 
 const app = useAppStore();
+const notices = useNoticeStore();
 const { theme, setTheme } = useTheme();
-const { showResultError } = useErrorToast();
 const portDraft = ref("");
 const portError = ref("");
 
@@ -53,8 +53,8 @@ function validatePort(value: string): { ok: true; port: number } | { ok: false; 
   return { ok: true, port };
 }
 
-async function saveSettingWithToast(partial: Partial<AppConfig>) {
-  showResultError(await app.saveConfig(partial));
+async function saveSettingWithNotice(partial: Partial<AppConfig>) {
+  notices.showTaskResult(await app.saveConfig(partial));
 }
 </script>
 
@@ -88,7 +88,7 @@ async function saveSettingWithToast(partial: Partial<AppConfig>) {
           <div class="field-label">启动应用后自动共享</div>
           <p class="field-hint">打开应用后使用上次目录自动运行</p>
         </div>
-        <Switch :checked="app.config.autoShare" @update:checked="saveSettingWithToast({ autoShare: $event })" />
+        <Switch :checked="app.config.autoShare" @update:checked="saveSettingWithNotice({ autoShare: $event })" />
       </div>
 
       <div class="settings-row">
@@ -96,7 +96,7 @@ async function saveSettingWithToast(partial: Partial<AppConfig>) {
           <div class="field-label">开机自动启动</div>
           <p class="field-hint">{{ app.state?.capabilities.startAtLogin ? "登录系统后自动打开 LanFolder" : "当前平台暂不支持" }}</p>
         </div>
-        <Switch :checked="app.config.startAtLogin" :disabled="!app.state?.capabilities.startAtLogin" @update:checked="saveSettingWithToast({ startAtLogin: $event })" />
+        <Switch :checked="app.config.startAtLogin" :disabled="!app.state?.capabilities.startAtLogin" @update:checked="saveSettingWithNotice({ startAtLogin: $event })" />
       </div>
 
       <div class="settings-row">
@@ -104,7 +104,7 @@ async function saveSettingWithToast(partial: Partial<AppConfig>) {
           <div class="field-label">关闭窗口后保持后台运行</div>
           <p class="field-hint">关闭窗口时隐藏到系统托盘</p>
         </div>
-        <Switch :checked="app.config.keepInTray" @update:checked="saveSettingWithToast({ keepInTray: $event })" />
+        <Switch :checked="app.config.keepInTray" @update:checked="saveSettingWithNotice({ keepInTray: $event })" />
       </div>
 
       <div class="settings-row">
@@ -112,7 +112,7 @@ async function saveSettingWithToast(partial: Partial<AppConfig>) {
           <div class="field-label">显示隐藏文件</div>
           <p class="field-hint">显示点号文件，受管目录仍会隐藏</p>
         </div>
-        <Switch :checked="app.config.showHiddenFiles" @update:checked="saveSettingWithToast({ showHiddenFiles: $event })" />
+        <Switch :checked="app.config.showHiddenFiles" @update:checked="saveSettingWithNotice({ showHiddenFiles: $event })" />
       </div>
 
       <div class="delete-note">

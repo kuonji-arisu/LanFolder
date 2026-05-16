@@ -14,6 +14,9 @@ import * as server$0 from "../server/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as share$0 from "../share/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as time$0 from "../../../time/models.js";
 
 export class AppInfo {
     "name": string;
@@ -178,6 +181,94 @@ export class Capabilities {
     }
 }
 
+export class ErrorPayload {
+    "error": string;
+    "params"?: { [_ in string]?: any };
+
+    /** Creates a new ErrorPayload instance. */
+    constructor($$source: Partial<ErrorPayload> = {}) {
+        if (!("error" in $$source)) {
+            this["error"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ErrorPayload instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ErrorPayload {
+        const $$createField1_0 = $$createType8;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("params" in $$parsedSource) {
+            $$parsedSource["params"] = $$createField1_0($$parsedSource["params"]);
+        }
+        return new ErrorPayload($$parsedSource as Partial<ErrorPayload>);
+    }
+}
+
+export class Notice {
+    "id": string;
+    "level": NoticeLevel;
+    "source": NoticeSource;
+    "error"?: ErrorPayload | null;
+    "message"?: string;
+    "createdAt": time$0.Time;
+
+    /** Creates a new Notice instance. */
+    constructor($$source: Partial<Notice> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("level" in $$source)) {
+            this["level"] = NoticeLevel.$zero;
+        }
+        if (!("source" in $$source)) {
+            this["source"] = NoticeSource.$zero;
+        }
+        if (!("createdAt" in $$source)) {
+            this["createdAt"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Notice instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Notice {
+        const $$createField3_0 = $$createType10;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("error" in $$parsedSource) {
+            $$parsedSource["error"] = $$createField3_0($$parsedSource["error"]);
+        }
+        return new Notice($$parsedSource as Partial<Notice>);
+    }
+}
+
+export enum NoticeLevel {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    NoticeInfo = "info",
+    NoticeSuccess = "success",
+    NoticeWarning = "warning",
+    NoticeError = "error",
+};
+
+export enum NoticeSource {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    NoticeSourceCommand = "command",
+    NoticeSourceStartup = "startup",
+    NoticeSourceSystem = "system",
+};
+
 export class WindowInfo {
     "x": number;
     "y": number;
@@ -232,3 +323,6 @@ const $$createType4 = Capabilities.createFrom;
 const $$createType5 = $Create.Array($Create.Any);
 const $$createType6 = share$0.PermissionOption.createFrom;
 const $$createType7 = $Create.Array($$createType6);
+const $$createType8 = $Create.Map($Create.Any, $Create.Any);
+const $$createType9 = ErrorPayload.createFrom;
+const $$createType10 = $Create.Nullable($$createType9);

@@ -1,23 +1,22 @@
 <script setup lang="ts">
 import { Download, File, Folder, Loader2, Trash2 } from "lucide-vue-next";
 import { Card } from "@/components/ui/card";
-import { useErrorToast } from "@/composables/useErrorToast";
 import { fileApi } from "@/lib/api";
 import { formatBytes, formatDate } from "@/lib/format";
+import { useNoticeStore } from "@/stores/notices";
 import { useWebFilesStore } from "@/stores/webFiles";
-import { toast } from "vue-sonner";
 
 const files = useWebFilesStore();
-const { showResultError } = useErrorToast();
+const notices = useNoticeStore();
 
 async function openEntry(entry: Parameters<typeof files.openEntry>[0]) {
-  showResultError(await files.openEntry(entry));
+  notices.showTaskResult(await files.openEntry(entry));
 }
 
 async function deleteEntry(entry: Parameters<typeof files.deleteEntry>[0]) {
   const result = await files.deleteEntry(entry);
-  showResultError(result);
-  if (result.ok && result.value) toast.success("删除成功");
+  notices.showTaskResult(result);
+  if (result.ok && result.value) notices.showSuccess("删除成功");
 }
 </script>
 

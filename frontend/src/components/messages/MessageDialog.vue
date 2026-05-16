@@ -4,29 +4,28 @@ import { Loader2, RefreshCw, Trash2 } from "lucide-vue-next";
 import MessagePanel from "@/components/messages/MessagePanel.vue";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useErrorToast } from "@/composables/useErrorToast";
+import { useNoticeStore } from "@/stores/notices";
 import { useWebMessagesStore } from "@/stores/webMessages";
-import { toast } from "vue-sonner";
 
 const open = defineModel<boolean>("open", { required: true });
 const messages = useWebMessagesStore();
-const { showResultError } = useErrorToast();
+const notices = useNoticeStore();
 const clearConfirmOpen = ref(false);
 
 async function refreshMessages() {
-  showResultError(await messages.load());
+  notices.showTaskResult(await messages.load());
 }
 
 async function sendMessage() {
-  showResultError(await messages.send());
+  notices.showTaskResult(await messages.send());
 }
 
 async function clearMessages() {
   const result = await messages.clear();
-  showResultError(result);
+  notices.showTaskResult(result);
   if (result.ok) {
     clearConfirmOpen.value = false;
-    toast.success("消息已清空");
+    notices.showSuccess("消息已清空");
   }
 }
 </script>

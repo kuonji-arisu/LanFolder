@@ -5,13 +5,17 @@ import AppTitleBar from "@/components/app/AppTitleBar.vue";
 import { Toaster } from "@/components/ui/sonner";
 import { useTheme } from "@/composables/useTheme";
 import { useAppStore } from "@/stores/app";
+import { useNoticeStore } from "@/stores/notices";
 
 const app = useAppStore();
+const notices = useNoticeStore();
 const { initTheme } = useTheme();
 
 onMounted(async () => {
   initTheme();
+  await notices.startListening();
   await app.loadSnapshot();
+  await notices.drain();
   app.startAutoRefresh();
 });
 </script>

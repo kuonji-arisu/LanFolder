@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -36,23 +37,34 @@ func (e commandError) Error() string {
 }
 
 func marshalCommandError(err error) []byte {
-	var commandErr commandError
-	if !errors.As(err, &commandErr) {
+	payload := commandErrorPayload(err)
+	if payload == nil {
 		return nil
 	}
-	data, jsonErr := json.Marshal(commandErr)
+	data, jsonErr := json.Marshal(payload)
 	if jsonErr != nil {
 		return nil
 	}
 	return data
 }
 
+func commandErrorPayload(err error) *desktop.ErrorPayload {
+	var commandErr commandError
+	if !errors.As(err, &commandErr) {
+		return nil
+	}
+	return &desktop.ErrorPayload{Error: commandErr.Code, Params: commandErr.Params}
+}
+
 type AppService struct {
-	mu     sync.Mutex
-	app    *application.App
-	window application.Window
-	server *server.Server
-	config config.Config
+	mu        sync.Mutex
+	app       *application.App
+	window    application.Window
+	server    *server.Server
+	config    config.Config
+	notices   []desktop.Notice
+	noticeSeq uint64
+	drained   bool
 }
 
 func (s *AppService) State() desktop.AppState {
@@ -129,6 +141,23 @@ func (s *AppService) StartSharing() (desktop.AppState, error) {
 	return s.snapshot(s.config), err
 }
 
+func (s *AppService) autoStartSharing() {
+	s.mu.Lock()
+	autoShare := s.config.AutoShare
+	sharedDir := s.config.SharedDir
+	s.mu.Unlock()
+	if !autoShare {
+		return
+	}
+	if sharedDir == "" {
+		s.addNotice(desktop.NoticeError, desktop.NoticeSourceStartup, newCommandError(errSharedDirRequired, nil), "")
+		return
+	}
+	if _, err := s.StartSharing(); err != nil {
+		s.addNotice(desktop.NoticeError, desktop.NoticeSourceStartup, err, "")
+	}
+}
+
 func (s *AppService) StopSharing() (desktop.AppState, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -160,6 +189,44 @@ func (s *AppService) OpenSharedFolder() error {
 
 func (s *AppService) Logs() []server.LogEntry {
 	return s.server.Logs()
+}
+
+func (s *AppService) DrainNotices() []desktop.Notice {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]desktop.Notice, len(s.notices))
+	copy(out, s.notices)
+	s.notices = nil
+	s.drained = true
+	return out
+}
+
+func (s *AppService) addNotice(level desktop.NoticeLevel, source desktop.NoticeSource, err error, message string) {
+	notice := desktop.Notice{
+		Level:     level,
+		Source:    source,
+		Message:   message,
+		CreatedAt: time.Now(),
+	}
+	if payload := commandErrorPayload(err); payload != nil {
+		notice.Error = payload
+	}
+
+	s.mu.Lock()
+	s.noticeSeq++
+	notice.ID = strconv.FormatUint(s.noticeSeq, 10)
+	if !s.drained {
+		s.notices = append(s.notices, notice)
+		if len(s.notices) > 50 {
+			s.notices = s.notices[len(s.notices)-50:]
+		}
+	}
+	app := s.app
+	s.mu.Unlock()
+
+	if app != nil {
+		app.Event.Emit("app:notice", notice)
+	}
 }
 
 func (s *AppService) showMainWindow() {

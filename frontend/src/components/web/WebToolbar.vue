@@ -4,12 +4,11 @@ import { ArrowUp, Folder, MessageSquareText, Plus, RefreshCw, UploadCloud } from
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { TaskResult } from "@/composables/useAsyncTask";
-import { useErrorToast } from "@/composables/useErrorToast";
+import { useNoticeStore } from "@/stores/notices";
 import { useWebFilesStore } from "@/stores/webFiles";
-import { toast } from "vue-sonner";
 
 const files = useWebFilesStore();
-const { showResultError } = useErrorToast();
+const notices = useNoticeStore();
 const uploadInput = ref<HTMLInputElement | null>(null);
 
 defineProps<{
@@ -20,19 +19,19 @@ const emit = defineEmits<{
   (event: "toggleMessages"): void;
 }>();
 
-async function runWithToast(action: () => Promise<TaskResult<unknown>>) {
-  showResultError(await action());
+async function runWithNotice(action: () => Promise<TaskResult<unknown>>) {
+  notices.showTaskResult(await action());
 }
 
 async function handleUpload(fileList: FileList | null) {
   const result = await files.uploadFiles(fileList);
-  showResultError(result);
-  if (result.ok && result.value) toast.success("上传成功");
+  notices.showTaskResult(result);
+  if (result.ok && result.value) notices.showSuccess("上传成功");
   if (uploadInput.value) uploadInput.value.value = "";
 }
 
 async function createFolder() {
-  showResultError(await files.createFolder());
+  notices.showTaskResult(await files.createFolder());
 }
 </script>
 
@@ -46,7 +45,7 @@ async function createFolder() {
         </div>
         <span class="permission-pill">{{ files.permissionLabel }}</span>
       </div>
-      <button class="icon-button" aria-label="刷新" @click="runWithToast(() => files.load())">
+      <button class="icon-button" aria-label="刷新" @click="runWithNotice(() => files.load())">
         <RefreshCw class="h-5 w-5" />
       </button>
       <button class="icon-button" :class="{ 'icon-button--active': messagesOpen }" aria-label="传递字符" @click="emit('toggleMessages')">
@@ -55,15 +54,15 @@ async function createFolder() {
     </div>
 
     <nav class="path-bar" aria-label="当前路径">
-      <button class="crumb" @click="runWithToast(() => files.load(''))">根目录</button>
+      <button class="crumb" @click="runWithNotice(() => files.load(''))">根目录</button>
       <template v-for="(crumb, index) in files.crumbs" :key="`${crumb}-${index}`">
         <span class="slash">/</span>
-        <button class="crumb crumb-nested" @click="runWithToast(() => files.jumpToCrumb(index))">{{ crumb }}</button>
+        <button class="crumb crumb-nested" @click="runWithNotice(() => files.jumpToCrumb(index))">{{ crumb }}</button>
       </template>
     </nav>
 
     <div class="action-row">
-      <Button variant="secondary" class="touch-button" :disabled="!files.listing?.path || files.loading" @click="runWithToast(() => files.load(files.listing?.parentPath ?? ''))">
+      <Button variant="secondary" class="touch-button" :disabled="!files.listing?.path || files.loading" @click="runWithNotice(() => files.load(files.listing?.parentPath ?? ''))">
         <ArrowUp class="h-4 w-4" />上级
       </Button>
       <template v-if="files.canUpload">

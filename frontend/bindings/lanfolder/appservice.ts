@@ -21,9 +21,15 @@ export function ChooseFolder(): $CancellablePromise<desktop$0.AppState> {
     });
 }
 
+export function DrainNotices(): $CancellablePromise<desktop$0.Notice[]> {
+    return $Call.ByID(2812011285).then(($result: any) => {
+        return $$createType2($result);
+    });
+}
+
 export function Logs(): $CancellablePromise<server$0.LogEntry[]> {
     return $Call.ByID(391321321).then(($result: any) => {
-        return $$createType2($result);
+        return $$createType4($result);
     });
 }
 
@@ -57,5 +63,7 @@ export function StopSharing(): $CancellablePromise<desktop$0.AppState> {
 
 // Private type creation functions
 const $$createType0 = desktop$0.AppState.createFrom;
-const $$createType1 = server$0.LogEntry.createFrom;
+const $$createType1 = desktop$0.Notice.createFrom;
 const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = server$0.LogEntry.createFrom;
+const $$createType4 = $Create.Array($$createType3);

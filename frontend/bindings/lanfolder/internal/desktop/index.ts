@@ -5,5 +5,9 @@ export {
     AppInfo,
     AppState,
     Capabilities,
+    ErrorPayload,
+    Notice,
+    NoticeLevel,
+    NoticeSource,
     WindowInfo
 } from "./models.js";

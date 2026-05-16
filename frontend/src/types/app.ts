@@ -82,3 +82,20 @@ export interface AppState {
   addresses: string[];
   permissions: PermissionOption[];
 }
+
+export type NoticeLevel = "info" | "success" | "warning" | "error";
+export type NoticeSource = "command" | "startup" | "system";
+
+export interface ErrorPayload {
+  error: string;
+  params?: Record<string, unknown>;
+}
+
+export interface AppNotice {
+  id: string;
+  level: NoticeLevel;
+  source: NoticeSource | string;
+  error?: ErrorPayload | null;
+  message?: string;
+  createdAt: string;
+}

@@ -58,9 +58,7 @@ func main() {
 		},
 	})
 	appService.app = app
-	if appService.config.AutoShare && appService.config.SharedDir != "" {
-		_, _ = appService.StartSharing()
-	}
+	appService.autoStartSharing()
 
 	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:         "LanFolder",
