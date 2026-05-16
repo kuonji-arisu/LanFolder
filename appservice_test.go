@@ -167,6 +167,21 @@ func TestSaveSettingsRejectsAutoShareWithoutAccessApproval(t *testing.T) {
 	}
 }
 
+func TestAccessRequestNoticeIsDebounced(t *testing.T) {
+	service := &AppService{}
+
+	service.handleAccessRequestNotice()
+	service.handleAccessRequestNotice()
+
+	notices := service.DrainNotices()
+	if len(notices) != 1 {
+		t.Fatalf("notices = %d, want 1", len(notices))
+	}
+	if notices[0].Message != "有新设备请求访问共享" {
+		t.Fatalf("notice = %#v", notices[0])
+	}
+}
+
 func TestSingleInstanceOptions(t *testing.T) {
 	options := singleInstanceOptions(&AppService{})
 	if options == nil {

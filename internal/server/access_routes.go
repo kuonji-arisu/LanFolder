@@ -21,12 +21,15 @@ func (s *Server) handleAccessStatus(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleAccessRequest(w http.ResponseWriter, r *http.Request) {
 	if !s.accessRequired() {
+		setAccessLog(r, "访问请求无需批准", "", "", "")
 		writeErrorCode(w, http.StatusBadRequest, "access_not_required", nil)
 		return
 	}
-	req, created, err := s.access.CreateRequest(clientIP(r), r.UserAgent())
+	ip := clientIP(r)
+	req, created, err := s.access.CreateRequest(ip, r.UserAgent())
 	if err != nil {
 		if errors.Is(err, share.ErrAccessRequestLimited) {
+			setAccessLog(r, "访问请求过于频繁", ip, ip, "")
 			writeErrorCode(w, http.StatusTooManyRequests, "access_request_limited", nil)
 			return
 		}
@@ -34,6 +37,7 @@ func (s *Server) handleAccessRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if created {
+		setAccessLog(r, "请求访问", req.Code, req.IP, "")
 		s.notifyAccessRequest()
 	}
 	status := http.StatusOK
@@ -50,12 +54,18 @@ func (s *Server) handleAccessRequest(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleAccessPoll(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	if id == "" {
+		setAccessLog(r, "访问轮询无效", "", "", "")
 		writeErrorCode(w, http.StatusBadRequest, "invalid_request", nil)
 		return
 	}
 	result, token, err := s.access.Poll(id)
 	if err != nil {
 		writeErrorCode(w, http.StatusInternalServerError, "server_error", nil)
+		return
+	}
+	if result.State == share.AccessPollExpired && !s.invalidPolls.Allow(clientIP(r)) {
+		setAccessLog(r, "访问轮询过于频繁", "", "", "")
+		writeErrorCode(w, http.StatusTooManyRequests, "access_request_limited", nil)
 		return
 	}
 	if result.State == share.AccessPollApproved && token != "" {
@@ -67,6 +77,9 @@ func (s *Server) handleAccessPoll(w http.ResponseWriter, r *http.Request) {
 			SameSite: http.SameSiteStrictMode,
 		})
 	}
+	if result.State != share.AccessPollPending {
+		setAccessLog(r, "访问轮询", string(result.State), "", "")
+	}
 	writeJSON(w, http.StatusOK, result)
 }
 
@@ -74,6 +87,7 @@ func (s *Server) handleAccessLogout(w http.ResponseWriter, r *http.Request) {
 	if cookie, err := r.Cookie(sessionCookieName); err == nil {
 		s.access.Revoke(cookie.Value)
 	}
+	setAccessLog(r, "退出访问", "", "", "")
 	clearSessionCookie(w)
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
@@ -87,15 +101,29 @@ func (s *Server) AccessSessions() []share.AccessSession {
 }
 
 func (s *Server) ApproveAccessRequest(id string) error {
-	return s.access.Approve(id)
+	req, err := s.access.Approve(id)
+	if err != nil {
+		return err
+	}
+	s.addLog(newAccessEventLog("批准访问", req.IP, req.Code, ""))
+	return nil
 }
 
 func (s *Server) DenyAccessRequest(id string) error {
-	return s.access.Deny(id)
+	req, err := s.access.Deny(id)
+	if err != nil {
+		return err
+	}
+	s.addLog(newAccessEventLog("拒绝访问", req.IP, req.Code, ""))
+	return nil
 }
 
 func (s *Server) RevokeAccessSession(id string) bool {
-	return s.access.RevokeSession(id)
+	session, ok := s.access.RevokeSession(id)
+	if ok {
+		s.addLog(newAccessEventLog("撤销授权", session.IP, session.IP, ""))
+	}
+	return ok
 }
 
 func clearSessionCookie(w http.ResponseWriter) {

@@ -49,6 +49,19 @@ func (s *Server) addLog(entry LogEntry) {
 	}
 }
 
+func newAccessEventLog(action, remote, target, detail string) LogEntry {
+	return LogEntry{
+		Time:   time.Now(),
+		Method: "DESKTOP",
+		Path:   "/api/access",
+		Remote: remote,
+		Status: http.StatusOK,
+		Action: action,
+		Target: target,
+		Detail: detail,
+	}
+}
+
 type accessLogMetadataKey struct{}
 
 type accessLogMetadata struct {

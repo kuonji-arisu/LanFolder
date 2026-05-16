@@ -50,8 +50,7 @@ func main() {
 		}
 	})
 	appService.server.SetAccessRequestCallback(func() {
-		appService.addNotice("info", "system", nil, "有新设备请求访问共享")
-		appService.emitStateChanged("access")
+		appService.handleAccessRequestNotice()
 	})
 
 	app := application.New(application.Options{

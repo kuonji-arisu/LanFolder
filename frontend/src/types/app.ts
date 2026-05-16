@@ -37,7 +37,9 @@ export interface AccessRequest {
   code: string;
   ip: string;
   userAgent: string;
+  requestCount: number;
   createdAt: string;
+  lastSeenAt: string;
   expiresAt: string;
 }
 

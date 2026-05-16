@@ -3,6 +3,7 @@ import { ShieldCheck } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatDate } from "@/lib/format";
+import { userAgentLabel } from "@/lib/userAgent";
 import { useAppStore } from "@/stores/app";
 import { useNoticeStore } from "@/stores/notices";
 
@@ -21,6 +22,12 @@ async function deny(id: string) {
 async function revoke(id: string) {
   notices.showTaskResult(await app.revokeAccessSession(id));
 }
+
+function requestStats(request: { requestCount: number; lastSeenAt: string }) {
+  const parts: string[] = [];
+  if (request.requestCount > 1) parts.push(`${request.requestCount} 次`, `最近 ${formatDate(request.lastSeenAt)}`);
+  return parts;
+}
 </script>
 
 <template>
@@ -38,8 +45,10 @@ async function revoke(id: string) {
         <div v-if="!app.pendingAccessRequests.length" class="empty-row">暂无新设备请求</div>
         <div v-for="request in app.pendingAccessRequests" :key="request.id" class="access-row">
           <div class="access-copy">
-            <div class="access-title">{{ request.code }}</div>
-            <div class="access-meta">{{ request.ip }} · {{ request.userAgent || "未知浏览器" }}</div>
+            <div class="access-title request-code">{{ request.code }}</div>
+            <div class="access-ip">{{ request.ip }}</div>
+            <div class="access-agent" :title="request.userAgent || '未知浏览器'">{{ userAgentLabel(request.userAgent) }}</div>
+            <div v-if="requestStats(request).length" class="access-meta">{{ requestStats(request).join(" · ") }}</div>
           </div>
           <div class="access-actions">
             <Button size="sm" variant="secondary" @click="deny(request.id)">拒绝</Button>
@@ -54,10 +63,11 @@ async function revoke(id: string) {
         <div v-for="session in app.accessSessions" :key="session.id" class="access-row">
           <div class="access-copy">
             <div class="access-title session-title">
-              <ShieldCheck class="h-4 w-4" />
+              <ShieldCheck class="session-icon h-4 w-4" />
               {{ session.ip }}
             </div>
-            <div class="access-meta">{{ session.userAgent || "未知浏览器" }} · {{ formatDate(session.createdAt) }}</div>
+            <div class="access-agent" :title="session.userAgent || '未知浏览器'">{{ userAgentLabel(session.userAgent) }}</div>
+            <div class="access-meta">{{ formatDate(session.createdAt) }}</div>
           </div>
           <Button size="sm" variant="secondary" @click="revoke(session.id)">撤销</Button>
         </div>
@@ -109,43 +119,72 @@ async function revoke(id: string) {
 }
 
 .access-row {
-  display: flex;
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-3);
 }
 
 .access-copy {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .access-title {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: var(--font-size-lg);
+  min-width: 0;
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   letter-spacing: 0;
 }
 
+.request-code {
+  color: var(--color-text-primary);
+  font-size: 21px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.access-ip {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
 .session-title {
+  gap: var(--space-2);
   font-size: var(--font-size-sm);
 }
 
+.session-icon {
+  flex-shrink: 0;
+  color: var(--color-accent);
+}
+
+.access-agent,
 .access-meta {
-  max-width: 300px;
-  margin-top: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   color: var(--color-text-tertiary);
   font-size: var(--font-size-xs);
+}
+
+.access-agent {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
 }
 
 .access-actions {
   display: flex;
   gap: var(--space-2);
   flex-shrink: 0;
+  align-self: center;
 }
 </style>

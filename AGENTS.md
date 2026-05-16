@@ -17,6 +17,8 @@
 - Keep app notifications on the AppNotice pipeline; do not add parallel event or toast paths.
 - Keep LAN access approval small and Go-owned: new browser access is approved on the desktop, the browser receives an opaque in-memory session cookie, and the session only means "allowed to enter". Current share permission remains the source of truth for what the browser can do.
 - Do not make the access display code a PIN, password, secret, or login mechanism. It is only a human-readable request code for matching the browser page to the desktop prompt.
+- Treat LAN access request identity as IP-based; User-Agent is display-only metadata and must not affect authorization or request identity.
+- Aggregate repeated access requests with counts/last-seen metadata; do not notify or log every duplicate request.
 
 ## Safety Constraints
 

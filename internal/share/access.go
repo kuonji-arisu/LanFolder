@@ -14,6 +14,7 @@ import (
 
 const (
 	AccessRequestTTL      = 2 * time.Minute
+	AccessRequestCooldown = 5 * time.Second
 	MaxAccessPendingCount = 32
 )
 
@@ -23,12 +24,14 @@ var (
 )
 
 type AccessRequest struct {
-	ID        string    `json:"id"`
-	Code      string    `json:"code"`
-	IP        string    `json:"ip"`
-	UserAgent string    `json:"userAgent"`
-	CreatedAt time.Time `json:"createdAt"`
-	ExpiresAt time.Time `json:"expiresAt"`
+	ID           string    `json:"id"`
+	Code         string    `json:"code"`
+	IP           string    `json:"ip"`
+	UserAgent    string    `json:"userAgent"`
+	RequestCount int       `json:"requestCount"`
+	CreatedAt    time.Time `json:"createdAt"`
+	LastSeenAt   time.Time `json:"lastSeenAt"`
+	ExpiresAt    time.Time `json:"expiresAt"`
 }
 
 type AccessSession struct {
@@ -61,21 +64,25 @@ type completedAccessRequest struct {
 }
 
 type AccessManager struct {
-	mu        sync.Mutex
-	now       func() time.Time
-	pending   map[string]AccessRequest
-	completed map[string]completedAccessRequest
-	sessions  map[[32]byte]AccessSession
-	sessionID map[string][32]byte
+	mu            sync.Mutex
+	now           func() time.Time
+	pending       map[string]AccessRequest
+	pendingByIP   map[string]string
+	completed     map[string]completedAccessRequest
+	sessions      map[[32]byte]AccessSession
+	sessionID     map[string][32]byte
+	lastRequestAt map[string]time.Time
 }
 
 func NewAccessManager() *AccessManager {
 	return &AccessManager{
-		now:       time.Now,
-		pending:   map[string]AccessRequest{},
-		completed: map[string]completedAccessRequest{},
-		sessions:  map[[32]byte]AccessSession{},
-		sessionID: map[string][32]byte{},
+		now:           time.Now,
+		pending:       map[string]AccessRequest{},
+		pendingByIP:   map[string]string{},
+		completed:     map[string]completedAccessRequest{},
+		sessions:      map[[32]byte]AccessSession{},
+		sessionID:     map[string][32]byte{},
+		lastRequestAt: map[string]time.Time{},
 	}
 }
 
@@ -85,10 +92,18 @@ func (m *AccessManager) CreateRequest(ip, userAgent string) (AccessRequest, bool
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.pruneExpiredLocked(now)
-	for _, req := range m.pending {
-		if req.IP == ip && req.UserAgent == userAgent {
+	if id, ok := m.pendingByIP[ip]; ok {
+		if req, ok := m.pending[id]; ok {
+			req.UserAgent = userAgent
+			req.RequestCount++
+			req.LastSeenAt = now
+			m.pending[id] = req
 			return req, false, nil
 		}
+		delete(m.pendingByIP, ip)
+	}
+	if last, ok := m.lastRequestAt[ip]; ok && now.Sub(last) < AccessRequestCooldown {
+		return AccessRequest{}, false, ErrAccessRequestLimited
 	}
 	if len(m.pending) >= MaxAccessPendingCount {
 		return AccessRequest{}, false, ErrAccessRequestLimited
@@ -102,14 +117,18 @@ func (m *AccessManager) CreateRequest(ip, userAgent string) (AccessRequest, bool
 		return AccessRequest{}, false, err
 	}
 	req := AccessRequest{
-		ID:        id,
-		Code:      code,
-		IP:        ip,
-		UserAgent: userAgent,
-		CreatedAt: now,
-		ExpiresAt: now.Add(AccessRequestTTL),
+		ID:           id,
+		Code:         code,
+		IP:           ip,
+		UserAgent:    userAgent,
+		RequestCount: 1,
+		CreatedAt:    now,
+		LastSeenAt:   now,
+		ExpiresAt:    now.Add(AccessRequestTTL),
 	}
 	m.pending[req.ID] = req
+	m.pendingByIP[req.IP] = req.ID
+	m.lastRequestAt[req.IP] = now
 	return req, true, nil
 }
 
@@ -128,35 +147,43 @@ func (m *AccessManager) Pending() []AccessRequest {
 	return out
 }
 
-func (m *AccessManager) Approve(id string) error {
+func (m *AccessManager) Approve(id string) (AccessRequest, error) {
 	now := m.now()
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.pruneExpiredLocked(now)
 	req, ok := m.pending[id]
 	if !ok {
-		return ErrAccessRequestNotFound
+		return AccessRequest{}, ErrAccessRequestNotFound
 	}
 	delete(m.pending, id)
+	delete(m.pendingByIP, req.IP)
 	m.completed[id] = completedAccessRequest{
 		state:     AccessPollApproved,
 		request:   req,
 		expiresAt: now.Add(AccessRequestTTL),
 	}
-	return nil
+	return req, nil
 }
 
-func (m *AccessManager) Deny(id string) error {
+func (m *AccessManager) Deny(id string) (AccessRequest, error) {
 	now := m.now()
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.pruneExpiredLocked(now)
-	if _, ok := m.pending[id]; !ok {
-		return ErrAccessRequestNotFound
+	req, ok := m.pending[id]
+	if !ok {
+		return AccessRequest{}, ErrAccessRequestNotFound
 	}
 	delete(m.pending, id)
-	m.completed[id] = completedAccessRequest{state: AccessPollDenied, expiresAt: now.Add(AccessRequestTTL)}
-	return nil
+	delete(m.pendingByIP, req.IP)
+	m.lastRequestAt[req.IP] = now
+	m.completed[id] = completedAccessRequest{
+		state:     AccessPollDenied,
+		request:   req,
+		expiresAt: now.Add(AccessRequestTTL),
+	}
+	return req, nil
 }
 
 func (m *AccessManager) Poll(id string) (AccessPollResult, string, error) {
@@ -226,16 +253,17 @@ func (m *AccessManager) Revoke(token string) {
 	delete(m.sessions, hash)
 }
 
-func (m *AccessManager) RevokeSession(id string) bool {
+func (m *AccessManager) RevokeSession(id string) (AccessSession, bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	hash, ok := m.sessionID[id]
 	if !ok {
-		return false
+		return AccessSession{}, false
 	}
+	session := m.sessions[hash]
 	delete(m.sessionID, id)
 	delete(m.sessions, hash)
-	return true
+	return session, true
 }
 
 func (m *AccessManager) Sessions() []AccessSession {
@@ -255,21 +283,29 @@ func (m *AccessManager) Clear() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.pending = map[string]AccessRequest{}
+	m.pendingByIP = map[string]string{}
 	m.completed = map[string]completedAccessRequest{}
 	m.sessions = map[[32]byte]AccessSession{}
 	m.sessionID = map[string][32]byte{}
+	m.lastRequestAt = map[string]time.Time{}
 }
 
 func (m *AccessManager) pruneExpiredLocked(now time.Time) {
 	for id, req := range m.pending {
 		if !now.Before(req.ExpiresAt) {
 			delete(m.pending, id)
+			delete(m.pendingByIP, req.IP)
 			m.completed[id] = completedAccessRequest{state: AccessPollExpired, expiresAt: now.Add(AccessRequestTTL)}
 		}
 	}
 	for id, completed := range m.completed {
 		if !now.Before(completed.expiresAt) {
 			delete(m.completed, id)
+		}
+	}
+	for ip, last := range m.lastRequestAt {
+		if now.Sub(last) >= AccessRequestCooldown {
+			delete(m.lastRequestAt, ip)
 		}
 	}
 }

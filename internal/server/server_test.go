@@ -286,6 +286,35 @@ func TestAccessLogsUseHumanReadableActions(t *testing.T) {
 	}
 }
 
+func TestAccessLogsIncludeApprovalFlow(t *testing.T) {
+	root := t.TempDir()
+	s, ts := testServerWithAccess(t, root, share.PermissionReadOnly)
+	defer ts.Close()
+
+	resp := postJSON(t, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
+	var requested struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&requested); err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if err := s.ApproveAccessRequest(requested.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	logs := s.Logs()
+	if len(logs) < 2 {
+		t.Fatalf("logs = %#v, want access request and approval entries", logs)
+	}
+	if logs[0].Action != "批准访问" {
+		t.Fatalf("approval log = %#v", logs[0])
+	}
+	if logs[1].Action != "请求访问" {
+		t.Fatalf("request log = %#v", logs[1])
+	}
+}
+
 func TestAccessLogsUseBasenameWithFullTargetPath(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/download?path=music/live/song.mp3", nil)
 	req.RemoteAddr = "10.0.0.2:12345"
@@ -545,58 +574,82 @@ func TestAccessRequestDedupesPendingClient(t *testing.T) {
 		t.Fatalf("first request status = %d", first.StatusCode)
 	}
 
-	second := postJSON(t, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
+	req, err := http.NewRequest(http.MethodPost, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "changed-client")
+	second, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer second.Body.Close()
 	if second.StatusCode != http.StatusOK {
 		t.Fatalf("duplicate request status = %d", second.StatusCode)
 	}
 	if pending := s.PendingAccessRequests(); len(pending) != 1 {
 		t.Fatalf("pending = %#v, want one request", pending)
+	} else if pending[0].RequestCount != 2 || pending[0].UserAgent != "changed-client" {
+		t.Fatalf("pending metadata = %#v, want count 2 with latest user agent", pending[0])
 	}
 }
 
-func TestAccessRequestLimitReturnsTooManyRequests(t *testing.T) {
+func TestAccessRequestCooldownReturnsTooManyRequests(t *testing.T) {
 	root := t.TempDir()
-	_, ts := testServerWithAccess(t, root, share.PermissionReadOnly)
+	s, ts := testServerWithAccess(t, root, share.PermissionReadOnly)
 	defer ts.Close()
 
-	for i := 0; i < share.MaxAccessPendingCount; i++ {
-		req, err := http.NewRequest(http.MethodPost, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
-		if err != nil {
-			t.Fatal(err)
-		}
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("User-Agent", "client-"+strconv.Itoa(i))
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			t.Fatal(err)
-		}
-		resp.Body.Close()
-		if resp.StatusCode != http.StatusCreated {
-			t.Fatalf("request %d status = %d", i, resp.StatusCode)
-		}
+	first := postJSON(t, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
+	var requested struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(first.Body).Decode(&requested); err != nil {
+		t.Fatal(err)
+	}
+	first.Body.Close()
+	if err := s.DenyAccessRequest(requested.ID); err != nil {
+		t.Fatal(err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "overflow")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	resp := postJSON(t, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusTooManyRequests {
-		t.Fatalf("overflow status = %d, want %d", resp.StatusCode, http.StatusTooManyRequests)
+		t.Fatalf("cooldown status = %d, want %d", resp.StatusCode, http.StatusTooManyRequests)
 	}
 	var body apiError
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
 	if body.Error != "access_request_limited" {
-		t.Fatalf("overflow body = %#v", body)
+		t.Fatalf("cooldown body = %#v", body)
+	}
+}
+
+func TestAccessPollLimitsInvalidIDs(t *testing.T) {
+	root := t.TempDir()
+	s, ts := testServerWithAccess(t, root, share.PermissionReadOnly)
+	s.invalidPolls = newFixedWindowLimiter(time.Minute, 2)
+	defer ts.Close()
+
+	for i := 0; i < 2; i++ {
+		resp, err := http.Get(ts.URL + "/api/access/poll?id=missing-" + strconv.Itoa(i))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("invalid poll %d status = %d", i, resp.StatusCode)
+		}
+		resp.Body.Close()
+	}
+
+	resp, err := http.Get(ts.URL + "/api/access/poll?id=missing-overflow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusTooManyRequests {
+		t.Fatalf("overflow poll status = %d, want %d", resp.StatusCode, http.StatusTooManyRequests)
 	}
 }
 

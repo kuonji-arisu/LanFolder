@@ -59,16 +59,19 @@ func commandErrorPayload(err error) *desktop.ErrorPayload {
 }
 
 type AppService struct {
-	mu        sync.Mutex
-	app       *application.App
-	window    application.Window
-	notifier  noticeNotifier
-	server    *server.Server
-	config    config.Config
-	notices   []desktop.Notice
-	noticeSeq uint64
-	drained   bool
+	mu                 sync.Mutex
+	app                *application.App
+	window             application.Window
+	notifier           noticeNotifier
+	server             *server.Server
+	config             config.Config
+	notices            []desktop.Notice
+	noticeSeq          uint64
+	drained            bool
+	lastAccessNoticeAt time.Time
 }
+
+const accessNoticeCooldown = 10 * time.Second
 
 func (s *AppService) State() desktop.AppState {
 	s.mu.Lock()
@@ -233,6 +236,24 @@ func (s *AppService) RevokeAccessSession(id string) error {
 	}
 	s.emitStateChanged("access")
 	return nil
+}
+
+func (s *AppService) handleAccessRequestNotice() {
+	s.emitStateChanged("access")
+	if !s.shouldShowAccessNotice(time.Now()) {
+		return
+	}
+	s.addNotice(desktop.NoticeInfo, desktop.NoticeSourceSystem, nil, "有新设备请求访问共享")
+}
+
+func (s *AppService) shouldShowAccessNotice(now time.Time) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.lastAccessNoticeAt.IsZero() && now.Sub(s.lastAccessNoticeAt) < accessNoticeCooldown {
+		return false
+	}
+	s.lastAccessNoticeAt = now
+	return true
 }
 
 func (s *AppService) DrainNotices() []desktop.Notice {

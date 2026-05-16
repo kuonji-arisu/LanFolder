@@ -21,6 +21,7 @@ type Server struct {
 	mu              sync.RWMutex
 	manager         *share.Manager
 	access          *share.AccessManager
+	invalidPolls    *fixedWindowLimiter
 	staticFS        fs.FS
 	httpSrv         *http.Server
 	config          Config
@@ -31,9 +32,10 @@ type Server struct {
 
 func New(staticFS fs.FS) *Server {
 	return &Server{
-		manager:  share.NewManager(),
-		access:   share.NewAccessManager(),
-		staticFS: staticFS,
+		manager:      share.NewManager(),
+		access:       share.NewAccessManager(),
+		invalidPolls: newFixedWindowLimiter(time.Minute, 30),
+		staticFS:     staticFS,
 		config: Config{
 			Host:       "0.0.0.0",
 			Port:       8899,
@@ -85,6 +87,7 @@ func (s *Server) Start(cfg Config) error {
 		return err
 	}
 	s.access.Clear()
+	s.invalidPolls.Clear()
 	s.httpSrv = httpSrv
 	s.config = cfg
 	s.mu.Unlock()
@@ -111,6 +114,7 @@ func (s *Server) Stop(ctx context.Context) error {
 		return nil
 	}
 	s.access.Clear()
+	s.invalidPolls.Clear()
 	return errors.Join(srv.Shutdown(ctx), s.manager.ClearMessages())
 }
 

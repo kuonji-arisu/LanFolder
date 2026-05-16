@@ -14,7 +14,9 @@ export class AccessRequest {
     "code": string;
     "ip": string;
     "userAgent": string;
+    "requestCount": number;
     "createdAt": time$0.Time;
+    "lastSeenAt": time$0.Time;
     "expiresAt": time$0.Time;
 
     /** Creates a new AccessRequest instance. */
@@ -31,8 +33,14 @@ export class AccessRequest {
         if (!("userAgent" in $$source)) {
             this["userAgent"] = "";
         }
+        if (!("requestCount" in $$source)) {
+            this["requestCount"] = 0;
+        }
         if (!("createdAt" in $$source)) {
             this["createdAt"] = null;
+        }
+        if (!("lastSeenAt" in $$source)) {
+            this["lastSeenAt"] = null;
         }
         if (!("expiresAt" in $$source)) {
             this["expiresAt"] = null;
