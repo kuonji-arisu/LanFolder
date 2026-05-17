@@ -28,7 +28,7 @@ function remoteLabel(log: AccessLog) {
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent size="large" height="fill">
+    <DialogContent size="large" height="bounded">
       <DialogHeader class="dialog-head">
         <DialogTitle>访问日志</DialogTitle>
         <DialogDescription>{{ app.logs.length }} 条最近访问记录</DialogDescription>
@@ -58,8 +58,7 @@ function remoteLabel(log: AccessLog) {
 }
 
 .empty-state {
-  flex: 1;
-  min-height: 0;
+  min-height: 160px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-elevated);
@@ -71,28 +70,24 @@ function remoteLabel(log: AccessLog) {
 }
 
 .log-list {
-  flex: 1;
-  min-height: 0;
+  --log-row-min-height: 64px;
+
+  flex: 1 1 auto;
+  min-height: var(--log-row-min-height);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-elevated);
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-color: var(--color-border) transparent;
-  scrollbar-width: thin;
+  scrollbar-width: none;
 }
 
 .log-list::-webkit-scrollbar {
-  width: var(--space-2);
-  height: 0;
-}
-
-.log-list::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: var(--color-border);
+  display: none;
 }
 
 .log-row {
+  min-height: var(--log-row-min-height);
   padding: var(--space-3);
   border-bottom: 1px solid var(--color-border);
 }

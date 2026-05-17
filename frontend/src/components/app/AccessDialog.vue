@@ -88,18 +88,11 @@ function requestStats(request: { requestCount: number; lastSeenAt: string }) {
   gap: var(--space-4);
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-color: var(--color-border) transparent;
-  scrollbar-width: thin;
+  scrollbar-width: none;
 }
 
 .access-dialog-scroll::-webkit-scrollbar {
-  width: var(--space-2);
-  height: 0;
-}
-
-.access-dialog-scroll::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: var(--color-border);
+  display: none;
 }
 
 .access-section {
