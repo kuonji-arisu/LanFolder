@@ -49,19 +49,6 @@ func (s *Server) addLog(entry LogEntry) {
 	}
 }
 
-func newAccessEventLog(action, remote, target, detail string) LogEntry {
-	return LogEntry{
-		Time:   time.Now(),
-		Method: "DESKTOP",
-		Path:   "/api/access",
-		Remote: remote,
-		Status: http.StatusOK,
-		Action: action,
-		Target: target,
-		Detail: detail,
-	}
-}
-
 type accessLogMetadataKey struct{}
 
 type accessLogMetadata struct {
@@ -88,8 +75,6 @@ func readableAccessLog(r *http.Request, status int, metadata *accessLogMetadata)
 	}
 
 	switch {
-	case r.Method == http.MethodGet && (r.URL.Path == "/" || r.URL.Path == "/index.html" || r.URL.Path == "/web.html"):
-		return "打开分享页", "", "", "", true
 	case r.Method == http.MethodGet && r.URL.Path == "/api/list":
 		target, targetPath := logTarget(r.URL.Query().Get("path"))
 		return "浏览", target, targetPath, "", true
@@ -99,6 +84,8 @@ func readableAccessLog(r *http.Request, status int, metadata *accessLogMetadata)
 	case r.Method == http.MethodPost && r.URL.Path == "/api/upload":
 		target, targetPath := logTarget(r.URL.Query().Get("path"))
 		return "上传", target, targetPath, "", true
+	case strings.HasPrefix(r.URL.Path, "/api/access/") && r.URL.Path != "/api/access/request":
+		return "", "", "", "", false
 	case strings.HasPrefix(r.URL.Path, "/api/") && status >= http.StatusBadRequest:
 		target, targetPath := apiLogTarget(r)
 		return "请求失败", target, targetPath, "", true

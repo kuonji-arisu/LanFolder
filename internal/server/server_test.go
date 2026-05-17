@@ -228,7 +228,7 @@ func TestHTTPListMkdirUploadDeleteFlow(t *testing.T) {
 	}
 }
 
-func TestAccessLogsSkipStaticAssetsAndStatusPolling(t *testing.T) {
+func TestAccessLogsSkipPageStaticAssetsAndStatusPolling(t *testing.T) {
 	root := t.TempDir()
 	s, ts := testServer(t, root, share.PermissionReadOnly)
 	defer ts.Close()
@@ -246,11 +246,8 @@ func TestAccessLogsSkipStaticAssetsAndStatusPolling(t *testing.T) {
 	}
 
 	logs := s.Logs()
-	if len(logs) != 1 {
-		t.Fatalf("logs = %#v, want only the page open", logs)
-	}
-	if logs[0].Action != "打开分享页" {
-		t.Fatalf("log action = %q", logs[0].Action)
+	if len(logs) != 0 {
+		t.Fatalf("logs = %#v, want none", logs)
 	}
 }
 
@@ -286,7 +283,7 @@ func TestAccessLogsUseHumanReadableActions(t *testing.T) {
 	}
 }
 
-func TestAccessLogsIncludeApprovalFlow(t *testing.T) {
+func TestAccessLogsIncludeAccessRequestOnly(t *testing.T) {
 	root := t.TempDir()
 	s, ts := testServerWithAccess(t, root, share.PermissionReadOnly)
 	defer ts.Close()
@@ -310,15 +307,30 @@ func TestAccessLogsIncludeApprovalFlow(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	cookies := resp.Cookies()
+	if len(cookies) != 1 || cookies[0].Name != requestCookieName {
+		t.Fatalf("request cookies = %#v", cookies)
+	}
+	pollReq, err := http.NewRequest(http.MethodGet, ts.URL+"/api/access/poll", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pollReq.AddCookie(cookies[0])
+	pollResp, err := http.DefaultClient.Do(pollReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pollResp.Body.Close()
+	if pollResp.StatusCode != http.StatusOK {
+		t.Fatalf("poll status = %d", pollResp.StatusCode)
+	}
+
 	logs := s.Logs()
-	if len(logs) < 2 {
-		t.Fatalf("logs = %#v, want access request and approval entries", logs)
+	if len(logs) != 1 {
+		t.Fatalf("logs = %#v, want only access request entry", logs)
 	}
-	if logs[0].Action != "批准访问" {
-		t.Fatalf("approval log = %#v", logs[0])
-	}
-	if logs[1].Action != "请求访问" {
-		t.Fatalf("request log = %#v", logs[1])
+	if logs[0].Action != "请求访问" {
+		t.Fatalf("request log = %#v", logs[0])
 	}
 }
 
