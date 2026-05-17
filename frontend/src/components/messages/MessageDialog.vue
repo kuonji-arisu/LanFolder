@@ -60,7 +60,7 @@ async function clearMessages() {
   </Dialog>
 
   <Dialog v-model:open="clearConfirmOpen">
-    <DialogContent class="message-clear-dialog">
+    <DialogContent size="sm">
       <DialogHeader>
         <DialogTitle>清空消息</DialogTitle>
         <DialogDescription>这会删除当前共享目录里的传递字符记录。</DialogDescription>
@@ -90,10 +90,6 @@ async function clearMessages() {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-}
-
-.message-clear-dialog {
-  max-width: 420px;
 }
 
 .message-clear-actions {

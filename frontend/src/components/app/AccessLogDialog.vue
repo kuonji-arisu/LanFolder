@@ -6,8 +6,6 @@ import type { AccessLog } from "@/types/app";
 
 const open = defineModel<boolean>("open", { required: true });
 const app = useAppStore();
-const dialogContentClass =
-  "w-[calc(100vw_-_var(--space-6))] max-w-[var(--content-max-width)] h-[calc(100dvh_-_var(--space-6))] flex flex-col overflow-hidden";
 
 function logTitle(log: AccessLog) {
   if (!log.target) return log.action || "访问共享";
@@ -30,27 +28,23 @@ function remoteLabel(log: AccessLog) {
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent :class="dialogContentClass">
-      <div class="log-dialog-body">
-        <div class="log-dialog-head">
-          <DialogHeader>
-            <DialogTitle>访问日志</DialogTitle>
-            <DialogDescription>{{ app.logs.length }} 条最近访问记录</DialogDescription>
-          </DialogHeader>
-        </div>
+    <DialogContent size="large" height="fill">
+      <DialogHeader class="dialog-head">
+        <DialogTitle>访问日志</DialogTitle>
+        <DialogDescription>{{ app.logs.length }} 条最近访问记录</DialogDescription>
+      </DialogHeader>
 
-        <div v-if="!app.logs.length" class="empty-state">暂无访问记录</div>
+      <div v-if="!app.logs.length" class="empty-state">暂无访问记录</div>
 
-        <div v-else class="log-list">
-          <div v-for="log in app.logs" :key="`${log.time}-${log.remote}-${log.path}`" class="log-row">
-            <div class="log-main">
-              <span class="log-title" :title="logTitleHint(log)">{{ logTitle(log) }}</span>
-              <span v-if="log.status >= 400" class="status-code status-code--error">{{ log.status }}</span>
-            </div>
-            <div class="log-meta">
-              <span class="log-remote">{{ remoteLabel(log) }}</span>
-              <span class="log-time">{{ formatDate(log.time) }}</span>
-            </div>
+      <div v-else class="log-list">
+        <div v-for="log in app.logs" :key="`${log.time}-${log.remote}-${log.path}`" class="log-row">
+          <div class="log-main">
+            <span class="log-title" :title="logTitleHint(log)">{{ logTitle(log) }}</span>
+            <span v-if="log.status >= 400" class="status-code status-code--error">{{ log.status }}</span>
+          </div>
+          <div class="log-meta">
+            <span class="log-remote">{{ remoteLabel(log) }}</span>
+            <span class="log-time">{{ formatDate(log.time) }}</span>
           </div>
         </div>
       </div>
@@ -59,18 +53,8 @@ function remoteLabel(log: AccessLog) {
 </template>
 
 <style scoped>
-.log-dialog-body {
-  --log-dialog-head-padding: calc(var(--icon-button-size) + var(--space-2));
-
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.log-dialog-head {
-  padding-right: var(--log-dialog-head-padding);
+.dialog-head {
+  padding-right: calc(var(--icon-button-size) + var(--space-2));
 }
 
 .empty-state {

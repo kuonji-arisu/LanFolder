@@ -10,8 +10,6 @@ import { useNoticeStore } from "@/stores/notices";
 const open = defineModel<boolean>("open", { required: true });
 const app = useAppStore();
 const notices = useNoticeStore();
-const dialogContentClass =
-  "w-[calc(100vw_-_var(--space-6))] max-w-[var(--content-max-width)] max-h-[calc(100dvh_-_var(--space-6))] flex flex-col overflow-hidden";
 
 async function approve(id: string) {
   notices.showTaskResult(await app.approveAccessRequest(id));
@@ -34,13 +32,11 @@ function requestStats(request: { requestCount: number; lastSeenAt: string }) {
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent :class="dialogContentClass">
-      <div class="access-dialog-head">
-        <DialogHeader>
-          <DialogTitle>访问管理</DialogTitle>
-          <DialogDescription>批准新浏览器，或撤销已经授权的浏览器 session。</DialogDescription>
-        </DialogHeader>
-      </div>
+    <DialogContent size="large" height="bounded">
+      <DialogHeader class="dialog-head">
+        <DialogTitle>访问管理</DialogTitle>
+        <DialogDescription>批准新浏览器，或撤销已经授权的浏览器 session。</DialogDescription>
+      </DialogHeader>
 
       <div class="access-dialog-scroll">
         <section class="access-section">
@@ -80,7 +76,7 @@ function requestStats(request: { requestCount: number; lastSeenAt: string }) {
 </template>
 
 <style scoped>
-.access-dialog-head {
+.dialog-head {
   padding-right: calc(var(--icon-button-size) + var(--space-2));
 }
 
@@ -92,11 +88,18 @@ function requestStats(request: { requestCount: number; lastSeenAt: string }) {
   gap: var(--space-4);
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-color: var(--color-border) transparent;
+  scrollbar-width: thin;
 }
 
 .access-dialog-scroll::-webkit-scrollbar {
-  width: 0;
+  width: var(--space-2);
   height: 0;
+}
+
+.access-dialog-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--color-border);
 }
 
 .access-section {

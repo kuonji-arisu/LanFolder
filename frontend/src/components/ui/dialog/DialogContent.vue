@@ -10,12 +10,21 @@ import {
   DialogPortal,
   useForwardPropsEmits,
 } from "radix-vue";
+import type { DialogContentVariants } from ".";
 import { cn } from "@/lib/utils";
+import { dialogContentVariants } from ".";
 
-const props = defineProps<DialogContentProps & { class?: HTMLAttributes["class"] }>();
+const props = defineProps<
+  DialogContentProps & {
+    class?: HTMLAttributes["class"];
+    size?: DialogContentVariants["size"];
+    height?: DialogContentVariants["height"];
+  }
+>();
 const emits = defineEmits<DialogContentEmits>();
+
 const delegatedProps = computed(() => {
-  const { class: _, ...delegated } = props;
+  const { class: _, size: _size, height: _height, ...delegated } = props;
   return delegated;
 });
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
@@ -28,7 +37,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
       v-bind="forwarded"
       :class="
         cn(
-          'fixed left-1/2 top-1/2 z-50 grid w-[calc(100vw-28px)] max-w-[560px] max-h-[calc(100dvh-36px)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-hidden rounded-lg border bg-card p-4 text-card-foreground shadow-lg focus:outline-none',
+          dialogContentVariants({ size: props.size, height: props.height }),
           props.class,
         )
       "
