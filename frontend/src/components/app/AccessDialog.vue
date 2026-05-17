@@ -81,7 +81,7 @@ function requestStats(request: { requestCount: number; lastSeenAt: string }) {
 }
 
 .access-dialog-scroll {
-  flex: 1;
+  flex: 0 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
