@@ -10,6 +10,7 @@ import FieldCard from "@/components/app/FieldCard.vue";
 import IconButton from "@/components/app/IconButton.vue";
 import PermissionSegment from "@/components/app/PermissionSegment.vue";
 import { useClipboard } from "@/composables/useClipboard";
+import { useToast } from "@/composables/useToast";
 import { useAppStore } from "@/stores/app";
 import { useNoticeStore } from "@/stores/notices";
 import type { Permission } from "@/lib/constants";
@@ -17,6 +18,7 @@ import type { TaskResult } from "@/composables/useAsyncTask";
 
 const app = useAppStore();
 const notices = useNoticeStore();
+const toasts = useToast();
 const { copied, copy } = useClipboard();
 const accessDialogOpen = ref(false);
 const accessLogDialogOpen = ref(false);
@@ -27,6 +29,9 @@ async function runWithNotice(action: () => Promise<TaskResult<unknown>>) {
 }
 
 async function setPermission(permission: Permission) {
+  if (permission === "manage") {
+    toasts.warning("可删改允许上传和删除，请确认网络可信。");
+  }
   await runWithNotice(() => app.setPermission(permission));
 }
 </script>

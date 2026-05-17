@@ -14,7 +14,7 @@
 - Preserve the split between desktop Wails commands and LAN HTTP APIs.
 - Keep settings as single-setting commits; do not replace this with a whole-form workflow or optimistic shared-store updates.
 - Keep `AppService.SaveSettings()` simple and non-transactional: validate, apply platform side effects, save JSON, update memory, restart if needed, then return the current snapshot plus any error.
-- Keep app notifications on the AppNotice pipeline; do not add parallel event or toast paths.
+- Keep app notifications on the AppNotice pipeline; do not add parallel event paths. Pure frontend, ephemeral UI feedback may use the shared toast composable without entering AppNotice.
 - Keep LAN access approval small and Go-owned: a browser receives an opaque `lf_request` HttpOnly cookie for the request phase, the desktop approves an internal request ID, and the approved browser receives an opaque in-memory `lf_session` cookie.
 - `lf_request` only identifies the pending approval request; `lf_session` only means "allowed to enter". Current share permission remains the source of truth for what the browser can do.
 - Do not expose desktop request IDs, request codes, PINs, passwords, secrets, or login mechanisms to LAN browsers. Access polling must use the `lf_request` cookie, not a URL request ID.

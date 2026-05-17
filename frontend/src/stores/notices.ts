@@ -1,7 +1,7 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
-import { toast } from "vue-sonner";
 import type { TaskResult } from "@/composables/useAsyncTask";
+import { useToast } from "@/composables/useToast";
 import { createAppError, errorMessage, normalizeError } from "@/lib/errors";
 import { noticeApi } from "@/lib/noticeApi";
 import type { AppNotice, NoticeLevel, NoticePresentation, NoticeSource } from "@/types/app";
@@ -10,6 +10,7 @@ const maxNotices = 50;
 
 export const useNoticeStore = defineStore("notices", () => {
   const notices = ref<AppNotice[]>([]);
+  const toasts = useToast();
   const seen = new Set<string>();
   let stopListener: (() => void) | undefined;
 
@@ -23,7 +24,7 @@ export const useNoticeStore = defineStore("notices", () => {
     }
 
     const message = noticeMessage(notice);
-    void presentNotice(notice, message);
+    void presentNotice(notice, message, toasts.show);
   }
 
   function showTaskResult(result: TaskResult<unknown>, source: NoticeSource = "command") {
@@ -74,7 +75,7 @@ export const useNoticeStore = defineStore("notices", () => {
   return { notices, show, showTaskResult, showError, showSuccess, drain, startListening, stopListening };
 });
 
-async function presentNotice(notice: AppNotice, message: string) {
+async function presentNotice(notice: AppNotice, message: string, showToast: (level: NoticeLevel, message: string) => void) {
   let presentation: NoticePresentation = "toast";
   try {
     presentation = await noticeApi.presentNotice(notice, message);
@@ -82,13 +83,6 @@ async function presentNotice(notice: AppNotice, message: string) {
     presentation = "toast";
   }
   if (presentation === "toast") showToast(notice.level, message);
-}
-
-function showToast(level: NoticeLevel, message: string) {
-  if (level === "error") toast.error(message);
-  else if (level === "warning") toast.warning(message);
-  else if (level === "success") toast.success(message);
-  else toast(message);
 }
 
 function noticeMessage(notice: AppNotice) {
