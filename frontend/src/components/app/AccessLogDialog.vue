@@ -57,8 +57,13 @@ function remoteLabel(log: AccessLog) {
   padding-right: calc(var(--icon-button-size) + var(--space-2));
 }
 
+.empty-state,
+.log-list {
+  --log-entry-min-height: 64px;
+}
+
 .empty-state {
-  min-height: 160px;
+  min-height: var(--log-entry-min-height);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-elevated);
@@ -70,10 +75,8 @@ function remoteLabel(log: AccessLog) {
 }
 
 .log-list {
-  --log-row-min-height: 64px;
-
-  flex: 1 1 auto;
-  min-height: var(--log-row-min-height);
+  flex: 0 1 auto;
+  min-height: var(--log-entry-min-height);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-elevated);
@@ -87,7 +90,7 @@ function remoteLabel(log: AccessLog) {
 }
 
 .log-row {
-  min-height: var(--log-row-min-height);
+  min-height: var(--log-entry-min-height);
   padding: var(--space-3);
   border-bottom: 1px solid var(--color-border);
 }
