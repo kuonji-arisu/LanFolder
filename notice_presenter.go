@@ -9,14 +9,12 @@ import (
 )
 
 const (
-	noticePresentationToast     = "toast"
-	noticePresentationAttention = "attention"
-	noticePresentationSystem    = "system"
+	noticePresentationToast  = "toast"
+	noticePresentationSystem = "system"
 )
 
 type noticeWindow interface {
 	IsFocused() bool
-	IsMinimised() bool
 	IsVisible() bool
 	Flash(enabled bool)
 }
@@ -39,14 +37,11 @@ func presentNotice(window noticeWindow, notifier noticeNotifier, notice desktop.
 	}
 
 	visible := window.IsVisible()
-	minimised := window.IsMinimised()
-	if visible && !minimised && window.IsFocused() {
+	if visible {
+		if !window.IsFocused() {
+			window.Flash(true)
+		}
 		return noticePresentationToast
-	}
-
-	if visible || minimised {
-		window.Flash(true)
-		return noticePresentationAttention
 	}
 
 	if notifier == nil {

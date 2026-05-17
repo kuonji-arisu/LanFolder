@@ -26,31 +26,14 @@ func TestPresentNoticeReturnsToastForFocusedVisibleWindow(t *testing.T) {
 	}
 }
 
-func TestPresentNoticeFlashesVisibleUnfocusedWindow(t *testing.T) {
+func TestPresentNoticeFlashesAndReturnsToastForVisibleUnfocusedWindow(t *testing.T) {
 	window := &fakeNoticeWindow{visible: true}
 	notifier := &fakeNoticeNotifier{}
 
 	got := presentNotice(window, notifier, noticeForPresentation(), "hello")
 
-	if got != noticePresentationAttention {
-		t.Fatalf("presentation = %q, want %q", got, noticePresentationAttention)
-	}
-	if len(window.flashes) != 1 || !window.flashes[0] {
-		t.Fatalf("flashes = %#v, want [true]", window.flashes)
-	}
-	if len(notifier.sent) != 0 {
-		t.Fatalf("notifications = %#v, want none", notifier.sent)
-	}
-}
-
-func TestPresentNoticeFlashesMinimisedWindow(t *testing.T) {
-	window := &fakeNoticeWindow{minimised: true}
-	notifier := &fakeNoticeNotifier{}
-
-	got := presentNotice(window, notifier, noticeForPresentation(), "hello")
-
-	if got != noticePresentationAttention {
-		t.Fatalf("presentation = %q, want %q", got, noticePresentationAttention)
+	if got != noticePresentationToast {
+		t.Fatalf("presentation = %q, want %q", got, noticePresentationToast)
 	}
 	if len(window.flashes) != 1 || !window.flashes[0] {
 		t.Fatalf("flashes = %#v, want [true]", window.flashes)
@@ -105,18 +88,13 @@ func noticeForPresentation() desktop.Notice {
 }
 
 type fakeNoticeWindow struct {
-	focused   bool
-	minimised bool
-	visible   bool
-	flashes   []bool
+	focused bool
+	visible bool
+	flashes []bool
 }
 
 func (w *fakeNoticeWindow) IsFocused() bool {
 	return w.focused
-}
-
-func (w *fakeNoticeWindow) IsMinimised() bool {
-	return w.minimised
 }
 
 func (w *fakeNoticeWindow) IsVisible() bool {

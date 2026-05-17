@@ -102,9 +102,9 @@ describe("useNoticeStore", () => {
     await vi.waitFor(() => expect(api.presentNotice).toHaveBeenCalledWith(item, "hello"));
   });
 
-  it("does not show a page toast when the backend handles attention or system notification", async () => {
+  it("does not show a page toast when the backend handles a system notification", async () => {
     const { toast } = await import("vue-sonner");
-    api.presentNotice.mockResolvedValue("attention");
+    api.presentNotice.mockResolvedValue("system");
     const store = useNoticeStore();
 
     store.show(notice({ message: "background" }));

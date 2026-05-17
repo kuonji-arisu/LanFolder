@@ -105,7 +105,7 @@ export interface AppState {
 
 export type NoticeLevel = "info" | "success" | "warning" | "error";
 export type NoticeSource = "command" | "startup" | "system";
-export type NoticePresentation = "toast" | "attention" | "system";
+export type NoticePresentation = "toast" | "system";
 
 export interface ErrorPayload {
   error: string;
