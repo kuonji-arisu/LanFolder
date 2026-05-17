@@ -69,7 +69,6 @@ func (s *Server) handleAccessRequest(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleAccessPoll(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(requestCookieName)
 	if err != nil || cookie.Value == "" {
-		setAccessLog(r, "访问轮询无效", "", "", "")
 		writeJSON(w, http.StatusOK, share.AccessPollResult{State: share.AccessPollExpired})
 		return
 	}
@@ -157,26 +156,31 @@ func clearSessionCookie(w http.ResponseWriter) {
 }
 
 func setAccessRequestCookie(w http.ResponseWriter, token string, expiresAt time.Time) {
+	maxAge, ok := accessRequestCookieMaxAge(expiresAt)
+	if !ok {
+		clearAccessRequestCookie(w)
+		return
+	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     requestCookieName,
 		Value:    token,
 		Path:     requestCookiePath,
-		MaxAge:   accessRequestCookieMaxAge(expiresAt),
+		MaxAge:   maxAge,
 		HttpOnly: true,
 		SameSite: http.SameSiteStrictMode,
 	})
 }
 
-func accessRequestCookieMaxAge(expiresAt time.Time) int {
+func accessRequestCookieMaxAge(expiresAt time.Time) (int, bool) {
 	remaining := time.Until(expiresAt)
 	if remaining <= 0 {
-		return 0
+		return 0, false
 	}
 	seconds := int(remaining.Seconds())
 	if seconds <= 0 {
-		return 1
+		return 1, true
 	}
-	return seconds
+	return seconds, true
 }
 
 func clearAccessRequestCookie(w http.ResponseWriter) {

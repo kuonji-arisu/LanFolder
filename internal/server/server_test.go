@@ -668,14 +668,16 @@ func TestAccessRequestCookieMaxAgeTracksPendingExpiry(t *testing.T) {
 
 func TestAccessRequestCookieMaxAgeUsesRemainingLifetime(t *testing.T) {
 	now := time.Now()
-	if got := accessRequestCookieMaxAge(now.Add(5*time.Second + 500*time.Millisecond)); got > 5 || got <= 0 {
+	got, ok := accessRequestCookieMaxAge(now.Add(5*time.Second + 500*time.Millisecond))
+	if !ok || got > 5 || got <= 0 {
 		t.Fatalf("max age = %d, want positive remaining seconds", got)
 	}
-	if got := accessRequestCookieMaxAge(now.Add(500 * time.Millisecond)); got != 1 {
+	got, ok = accessRequestCookieMaxAge(now.Add(500 * time.Millisecond))
+	if !ok || got != 1 {
 		t.Fatalf("subsecond max age = %d, want 1", got)
 	}
-	if got := accessRequestCookieMaxAge(now.Add(-time.Second)); got != 0 {
-		t.Fatalf("expired max age = %d, want 0", got)
+	if got, ok := accessRequestCookieMaxAge(now.Add(-time.Second)); ok || got != 0 {
+		t.Fatalf("expired max age = %d ok=%v, want invalid", got, ok)
 	}
 }
 
@@ -751,6 +753,33 @@ func TestAccessPollLimitsInvalidIDs(t *testing.T) {
 	}
 	if !cleared {
 		t.Fatalf("cookies = %#v, want cleared request cookie", resp.Cookies())
+	}
+}
+
+func TestAccessPollWithoutRequestCookieDoesNotLog(t *testing.T) {
+	root := t.TempDir()
+	s, ts := testServerWithAccess(t, root, share.PermissionReadOnly)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/api/access/poll")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("poll status = %d", resp.StatusCode)
+	}
+	var body struct {
+		State string `json:"state"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body.State != "expired" {
+		t.Fatalf("poll state = %q", body.State)
+	}
+	if logs := s.Logs(); len(logs) != 0 {
+		t.Fatalf("logs = %#v, want none", logs)
 	}
 }
 
