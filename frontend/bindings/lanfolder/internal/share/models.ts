@@ -10,8 +10,11 @@ import { Create as $Create } from "@wailsio/runtime";
 import * as time$0 from "../../../time/models.js";
 
 export class AccessRequest {
+    /**
+     * ID is an internal desktop approval handle. LAN browsers identify the
+     * request with the lf_request cookie instead of receiving this value.
+     */
     "id": string;
-    "code": string;
     "ip": string;
     "userAgent": string;
     "requestCount": number;
@@ -23,9 +26,6 @@ export class AccessRequest {
     constructor($$source: Partial<AccessRequest> = {}) {
         if (!("id" in $$source)) {
             this["id"] = "";
-        }
-        if (!("code" in $$source)) {
-            this["code"] = "";
         }
         if (!("ip" in $$source)) {
             this["ip"] = "";

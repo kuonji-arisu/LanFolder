@@ -10,8 +10,9 @@ func TestAccessPendingRequestExpiresBeforeApprove(t *testing.T) {
 	manager := NewAccessManager()
 	now := time.Date(2026, 5, 16, 12, 0, 0, 0, time.UTC)
 	manager.now = func() time.Time { return now }
+	token := "request-token"
 
-	req, _, err := manager.CreateRequest("192.168.1.20", "test")
+	req, _, err := manager.CreateRequest(token, "192.168.1.20", "test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,18 +21,19 @@ func TestAccessPendingRequestExpiresBeforeApprove(t *testing.T) {
 	if _, err := manager.Approve(req.ID); err != ErrAccessRequestNotFound {
 		t.Fatalf("approve expired request error = %v, want %v", err, ErrAccessRequestNotFound)
 	}
-	result, token, err := manager.Poll(req.ID)
+	result, sessionToken, err := manager.Poll(token)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.State != AccessPollExpired || token != "" {
-		t.Fatalf("poll expired = %#v token %q", result, token)
+	if result.State != AccessPollExpired || sessionToken != "" {
+		t.Fatalf("poll expired = %#v token %q", result, sessionToken)
 	}
 }
 
 func TestAccessApproveCreatesValidSessionToken(t *testing.T) {
 	manager := NewAccessManager()
-	req, _, err := manager.CreateRequest("192.168.1.20", "test")
+	requestToken := "request-token"
+	req, _, err := manager.CreateRequest(requestToken, "192.168.1.20", "test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +43,7 @@ func TestAccessApproveCreatesValidSessionToken(t *testing.T) {
 	if sessions := manager.Sessions(); len(sessions) != 0 {
 		t.Fatalf("sessions before poll = %#v, want none", sessions)
 	}
-	result, token, err := manager.Poll(req.ID)
+	result, token, err := manager.Poll(requestToken)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,23 +59,24 @@ func TestAccessApproveCreatesValidSessionToken(t *testing.T) {
 	}
 }
 
-func TestAccessCreateRequestDedupesPendingClient(t *testing.T) {
+func TestAccessCreateRequestDedupesPendingRequestToken(t *testing.T) {
 	manager := NewAccessManager()
-	first, created, err := manager.CreateRequest("192.168.1.20", "test")
+	token := "request-token"
+	first, created, err := manager.CreateRequest(token, "192.168.1.20", "test")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !created {
 		t.Fatal("first request should be created")
 	}
-	second, created, err := manager.CreateRequest("192.168.1.20", "changed")
+	second, created, err := manager.CreateRequest(token, "192.168.1.20", "changed")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if created {
 		t.Fatal("duplicate request should reuse existing pending request")
 	}
-	if second.ID != first.ID || second.Code != first.Code {
+	if second.ID != first.ID {
 		t.Fatalf("duplicate request = %#v, want %#v", second, first)
 	}
 	if second.RequestCount != 2 || second.UserAgent != "changed" {
@@ -84,24 +87,48 @@ func TestAccessCreateRequestDedupesPendingClient(t *testing.T) {
 	}
 }
 
+func TestAccessCreateRequestAllowsSameIPWithDifferentRequestTokens(t *testing.T) {
+	manager := NewAccessManager()
+	first, created, err := manager.CreateRequest("request-token-1", "192.168.1.20", "first")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !created {
+		t.Fatal("first request should be created")
+	}
+	second, created, err := manager.CreateRequest("request-token-2", "192.168.1.20", "second")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !created {
+		t.Fatal("second request should be created")
+	}
+	if second.ID == first.ID {
+		t.Fatalf("same IP requests should have different IDs: %q", second.ID)
+	}
+	if pending := manager.Pending(); len(pending) != 2 {
+		t.Fatalf("pending = %#v, want two requests", pending)
+	}
+}
+
 func TestAccessCreateRequestCooldownAfterDeny(t *testing.T) {
 	manager := NewAccessManager()
 	now := time.Date(2026, 5, 16, 12, 0, 0, 0, time.UTC)
 	manager.now = func() time.Time { return now }
 
-	req, _, err := manager.CreateRequest("192.168.1.20", "test")
+	req, _, err := manager.CreateRequest("request-token-1", "192.168.1.20", "test")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := manager.Deny(req.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := manager.CreateRequest("192.168.1.20", "test"); err != ErrAccessRequestLimited {
+	if _, _, err := manager.CreateRequest("request-token-2", "192.168.1.20", "test"); err != ErrAccessRequestLimited {
 		t.Fatalf("cooldown err = %v, want %v", err, ErrAccessRequestLimited)
 	}
 
 	now = now.Add(AccessRequestCooldown)
-	if _, created, err := manager.CreateRequest("192.168.1.20", "test"); err != nil || !created {
+	if _, created, err := manager.CreateRequest("request-token-2", "192.168.1.20", "test"); err != nil || !created {
 		t.Fatalf("post-cooldown created=%v err=%v", created, err)
 	}
 }
@@ -109,11 +136,11 @@ func TestAccessCreateRequestCooldownAfterDeny(t *testing.T) {
 func TestAccessCreateRequestLimitsPendingCount(t *testing.T) {
 	manager := NewAccessManager()
 	for i := 0; i < MaxAccessPendingCount; i++ {
-		if _, created, err := manager.CreateRequest("192.168.1."+strconv.Itoa(i+1), "test"); err != nil || !created {
+		if _, created, err := manager.CreateRequest("request-token-"+strconv.Itoa(i+1), "192.168.1."+strconv.Itoa(i+1), "test"); err != nil || !created {
 			t.Fatalf("request %d created=%v err=%v", i, created, err)
 		}
 	}
-	if _, _, err := manager.CreateRequest("192.168.2.1", "overflow"); err != ErrAccessRequestLimited {
+	if _, _, err := manager.CreateRequest("request-token-overflow", "192.168.2.1", "overflow"); err != ErrAccessRequestLimited {
 		t.Fatalf("overflow err = %v, want %v", err, ErrAccessRequestLimited)
 	}
 }

@@ -34,7 +34,6 @@ export interface AccessLog {
 
 export interface AccessRequest {
   id: string;
-  code: string;
   ip: string;
   userAgent: string;
   requestCount: number;

@@ -45,8 +45,7 @@ function requestStats(request: { requestCount: number; lastSeenAt: string }) {
         <div v-if="!app.pendingAccessRequests.length" class="empty-row">暂无新设备请求</div>
         <div v-for="request in app.pendingAccessRequests" :key="request.id" class="access-row">
           <div class="access-copy">
-            <div class="access-title request-code">{{ request.code }}</div>
-            <div class="access-ip">{{ request.ip }}</div>
+            <div class="access-title access-ip">来自 {{ request.ip }}</div>
             <div class="access-agent" :title="request.userAgent || '未知浏览器'">{{ userAgentLabel(request.userAgent) }}</div>
             <div v-if="requestStats(request).length" class="access-meta">{{ requestStats(request).join(" · ") }}</div>
           </div>
@@ -141,13 +140,6 @@ function requestStats(request: { requestCount: number; lastSeenAt: string }) {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   letter-spacing: 0;
-}
-
-.request-code {
-  color: var(--color-text-primary);
-  font-size: 21px;
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
 }
 
 .access-ip {

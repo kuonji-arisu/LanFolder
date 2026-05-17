@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { Loader2, ShieldCheck } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { accessApi, type AccessPollResult, type AccessRequestResult, type AccessStatus } from "@/lib/api";
+import { accessApi, type AccessPollResult, type AccessStatus } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
 
 const emit = defineEmits<{
@@ -11,7 +11,7 @@ const emit = defineEmits<{
 }>();
 
 const accessStatus = ref<AccessStatus | null>(null);
-const accessRequest = ref<AccessRequestResult | null>(null);
+const hasRequestedAccess = ref(false);
 const accessState = ref<AccessPollResult["state"] | "idle">("idle");
 const accessError = ref("");
 let pollTimer: number | undefined;
@@ -42,18 +42,19 @@ async function requestAccess() {
   accessError.value = "";
   accessState.value = "pending";
   try {
-    accessRequest.value = await accessApi.request();
-    startPolling(accessRequest.value.id);
+    await accessApi.request();
+    hasRequestedAccess.value = true;
+    startPolling();
   } catch (err) {
     accessState.value = "idle";
     accessError.value = errorMessage(err);
   }
 }
 
-function startPolling(id: string) {
+function startPolling() {
   stopPolling();
-  pollTimer = window.setInterval(() => void pollAccess(id), 1500);
-  void pollAccess(id);
+  pollTimer = window.setInterval(() => void pollAccess(), 1500);
+  void pollAccess();
 }
 
 function stopPolling() {
@@ -63,9 +64,9 @@ function stopPolling() {
   }
 }
 
-async function pollAccess(id: string) {
+async function pollAccess() {
   try {
-    const result = await accessApi.poll(id);
+    const result = await accessApi.poll();
     accessState.value = result.state;
     if (result.state === "approved") {
       stopPolling();
@@ -92,11 +93,6 @@ async function pollAccess(id: string) {
         <p class="access-copy">这台电脑批准后，当前浏览器才能访问共享内容。</p>
       </div>
 
-      <div v-if="accessRequest" class="request-code">
-        <span>请求码</span>
-        <strong>{{ accessRequest.code }}</strong>
-      </div>
-
       <p v-if="accessState === 'pending'" class="access-status">
         <Loader2 class="h-4 w-4 animate-spin" />
         等待电脑端批准
@@ -106,7 +102,7 @@ async function pollAccess(id: string) {
       <p v-else-if="accessError" class="access-status access-status--error">{{ accessError }}</p>
 
       <Button class="access-button" :disabled="accessState === 'pending'" @click="requestAccess">
-        {{ accessRequest && accessState !== "pending" ? "重新请求" : "请求访问" }}
+        {{ hasRequestedAccess && accessState !== "pending" ? "重新请求" : "请求访问" }}
       </Button>
     </Card>
   </main>
@@ -165,29 +161,6 @@ async function pollAccess(id: string) {
 
 .access-status--error {
   color: var(--color-danger);
-}
-
-.request-code {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  min-height: 52px;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-muted);
-}
-
-.request-code span {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-}
-
-.request-code strong {
-  font-size: 24px;
-  line-height: 1;
-  letter-spacing: 0;
 }
 
 .access-button {

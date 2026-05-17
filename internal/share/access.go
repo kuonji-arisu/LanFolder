@@ -5,8 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
-	"fmt"
-	"math/big"
 	"sort"
 	"sync"
 	"time"
@@ -16,6 +14,7 @@ const (
 	AccessRequestTTL      = 2 * time.Minute
 	AccessRequestCooldown = 5 * time.Second
 	MaxAccessPendingCount = 32
+	MaxAccessPendingPerIP = 4
 )
 
 var (
@@ -24,8 +23,9 @@ var (
 )
 
 type AccessRequest struct {
+	// ID is an internal desktop approval handle. LAN browsers identify the
+	// request with the lf_request cookie instead of receiving this value.
 	ID           string    `json:"id"`
-	Code         string    `json:"code"`
 	IP           string    `json:"ip"`
 	UserAgent    string    `json:"userAgent"`
 	RequestCount int       `json:"requestCount"`
@@ -66,9 +66,9 @@ type completedAccessRequest struct {
 type AccessManager struct {
 	mu            sync.Mutex
 	now           func() time.Time
-	pending       map[string]AccessRequest
-	pendingByIP   map[string]string
-	completed     map[string]completedAccessRequest
+	pending       map[[32]byte]AccessRequest
+	pendingID     map[string][32]byte
+	completed     map[[32]byte]completedAccessRequest
 	sessions      map[[32]byte]AccessSession
 	sessionID     map[string][32]byte
 	lastRequestAt map[string]time.Time
@@ -77,32 +77,40 @@ type AccessManager struct {
 func NewAccessManager() *AccessManager {
 	return &AccessManager{
 		now:           time.Now,
-		pending:       map[string]AccessRequest{},
-		pendingByIP:   map[string]string{},
-		completed:     map[string]completedAccessRequest{},
+		pending:       map[[32]byte]AccessRequest{},
+		pendingID:     map[string][32]byte{},
+		completed:     map[[32]byte]completedAccessRequest{},
 		sessions:      map[[32]byte]AccessSession{},
 		sessionID:     map[string][32]byte{},
 		lastRequestAt: map[string]time.Time{},
 	}
 }
 
-func (m *AccessManager) CreateRequest(ip, userAgent string) (AccessRequest, bool, error) {
+func (m *AccessManager) CreateRequest(requestToken, ip, userAgent string) (AccessRequest, bool, error) {
 	now := m.now()
+	hash := sha256.Sum256([]byte(requestToken))
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.pruneExpiredLocked(now)
-	if id, ok := m.pendingByIP[ip]; ok {
-		if req, ok := m.pending[id]; ok {
-			req.UserAgent = userAgent
-			req.RequestCount++
-			req.LastSeenAt = now
-			m.pending[id] = req
-			return req, false, nil
+	if req, ok := m.pending[hash]; ok {
+		req.IP = ip
+		req.UserAgent = userAgent
+		req.RequestCount++
+		req.LastSeenAt = now
+		m.pending[hash] = req
+		return req, false, nil
+	}
+	if completed, ok := m.completed[hash]; ok {
+		if completed.state != AccessPollExpired && completed.request.ID != "" {
+			return completed.request, false, nil
 		}
-		delete(m.pendingByIP, ip)
+		delete(m.completed, hash)
 	}
 	if last, ok := m.lastRequestAt[ip]; ok && now.Sub(last) < AccessRequestCooldown {
+		return AccessRequest{}, false, ErrAccessRequestLimited
+	}
+	if m.pendingCountForIPLocked(ip) >= MaxAccessPendingPerIP {
 		return AccessRequest{}, false, ErrAccessRequestLimited
 	}
 	if len(m.pending) >= MaxAccessPendingCount {
@@ -112,13 +120,8 @@ func (m *AccessManager) CreateRequest(ip, userAgent string) (AccessRequest, bool
 	if err != nil {
 		return AccessRequest{}, false, err
 	}
-	code, err := accessDisplayCode()
-	if err != nil {
-		return AccessRequest{}, false, err
-	}
 	req := AccessRequest{
 		ID:           id,
-		Code:         code,
 		IP:           ip,
 		UserAgent:    userAgent,
 		RequestCount: 1,
@@ -126,9 +129,8 @@ func (m *AccessManager) CreateRequest(ip, userAgent string) (AccessRequest, bool
 		LastSeenAt:   now,
 		ExpiresAt:    now.Add(AccessRequestTTL),
 	}
-	m.pending[req.ID] = req
-	m.pendingByIP[req.IP] = req.ID
-	m.lastRequestAt[req.IP] = now
+	m.pending[hash] = req
+	m.pendingID[req.ID] = hash
 	return req, true, nil
 }
 
@@ -152,13 +154,18 @@ func (m *AccessManager) Approve(id string) (AccessRequest, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.pruneExpiredLocked(now)
-	req, ok := m.pending[id]
+	hash, ok := m.pendingID[id]
 	if !ok {
 		return AccessRequest{}, ErrAccessRequestNotFound
 	}
-	delete(m.pending, id)
-	delete(m.pendingByIP, req.IP)
-	m.completed[id] = completedAccessRequest{
+	req, ok := m.pending[hash]
+	if !ok {
+		delete(m.pendingID, id)
+		return AccessRequest{}, ErrAccessRequestNotFound
+	}
+	delete(m.pending, hash)
+	delete(m.pendingID, id)
+	m.completed[hash] = completedAccessRequest{
 		state:     AccessPollApproved,
 		request:   req,
 		expiresAt: now.Add(AccessRequestTTL),
@@ -171,14 +178,19 @@ func (m *AccessManager) Deny(id string) (AccessRequest, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.pruneExpiredLocked(now)
-	req, ok := m.pending[id]
+	hash, ok := m.pendingID[id]
 	if !ok {
 		return AccessRequest{}, ErrAccessRequestNotFound
 	}
-	delete(m.pending, id)
-	delete(m.pendingByIP, req.IP)
+	req, ok := m.pending[hash]
+	if !ok {
+		delete(m.pendingID, id)
+		return AccessRequest{}, ErrAccessRequestNotFound
+	}
+	delete(m.pending, hash)
+	delete(m.pendingID, id)
 	m.lastRequestAt[req.IP] = now
-	m.completed[id] = completedAccessRequest{
+	m.completed[hash] = completedAccessRequest{
 		state:     AccessPollDenied,
 		request:   req,
 		expiresAt: now.Add(AccessRequestTTL),
@@ -186,24 +198,26 @@ func (m *AccessManager) Deny(id string) (AccessRequest, error) {
 	return req, nil
 }
 
-func (m *AccessManager) Poll(id string) (AccessPollResult, string, error) {
+func (m *AccessManager) Poll(requestToken string) (AccessPollResult, string, error) {
 	now := m.now()
+	hash := sha256.Sum256([]byte(requestToken))
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.pruneExpiredLocked(now)
-	if completed, ok := m.completed[id]; ok {
+	if completed, ok := m.completed[hash]; ok {
 		if completed.state == AccessPollApproved {
 			token, err := m.createSessionLocked(completed.request, now)
 			if err != nil {
 				return AccessPollResult{}, "", err
 			}
-			delete(m.completed, id)
+			delete(m.completed, hash)
 			return AccessPollResult{State: completed.state}, token, nil
 		}
-		delete(m.completed, id)
+		delete(m.completed, hash)
 		return AccessPollResult{State: completed.state}, "", nil
 	}
-	if _, ok := m.pending[id]; ok {
+	if _, ok := m.pending[hash]; ok {
 		return AccessPollResult{State: AccessPollPending}, "", nil
 	}
 	return AccessPollResult{State: AccessPollExpired}, "", nil
@@ -282,25 +296,25 @@ func (m *AccessManager) Sessions() []AccessSession {
 func (m *AccessManager) Clear() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.pending = map[string]AccessRequest{}
-	m.pendingByIP = map[string]string{}
-	m.completed = map[string]completedAccessRequest{}
+	m.pending = map[[32]byte]AccessRequest{}
+	m.pendingID = map[string][32]byte{}
+	m.completed = map[[32]byte]completedAccessRequest{}
 	m.sessions = map[[32]byte]AccessSession{}
 	m.sessionID = map[string][32]byte{}
 	m.lastRequestAt = map[string]time.Time{}
 }
 
 func (m *AccessManager) pruneExpiredLocked(now time.Time) {
-	for id, req := range m.pending {
+	for hash, req := range m.pending {
 		if !now.Before(req.ExpiresAt) {
-			delete(m.pending, id)
-			delete(m.pendingByIP, req.IP)
-			m.completed[id] = completedAccessRequest{state: AccessPollExpired, expiresAt: now.Add(AccessRequestTTL)}
+			delete(m.pending, hash)
+			delete(m.pendingID, req.ID)
+			m.completed[hash] = completedAccessRequest{state: AccessPollExpired, expiresAt: now.Add(AccessRequestTTL)}
 		}
 	}
-	for id, completed := range m.completed {
+	for hash, completed := range m.completed {
 		if !now.Before(completed.expiresAt) {
-			delete(m.completed, id)
+			delete(m.completed, hash)
 		}
 	}
 	for ip, last := range m.lastRequestAt {
@@ -310,18 +324,24 @@ func (m *AccessManager) pruneExpiredLocked(now time.Time) {
 	}
 }
 
+func (m *AccessManager) pendingCountForIPLocked(ip string) int {
+	count := 0
+	for _, req := range m.pending {
+		if req.IP == ip {
+			count++
+		}
+	}
+	return count
+}
+
+func NewAccessRequestToken() (string, error) {
+	return accessRandomToken(32)
+}
+
 func accessRandomToken(bytes int) (string, error) {
 	buf := make([]byte, bytes)
 	if _, err := rand.Read(buf); err != nil {
 		return "", err
 	}
 	return base64.RawURLEncoding.EncodeToString(buf), nil
-}
-
-func accessDisplayCode() (string, error) {
-	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%06d", n.Int64()), nil
 }

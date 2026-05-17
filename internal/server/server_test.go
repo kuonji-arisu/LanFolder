@@ -293,13 +293,20 @@ func TestAccessLogsIncludeApprovalFlow(t *testing.T) {
 
 	resp := postJSON(t, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
 	var requested struct {
-		ID string `json:"id"`
+		ExpiresAt time.Time `json:"expiresAt"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&requested); err != nil {
 		t.Fatal(err)
 	}
 	resp.Body.Close()
-	if err := s.ApproveAccessRequest(requested.ID); err != nil {
+	if requested.ExpiresAt.IsZero() {
+		t.Fatal("request expiry should not be zero")
+	}
+	pending := s.PendingAccessRequests()
+	if len(pending) != 1 {
+		t.Fatalf("pending = %#v, want one request", pending)
+	}
+	if err := s.ApproveAccessRequest(pending[0].ID); err != nil {
 		t.Fatal(err)
 	}
 
@@ -561,6 +568,16 @@ func TestAccessApprovalProtectsDataRoutes(t *testing.T) {
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("access request status = %d", resp.StatusCode)
 	}
+	var requested map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&requested); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := requested["id"]; ok {
+		t.Fatalf("access request response exposed id: %#v", requested)
+	}
+	if _, ok := requested["code"]; ok {
+		t.Fatalf("access request response exposed code: %#v", requested)
+	}
 }
 
 func TestAccessRequestDedupesPendingClient(t *testing.T) {
@@ -573,6 +590,10 @@ func TestAccessRequestDedupesPendingClient(t *testing.T) {
 	if first.StatusCode != http.StatusCreated {
 		t.Fatalf("first request status = %d", first.StatusCode)
 	}
+	cookies := first.Cookies()
+	if len(cookies) != 1 || cookies[0].Name != requestCookieName {
+		t.Fatalf("request cookies = %#v", cookies)
+	}
 
 	req, err := http.NewRequest(http.MethodPost, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
 	if err != nil {
@@ -580,6 +601,7 @@ func TestAccessRequestDedupesPendingClient(t *testing.T) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "changed-client")
+	req.AddCookie(cookies[0])
 	second, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -595,20 +617,80 @@ func TestAccessRequestDedupesPendingClient(t *testing.T) {
 	}
 }
 
-func TestAccessRequestCooldownReturnsTooManyRequests(t *testing.T) {
+func TestAccessRequestCookieMaxAgeTracksPendingExpiry(t *testing.T) {
 	root := t.TempDir()
 	s, ts := testServerWithAccess(t, root, share.PermissionReadOnly)
 	defer ts.Close()
 
 	first := postJSON(t, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
 	var requested struct {
-		ID string `json:"id"`
+		ExpiresAt time.Time `json:"expiresAt"`
 	}
 	if err := json.NewDecoder(first.Body).Decode(&requested); err != nil {
 		t.Fatal(err)
 	}
 	first.Body.Close()
-	if err := s.DenyAccessRequest(requested.ID); err != nil {
+	cookies := first.Cookies()
+	if len(cookies) != 1 || cookies[0].Name != requestCookieName {
+		t.Fatalf("request cookies = %#v", cookies)
+	}
+	firstMaxAge := cookies[0].MaxAge
+	if firstMaxAge <= 0 || firstMaxAge > int(share.AccessRequestTTL.Seconds()) {
+		t.Fatalf("first request cookie max age = %d", firstMaxAge)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(cookies[0])
+	second, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second.Body.Close()
+	nextCookies := second.Cookies()
+	if len(nextCookies) != 1 || nextCookies[0].Name != requestCookieName {
+		t.Fatalf("duplicate request cookies = %#v", nextCookies)
+	}
+	if nextCookies[0].MaxAge > firstMaxAge {
+		t.Fatalf("duplicate request cookie max age = %d, want at most first %d", nextCookies[0].MaxAge, firstMaxAge)
+	}
+	pending := s.PendingAccessRequests()
+	if len(pending) != 1 {
+		t.Fatalf("pending = %#v, want one request", pending)
+	}
+	if !pending[0].ExpiresAt.Equal(requested.ExpiresAt) {
+		t.Fatalf("pending expiry = %s, want original %s", pending[0].ExpiresAt, requested.ExpiresAt)
+	}
+}
+
+func TestAccessRequestCookieMaxAgeUsesRemainingLifetime(t *testing.T) {
+	now := time.Now()
+	if got := accessRequestCookieMaxAge(now.Add(5*time.Second + 500*time.Millisecond)); got > 5 || got <= 0 {
+		t.Fatalf("max age = %d, want positive remaining seconds", got)
+	}
+	if got := accessRequestCookieMaxAge(now.Add(500 * time.Millisecond)); got != 1 {
+		t.Fatalf("subsecond max age = %d, want 1", got)
+	}
+	if got := accessRequestCookieMaxAge(now.Add(-time.Second)); got != 0 {
+		t.Fatalf("expired max age = %d, want 0", got)
+	}
+}
+
+func TestAccessRequestCooldownReturnsTooManyRequests(t *testing.T) {
+	root := t.TempDir()
+	s, ts := testServerWithAccess(t, root, share.PermissionReadOnly)
+	defer ts.Close()
+
+	first := postJSON(t, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
+	first.Body.Close()
+	pending := s.PendingAccessRequests()
+	if len(pending) != 1 {
+		t.Fatalf("pending = %#v, want one request", pending)
+	}
+	if err := s.DenyAccessRequest(pending[0].ID); err != nil {
 		t.Fatal(err)
 	}
 
@@ -633,7 +715,12 @@ func TestAccessPollLimitsInvalidIDs(t *testing.T) {
 	defer ts.Close()
 
 	for i := 0; i < 2; i++ {
-		resp, err := http.Get(ts.URL + "/api/access/poll?id=missing-" + strconv.Itoa(i))
+		req, err := http.NewRequest(http.MethodGet, ts.URL+"/api/access/poll", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.AddCookie(&http.Cookie{Name: requestCookieName, Value: "missing-" + strconv.Itoa(i), Path: requestCookiePath})
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -643,13 +730,27 @@ func TestAccessPollLimitsInvalidIDs(t *testing.T) {
 		resp.Body.Close()
 	}
 
-	resp, err := http.Get(ts.URL + "/api/access/poll?id=missing-overflow")
+	req, err := http.NewRequest(http.MethodGet, ts.URL+"/api/access/poll", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.AddCookie(&http.Cookie{Name: requestCookieName, Value: "missing-overflow", Path: requestCookiePath})
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusTooManyRequests {
 		t.Fatalf("overflow poll status = %d, want %d", resp.StatusCode, http.StatusTooManyRequests)
+	}
+	cleared := false
+	for _, cookie := range resp.Cookies() {
+		if cookie.Name == requestCookieName && cookie.MaxAge < 0 {
+			cleared = true
+		}
+	}
+	if !cleared {
+		t.Fatalf("cookies = %#v, want cleared request cookie", resp.Cookies())
 	}
 }
 
@@ -663,20 +764,33 @@ func TestAccessApprovalApproveSetsCookieAndAllowsAPI(t *testing.T) {
 
 	requestResp := postJSON(t, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
 	var requested struct {
-		ID string `json:"id"`
+		ExpiresAt time.Time `json:"expiresAt"`
 	}
 	if err := json.NewDecoder(requestResp.Body).Decode(&requested); err != nil {
 		t.Fatal(err)
 	}
 	requestResp.Body.Close()
-	if requested.ID == "" {
-		t.Fatal("request id should not be empty")
+	requestCookies := requestResp.Cookies()
+	if len(requestCookies) != 1 || requestCookies[0].Name != requestCookieName {
+		t.Fatalf("request cookies = %#v", requestCookies)
 	}
-	if err := s.ApproveAccessRequest(requested.ID); err != nil {
+	if requested.ExpiresAt.IsZero() {
+		t.Fatal("request expiry should not be zero")
+	}
+	pending := s.PendingAccessRequests()
+	if len(pending) != 1 {
+		t.Fatalf("pending = %#v, want one request", pending)
+	}
+	if err := s.ApproveAccessRequest(pending[0].ID); err != nil {
 		t.Fatal(err)
 	}
 
-	pollResp, err := http.Get(ts.URL + "/api/access/poll?id=" + url.QueryEscape(requested.ID))
+	pollReq, err := http.NewRequest(http.MethodGet, ts.URL+"/api/access/poll", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pollReq.AddCookie(requestCookies[0])
+	pollResp, err := http.DefaultClient.Do(pollReq)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -691,15 +805,25 @@ func TestAccessApprovalApproveSetsCookieAndAllowsAPI(t *testing.T) {
 		t.Fatalf("poll state = %q", pollBody.State)
 	}
 	cookies := pollResp.Cookies()
-	if len(cookies) != 1 || cookies[0].Name != sessionCookieName {
-		t.Fatalf("cookies = %#v", cookies)
+	var sessionCookie *http.Cookie
+	var clearedRequest bool
+	for _, cookie := range cookies {
+		if cookie.Name == sessionCookieName {
+			sessionCookie = cookie
+		}
+		if cookie.Name == requestCookieName && cookie.MaxAge < 0 {
+			clearedRequest = true
+		}
+	}
+	if sessionCookie == nil || !clearedRequest {
+		t.Fatalf("cookies = %#v, want session and cleared request", cookies)
 	}
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL+"/api/list", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	req.AddCookie(cookies[0])
+	req.AddCookie(sessionCookie)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -714,7 +838,7 @@ func TestAccessApprovalApproveSetsCookieAndAllowsAPI(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req.AddCookie(cookies[0])
+	req.AddCookie(sessionCookie)
 	resp, err = http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -731,18 +855,25 @@ func TestAccessApprovalDenyReturnsRejectedPoll(t *testing.T) {
 	defer ts.Close()
 
 	requestResp := postJSON(t, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
-	var requested struct {
-		ID string `json:"id"`
-	}
-	if err := json.NewDecoder(requestResp.Body).Decode(&requested); err != nil {
-		t.Fatal(err)
-	}
 	requestResp.Body.Close()
-	if err := s.DenyAccessRequest(requested.ID); err != nil {
+	requestCookies := requestResp.Cookies()
+	if len(requestCookies) != 1 || requestCookies[0].Name != requestCookieName {
+		t.Fatalf("request cookies = %#v", requestCookies)
+	}
+	pending := s.PendingAccessRequests()
+	if len(pending) != 1 {
+		t.Fatalf("pending = %#v, want one request", pending)
+	}
+	if err := s.DenyAccessRequest(pending[0].ID); err != nil {
 		t.Fatal(err)
 	}
 
-	pollResp, err := http.Get(ts.URL + "/api/access/poll?id=" + url.QueryEscape(requested.ID))
+	pollReq, err := http.NewRequest(http.MethodGet, ts.URL+"/api/access/poll", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pollReq.AddCookie(requestCookies[0])
+	pollResp, err := http.DefaultClient.Do(pollReq)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -755,6 +886,15 @@ func TestAccessApprovalDenyReturnsRejectedPoll(t *testing.T) {
 	}
 	if pollBody.State != "denied" {
 		t.Fatalf("poll state = %q", pollBody.State)
+	}
+	cleared := false
+	for _, cookie := range pollResp.Cookies() {
+		if cookie.Name == requestCookieName && cookie.MaxAge < 0 {
+			cleared = true
+		}
+	}
+	if !cleared {
+		t.Fatalf("cookies = %#v, want cleared request cookie", pollResp.Cookies())
 	}
 }
 

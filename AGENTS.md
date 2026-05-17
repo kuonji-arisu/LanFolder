@@ -3,7 +3,7 @@
 ## Product Boundary
 
 - LanFolder is a personal trusted-LAN utility, not an enterprise file server, NAS, sync service, cloud app, or public web app.
-- Do not add authentication, passwords, tokens, accounts, cloud sync, or internet exposure unless the product direction explicitly changes.
+- Do not add user authentication, passwords, accounts, cloud sync, internet exposure, or user-facing/API bearer tokens unless the product direction explicitly changes.
 - Default safety posture is conservative: `readonly` first; `upload` and `manage` only for trusted networks and devices.
 
 ## Architecture Constraints
@@ -15,10 +15,11 @@
 - Keep settings as single-setting commits; do not replace this with a whole-form workflow or optimistic shared-store updates.
 - Keep `AppService.SaveSettings()` simple and non-transactional: validate, apply platform side effects, save JSON, update memory, restart if needed, then return the current snapshot plus any error.
 - Keep app notifications on the AppNotice pipeline; do not add parallel event or toast paths.
-- Keep LAN access approval small and Go-owned: new browser access is approved on the desktop, the browser receives an opaque in-memory session cookie, and the session only means "allowed to enter". Current share permission remains the source of truth for what the browser can do.
-- Do not make the access display code a PIN, password, secret, or login mechanism. It is only a human-readable request code for matching the browser page to the desktop prompt.
-- Treat LAN access request identity as IP-based; User-Agent is display-only metadata and must not affect authorization or request identity.
-- Aggregate repeated access requests with counts/last-seen metadata; do not notify or log every duplicate request.
+- Keep LAN access approval small and Go-owned: a browser receives an opaque `lf_request` HttpOnly cookie for the request phase, the desktop approves an internal request ID, and the approved browser receives an opaque in-memory `lf_session` cookie.
+- `lf_request` only identifies the pending approval request; `lf_session` only means "allowed to enter". Current share permission remains the source of truth for what the browser can do.
+- Do not expose desktop request IDs, request codes, PINs, passwords, secrets, or login mechanisms to LAN browsers. Access polling must use the `lf_request` cookie, not a URL request ID.
+- Treat IP as LAN boundary, display, logging, and rate-limit metadata only. User-Agent is display-only metadata. Neither IP nor User-Agent may affect authorization or request identity.
+- Aggregate repeated access requests by `lf_request` with counts/last-seen metadata; do not notify or log every duplicate request.
 
 ## Safety Constraints
 

@@ -54,7 +54,7 @@ Use this only on a trusted network.
 
 LanFolder is designed for trusted local networks, such as home Wi-Fi, a private hotspot, or a temporary LAN between your own devices.
 
-When new-device access approval is enabled, an unknown browser can only request access. The desktop app must approve the request before that browser receives a temporary in-memory session cookie. The request code shown in the browser is only for matching the request on the desktop; it is not a PIN or password.
+When new-device access approval is enabled, an unknown browser can only request access. The request is tracked with a short-lived HttpOnly cookie, and the desktop app must approve it before that browser receives a temporary in-memory session cookie.
 
 Access sessions are kept in memory and are cleared when sharing stops, the shared folder or permission changes, the server restarts, or the app exits. Automatic sharing requires new-device access approval to be enabled first.
 

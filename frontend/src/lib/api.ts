@@ -31,8 +31,6 @@ export interface AccessStatus {
 }
 
 export interface AccessRequestResult {
-  id: string;
-  code: string;
   expiresAt: string;
 }
 
@@ -91,7 +89,7 @@ export const fileApi = {
 export const accessApi = {
   status: () => request<AccessStatus>("/api/access/status"),
   request: () => request<AccessRequestResult>("/api/access/request", { method: "POST" }),
-  poll: (id: string) => request<AccessPollResult>(`/api/access/poll?id=${encodeURIComponent(id)}`),
+  poll: () => request<AccessPollResult>("/api/access/poll"),
   logout: () => request<{ ok: true }>("/api/access/logout", { method: "POST" }),
 };
 
