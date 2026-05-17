@@ -13,6 +13,7 @@ type Config struct {
 	Permission     share.Permission
 	ShowHidden     bool
 	AccessApproval bool
+	Language       string
 }
 
 type LogEntry struct {
@@ -35,4 +36,5 @@ type RuntimeStatus struct {
 	Root           string           `json:"root"`
 	Permission     share.Permission `json:"permission"`
 	AccessApproval bool             `json:"accessApproval"`
+	Language       string           `json:"language"`
 }

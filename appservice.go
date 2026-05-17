@@ -11,6 +11,7 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
+	"lanfolder/i18n"
 	"lanfolder/internal/config"
 	"lanfolder/internal/desktop"
 	"lanfolder/internal/platform"
@@ -118,6 +119,7 @@ func (s *AppService) SaveSettings(cfg config.Config) (desktop.AppState, error) {
 	if !cfg.Permission.Valid() {
 		cfg.Permission = share.PermissionReadOnly
 	}
+	cfg.Language = i18n.NormalizeLanguage(cfg.Language)
 	if cfg.AutoShare && !cfg.AccessApproval {
 		return s.snapshot(s.config), newCommandError(errAccessApprovalRequired, nil)
 	}
@@ -189,6 +191,7 @@ func (s *AppService) startSharingLocked() error {
 		Permission:     s.config.Permission,
 		ShowHidden:     s.config.ShowHiddenFiles,
 		AccessApproval: s.config.AccessApproval,
+		Language:       s.config.Language,
 	})
 }
 
@@ -243,7 +246,10 @@ func (s *AppService) handleAccessRequestNotice() {
 	if !s.shouldShowAccessNotice(time.Now()) {
 		return
 	}
-	s.addNotice(desktop.NoticeInfo, desktop.NoticeSourceSystem, nil, "有新设备请求访问共享")
+	s.mu.Lock()
+	language := s.config.Language
+	s.mu.Unlock()
+	s.addNotice(desktop.NoticeInfo, desktop.NoticeSourceSystem, nil, i18n.T(language, "notice.accessRequest", nil))
 }
 
 func (s *AppService) shouldShowAccessNotice(now time.Time) bool {
@@ -343,5 +349,6 @@ func serverConfigChanged(previous config.Config, next config.Config) bool {
 		previous.Port != next.Port ||
 		previous.Permission != next.Permission ||
 		previous.ShowHiddenFiles != next.ShowHiddenFiles ||
-		previous.AccessApproval != next.AccessApproval
+		previous.AccessApproval != next.AccessApproval ||
+		previous.Language != next.Language
 }

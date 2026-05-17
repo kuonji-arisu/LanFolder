@@ -9,6 +9,7 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/events"
 	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 
+	"lanfolder/i18n"
 	"lanfolder/internal/config"
 	"lanfolder/internal/platform"
 	"lanfolder/internal/server"
@@ -124,11 +125,14 @@ func setupTray(app *application.App, window application.Window, appService *AppS
 	tray.SetTooltip("LanFolder")
 
 	menu := app.NewMenu()
-	menu.Add("显示 LanFolder").OnClick(func(*application.Context) {
+	appService.mu.Lock()
+	language := appService.config.Language
+	appService.mu.Unlock()
+	menu.Add(i18n.T(language, "tray.show", nil)).OnClick(func(*application.Context) {
 		appService.showMainWindow()
 	})
 	menu.AddSeparator()
-	menu.Add("退出").OnClick(func(*application.Context) {
+	menu.Add(i18n.T(language, "tray.quit", nil)).OnClick(func(*application.Context) {
 		forceQuit = true
 		app.Quit()
 	})

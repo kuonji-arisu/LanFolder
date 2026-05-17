@@ -23,11 +23,13 @@ export interface ServerStatus {
   permission: Permission;
   permissions: PermissionOption[];
   accessApproval: boolean;
+  language: string;
 }
 
 export interface AccessStatus {
   required: boolean;
   authorized: boolean;
+  language: string;
 }
 
 export interface AccessRequestResult {

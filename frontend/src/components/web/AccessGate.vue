@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { accessApi, type AccessPollResult, type AccessStatus } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
+import { setLanguage, useI18n } from "@/lib/i18n";
 
 const emit = defineEmits<{
   authorized: [];
@@ -14,6 +15,7 @@ const accessStatus = ref<AccessStatus | null>(null);
 const hasRequestedAccess = ref(false);
 const accessState = ref<AccessPollResult["state"] | "idle">("idle");
 const accessError = ref("");
+const { t } = useI18n();
 let pollTimer: number | undefined;
 
 const needsAccess = computed(() => accessStatus.value?.required && !accessStatus.value.authorized);
@@ -29,6 +31,7 @@ async function loadAccess() {
   try {
     const status = await accessApi.status();
     accessStatus.value = status;
+    setLanguage(status.language);
     if (!status.required || status.authorized) {
       stopPolling();
       emit("authorized");
@@ -70,7 +73,7 @@ async function pollAccess() {
     accessState.value = result.state;
     if (result.state === "approved") {
       stopPolling();
-      accessStatus.value = { required: true, authorized: true };
+      accessStatus.value = { required: true, authorized: true, language: accessStatus.value?.language ?? "zh-CN" };
       emit("authorized");
     } else if (result.state === "denied" || result.state === "expired") {
       stopPolling();
@@ -89,20 +92,20 @@ async function pollAccess() {
         <ShieldCheck class="h-6 w-6" />
       </div>
       <div>
-        <h1 class="access-title">请求访问 LanFolder</h1>
-        <p class="access-copy">这台电脑批准后，当前浏览器才能访问共享内容。</p>
+        <h1 class="access-title">{{ t("web.access.title") }}</h1>
+        <p class="access-copy">{{ t("web.access.description") }}</p>
       </div>
 
       <p v-if="accessState === 'pending'" class="access-status">
         <Loader2 class="h-4 w-4 animate-spin" />
-        等待电脑端批准
+        {{ t("web.access.approvedPending") }}
       </p>
-      <p v-else-if="accessState === 'denied'" class="access-status">请求已被拒绝</p>
-      <p v-else-if="accessState === 'expired'" class="access-status">请求已过期，请重新发起</p>
+      <p v-else-if="accessState === 'denied'" class="access-status">{{ t("web.access.denied") }}</p>
+      <p v-else-if="accessState === 'expired'" class="access-status">{{ t("web.access.expired") }}</p>
       <p v-else-if="accessError" class="access-status access-status--error">{{ accessError }}</p>
 
       <Button class="access-button" :disabled="accessState === 'pending'" @click="requestAccess">
-        {{ hasRequestedAccess && accessState !== "pending" ? "重新请求" : "请求访问" }}
+        {{ hasRequestedAccess && accessState !== "pending" ? t("web.access.requestAgain") : t("web.access.request") }}
       </Button>
     </Card>
   </main>

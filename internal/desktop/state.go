@@ -27,7 +27,7 @@ func (b SnapshotBuilder) Build(cfg config.Config, status server.RuntimeStatus, a
 		AppInfo:      b.appInfo(),
 		Capabilities: b.capabilities(),
 		Addresses:    addresses,
-		Permissions:  share.PermissionOptions(),
+		Permissions:  share.PermissionOptions(cfg.Language),
 	}
 }
 

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/composables/useTheme";
 import { normalizeError } from "@/lib/errors";
+import { useI18n, type Language } from "@/lib/i18n";
 import { useAppStore } from "@/stores/app";
 import { useNoticeStore } from "@/stores/notices";
 import type { AppConfig } from "@/types/app";
@@ -12,6 +13,7 @@ import type { AppConfig } from "@/types/app";
 const app = useAppStore();
 const notices = useNoticeStore();
 const { theme, setTheme } = useTheme();
+const { language, languageOptions, t } = useI18n();
 const portDraft = ref("");
 const portError = ref("");
 
@@ -51,14 +53,19 @@ async function savePort() {
 
 function validatePort(value: string): { ok: true; port: number } | { ok: false; message: string } {
   const trimmed = value.trim();
-  if (!trimmed) return { ok: false, message: "请输入端口" };
+  if (!trimmed) return { ok: false, message: t("settings.port.empty") };
   const port = Number(trimmed);
-  if (port <= 0 || port > 65535) return { ok: false, message: "端口必须在 1 到 65535 之间" };
+  if (port <= 0 || port > 65535) return { ok: false, message: t("error.invalidPort") };
   return { ok: true, port };
 }
 
 async function saveSettingWithNotice(partial: Partial<AppConfig>) {
   notices.showTaskResult(await app.saveConfig(partial));
+}
+
+async function saveLanguage(value: Language) {
+  if (value === app.config.language) return;
+  await saveSettingWithNotice({ language: value });
 }
 </script>
 
@@ -67,8 +74,8 @@ async function saveSettingWithNotice(partial: Partial<AppConfig>) {
     <div class="settings-form">
       <div class="settings-row">
         <div>
-          <label class="field-label" for="settings-port">端口</label>
-          <p :class="portError ? 'field-error' : 'field-hint'">{{ portError || "默认 8899，修改后自动重启共享服务" }}</p>
+          <label class="field-label" for="settings-port">{{ t("settings.port.label") }}</label>
+          <p :class="portError ? 'field-error' : 'field-hint'">{{ portError || t("settings.port.hint") }}</p>
         </div>
         <Input
           id="settings-port"
@@ -87,59 +94,76 @@ async function saveSettingWithNotice(partial: Partial<AppConfig>) {
 
       <div class="settings-row">
         <div>
-          <div class="field-label">外观主题</div>
-          <p class="field-hint">更改界面颜色</p>
+          <div class="field-label">{{ t("settings.theme.label") }}</div>
+          <p class="field-hint">{{ t("settings.theme.hint") }}</p>
         </div>
-        <div class="theme-toggle">
+        <div class="segmented-toggle">
           <button :class="['theme-option', { 'theme-option--active': theme === 'light' }]" @click="setTheme('light')">
-            <Sun class="h-[13px] w-[13px]" />浅色
+            <Sun class="h-[13px] w-[13px]" />{{ t("settings.theme.light") }}
           </button>
           <button :class="['theme-option', { 'theme-option--active': theme === 'dark' }]" @click="setTheme('dark')">
-            <Moon class="h-[13px] w-[13px]" />深色
+            <Moon class="h-[13px] w-[13px]" />{{ t("settings.theme.dark") }}
           </button>
         </div>
       </div>
 
       <div class="settings-row">
         <div>
-          <div class="field-label">新设备访问批准</div>
-          <p class="field-hint">新浏览器需要在这台电脑上批准后访问</p>
+          <div class="field-label">{{ t("settings.language.label") }}</div>
+          <p class="field-hint">{{ t("settings.language.hint") }}</p>
         </div>
-        <span class="switch-tooltip" :title="app.config.autoShare ? '请先关闭常驻共享' : ''">
+        <div class="segmented-toggle">
+          <button
+            v-for="option in languageOptions"
+            :key="option.value"
+            :class="['theme-option', { 'theme-option--active': language === option.value }]"
+            @click="saveLanguage(option.value)"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div class="field-label">{{ t("settings.accessApproval.label") }}</div>
+          <p class="field-hint">{{ t("settings.accessApproval.hint") }}</p>
+        </div>
+        <span class="switch-tooltip" :title="app.config.autoShare ? t('settings.turnOffAutoShare') : ''">
           <Switch :checked="app.config.accessApproval" :disabled="app.config.autoShare" @update:checked="saveSettingWithNotice({ accessApproval: $event })" />
         </span>
       </div>
 
       <div class="settings-row">
         <div>
-          <div class="field-label">启动应用后自动共享</div>
-          <p class="field-hint">打开应用后使用上次目录自动运行</p>
+          <div class="field-label">{{ t("settings.autoShare.label") }}</div>
+          <p class="field-hint">{{ t("settings.autoShare.hint") }}</p>
         </div>
-        <span class="switch-tooltip" :title="app.config.accessApproval ? '' : '常驻共享需要先启用新设备访问批准'">
+        <span class="switch-tooltip" :title="app.config.accessApproval ? '' : t('settings.autoShare.disabledTitle')">
           <Switch :checked="app.config.autoShare" :disabled="!app.config.accessApproval" @update:checked="saveSettingWithNotice({ autoShare: $event })" />
         </span>
       </div>
 
       <div class="settings-row">
         <div>
-          <div class="field-label">开机自动启动</div>
-          <p class="field-hint">{{ app.state?.capabilities.startAtLogin ? "登录系统后自动打开 LanFolder" : "当前平台暂不支持" }}</p>
+          <div class="field-label">{{ t("settings.startAtLogin.label") }}</div>
+          <p class="field-hint">{{ app.state?.capabilities.startAtLogin ? t("settings.startAtLogin.hint") : t("settings.startAtLogin.unsupported") }}</p>
         </div>
         <Switch :checked="app.config.startAtLogin" :disabled="!app.state?.capabilities.startAtLogin" @update:checked="saveSettingWithNotice({ startAtLogin: $event })" />
       </div>
 
       <div class="settings-row">
         <div>
-          <div class="field-label">关闭窗口后保持后台运行</div>
-          <p class="field-hint">关闭窗口时隐藏到系统托盘</p>
+          <div class="field-label">{{ t("settings.keepInTray.label") }}</div>
+          <p class="field-hint">{{ t("settings.keepInTray.hint") }}</p>
         </div>
         <Switch :checked="app.config.keepInTray" @update:checked="saveSettingWithNotice({ keepInTray: $event })" />
       </div>
 
       <div class="settings-row">
         <div>
-          <div class="field-label">显示隐藏文件</div>
-          <p class="field-hint">显示点号文件，受管目录仍会隐藏</p>
+          <div class="field-label">{{ t("settings.hiddenFiles.label") }}</div>
+          <p class="field-hint">{{ t("settings.hiddenFiles.hint") }}</p>
         </div>
         <Switch :checked="app.config.showHiddenFiles" @update:checked="saveSettingWithNotice({ showHiddenFiles: $event })" />
       </div>
@@ -212,7 +236,7 @@ async function saveSettingWithNotice(partial: Partial<AppConfig>) {
   font-size: var(--font-size-xs);
 }
 
-.theme-toggle {
+.segmented-toggle {
   width: 180px;
   height: 35px;
   display: flex;

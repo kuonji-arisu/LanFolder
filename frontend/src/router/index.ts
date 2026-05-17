@@ -17,7 +17,7 @@ export const router = createRouter({
       path: "/settings",
       name: "settings",
       component: () => import("@/views/SettingsView.vue"),
-      meta: { title: "设置" },
+      meta: { titleKey: "app.settings" },
     },
   ],
 });

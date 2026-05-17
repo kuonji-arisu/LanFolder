@@ -9,6 +9,7 @@ export interface AppConfig {
   startAtLogin: boolean;
   keepInTray: boolean;
   showHiddenFiles: boolean;
+  language: string;
 }
 
 export interface ServerRuntime {
@@ -18,6 +19,7 @@ export interface ServerRuntime {
   root: string;
   permission: Permission;
   accessApproval: boolean;
+  language: string;
 }
 
 export interface AccessLog {

@@ -3,11 +3,13 @@ import { computed } from "vue";
 import { Window } from "@wailsio/runtime";
 import { Settings, Wifi, X } from "lucide-vue-next";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "@/lib/i18n";
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 
-const title = computed(() => String(route.meta.title ?? "LanFolder"));
+const title = computed(() => (route.meta.titleKey ? t(String(route.meta.titleKey)) : String(route.meta.title ?? "LanFolder")));
 </script>
 
 <template>
@@ -15,13 +17,13 @@ const title = computed(() => String(route.meta.title ?? "LanFolder"));
     <span class="titlebar-title">{{ title }}</span>
 
     <div class="titlebar-actions">
-      <button class="titlebar-btn" :class="{ 'titlebar-btn--active': route.name === 'share' }" title="共享" @click="router.push({ name: 'share' })">
+      <button class="titlebar-btn" :class="{ 'titlebar-btn--active': route.name === 'share' }" :title="t('app.share')" @click="router.push({ name: 'share' })">
         <Wifi class="h-[15px] w-[15px]" />
       </button>
-      <button class="titlebar-btn" :class="{ 'titlebar-btn--active': route.name === 'settings' }" title="设置" @click="router.push({ name: 'settings' })">
+      <button class="titlebar-btn" :class="{ 'titlebar-btn--active': route.name === 'settings' }" :title="t('app.settings')" @click="router.push({ name: 'settings' })">
         <Settings class="h-[15px] w-[15px]" />
       </button>
-      <button class="titlebar-btn titlebar-btn--close" title="关闭" @click="Window.Close()">
+      <button class="titlebar-btn titlebar-btn--close" :title="t('app.close')" @click="Window.Close()">
         <X class="h-[14px] w-[14px]" />
       </button>
     </div>

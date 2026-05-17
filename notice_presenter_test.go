@@ -6,6 +6,7 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 
+	"lanfolder/i18n"
 	"lanfolder/internal/desktop"
 )
 
@@ -13,7 +14,7 @@ func TestPresentNoticeReturnsToastForFocusedVisibleWindow(t *testing.T) {
 	window := &fakeNoticeWindow{focused: true, visible: true}
 	notifier := &fakeNoticeNotifier{}
 
-	got := presentNotice(window, notifier, noticeForPresentation(), "hello")
+	got := presentNotice(window, notifier, noticeForPresentation(), "hello", i18n.Chinese)
 
 	if got != noticePresentationToast {
 		t.Fatalf("presentation = %q, want %q", got, noticePresentationToast)
@@ -30,7 +31,7 @@ func TestPresentNoticeFlashesAndReturnsToastForVisibleUnfocusedWindow(t *testing
 	window := &fakeNoticeWindow{visible: true}
 	notifier := &fakeNoticeNotifier{}
 
-	got := presentNotice(window, notifier, noticeForPresentation(), "hello")
+	got := presentNotice(window, notifier, noticeForPresentation(), "hello", i18n.Chinese)
 
 	if got != noticePresentationToast {
 		t.Fatalf("presentation = %q, want %q", got, noticePresentationToast)
@@ -48,7 +49,7 @@ func TestPresentNoticeSendsSystemNotificationForHiddenWindow(t *testing.T) {
 	notifier := &fakeNoticeNotifier{}
 	notice := noticeForPresentation()
 
-	got := presentNotice(window, notifier, notice, "hello")
+	got := presentNotice(window, notifier, notice, "hello", i18n.Chinese)
 
 	if got != noticePresentationSystem {
 		t.Fatalf("presentation = %q, want %q", got, noticePresentationSystem)
@@ -72,7 +73,7 @@ func TestPresentNoticeFallsBackToToastWhenSystemNotificationFails(t *testing.T) 
 	window := &fakeNoticeWindow{}
 	notifier := &fakeNoticeNotifier{err: errors.New("notification failed")}
 
-	got := presentNotice(window, notifier, noticeForPresentation(), "hello")
+	got := presentNotice(window, notifier, noticeForPresentation(), "hello", i18n.Chinese)
 
 	if got != noticePresentationToast {
 		t.Fatalf("presentation = %q, want %q", got, noticePresentationToast)

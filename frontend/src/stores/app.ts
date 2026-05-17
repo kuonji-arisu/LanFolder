@@ -4,6 +4,7 @@ import { Events } from "@wailsio/runtime";
 import { useAsyncTask, type TaskResult } from "@/composables/useAsyncTask";
 import { appApi } from "@/lib/appApi";
 import { DEFAULT_PORT, type Permission } from "@/lib/constants";
+import { setLanguage } from "@/lib/i18n";
 import type { AccessLog, AccessRequest, AccessSession, AppConfig, AppState, PermissionOption } from "@/types/app";
 
 const defaultConfig: AppConfig = {
@@ -15,9 +16,10 @@ const defaultConfig: AppConfig = {
   startAtLogin: false,
   keepInTray: false,
   showHiddenFiles: false,
+  language: "zh-CN",
 };
 
-const defaultPermission: PermissionOption = { value: "readonly", label: "只读", description: "" };
+const defaultPermission: PermissionOption = { value: "readonly", label: "", description: "" };
 
 export const useAppStore = defineStore("app", () => {
   const state = ref<AppState | null>(null);
@@ -36,6 +38,7 @@ export const useAppStore = defineStore("app", () => {
 
   async function loadState() {
     state.value = await appApi.state();
+    setLanguage(state.value.config.language);
   }
 
   async function loadLogs() {
@@ -60,6 +63,7 @@ export const useAppStore = defineStore("app", () => {
     const result = await runTask(task);
     if (!result.ok) return result;
     state.value = result.value;
+    setLanguage(result.value.config.language);
     await Promise.all([loadLogs(), loadAccess()]);
     return result;
   }

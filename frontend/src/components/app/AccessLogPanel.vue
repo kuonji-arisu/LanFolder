@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { ArrowRight } from "lucide-vue-next";
 import { Card } from "@/components/ui/card";
+import { useI18n } from "@/lib/i18n";
 import type { AccessLog } from "@/types/app";
 
 const props = defineProps<{
@@ -10,6 +11,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   open: [];
 }>();
+const { t } = useI18n();
 
 const totalCount = computed(() => props.logs.length);
 const errorCount = computed(() => props.logs.filter((log) => log.status >= 400).length);
@@ -18,9 +20,9 @@ const errorCount = computed(() => props.logs.filter((log) => log.status >= 400).
 <template>
   <Card class="logs-summary">
     <div class="panel-title-row">
-      <span class="field-label">最近访问日志</span>
+      <span class="field-label">{{ t("log.recent") }}</span>
       <button class="view-link" type="button" @click="emit('open')">
-        查看
+        {{ t("log.view") }}
         <ArrowRight class="h-[13px] w-[13px]" />
       </button>
     </div>
@@ -28,11 +30,11 @@ const errorCount = computed(() => props.logs.filter((log) => log.status >= 400).
     <div class="summary-grid">
       <div class="summary-item">
         <span class="summary-value">{{ totalCount }}</span>
-        <span class="summary-label">访问次数</span>
+        <span class="summary-label">{{ t("log.times") }}</span>
       </div>
       <div class="summary-item">
         <span class="summary-value" :class="{ 'summary-value--danger': errorCount > 0 }">{{ errorCount }}</span>
-        <span class="summary-label">错误请求</span>
+        <span class="summary-label">{{ t("log.errorRequests") }}</span>
       </div>
     </div>
   </Card>

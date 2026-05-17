@@ -3,6 +3,7 @@ import { defineStore } from "pinia";
 import { taskSuccess } from "@/composables/useAsyncTask";
 import { useLatestAsyncTask } from "@/composables/useLatestAsyncTask";
 import { fileApi, type FileEntry, type ListResult, type ServerStatus } from "@/lib/api";
+import { setLanguage, translate } from "@/lib/i18n";
 
 export const useWebFilesStore = defineStore("webFiles", () => {
   const currentPath = ref("");
@@ -14,11 +15,12 @@ export const useWebFilesStore = defineStore("webFiles", () => {
   const canUpload = computed(() => status.value?.permission === "upload" || status.value?.permission === "manage");
   const canDelete = computed(() => status.value?.permission === "manage");
   const crumbs = computed(() => (currentPath.value ? currentPath.value.split("/").filter(Boolean) : []));
-  const permissionLabel = computed(() => status.value?.permissions.find((item) => item.value === status.value?.permission)?.label ?? "只读");
+  const permissionLabel = computed(() => status.value?.permissions.find((item) => item.value === status.value?.permission)?.label ?? translate("permission.readonly.label"));
 
   async function fetchListing(path: string) {
     const [nextStatus, nextListing] = await Promise.all([fileApi.status(), fileApi.list(path)]);
     status.value = nextStatus;
+    setLanguage(nextStatus.language);
     listing.value = nextListing;
     currentPath.value = nextListing.path;
   }
@@ -28,6 +30,7 @@ export const useWebFilesStore = defineStore("webFiles", () => {
       () => Promise.all([fileApi.status(), fileApi.list(path)]),
       ([nextStatus, nextListing]) => {
         status.value = nextStatus;
+        setLanguage(nextStatus.language);
         listing.value = nextListing;
         currentPath.value = nextListing.path;
       },
@@ -49,7 +52,7 @@ export const useWebFilesStore = defineStore("webFiles", () => {
   }
 
   async function deleteEntry(entry: FileEntry) {
-    if (!window.confirm(`删除 ${entry.name}？文件会被移入 .lanfolder/trash。`)) return taskSuccess(false);
+    if (!window.confirm(translate("file.deleteConfirm", { name: entry.name }))) return taskSuccess(false);
     return run(async () => {
       await fileApi.delete(entry.path);
       await fetchListing(currentPath.value);

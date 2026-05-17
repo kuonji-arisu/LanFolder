@@ -3,6 +3,7 @@ import { ShieldCheck } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatDate } from "@/lib/format";
+import { useI18n } from "@/lib/i18n";
 import { userAgentLabel } from "@/lib/userAgent";
 import { useAppStore } from "@/stores/app";
 import { useNoticeStore } from "@/stores/notices";
@@ -10,6 +11,7 @@ import { useNoticeStore } from "@/stores/notices";
 const open = defineModel<boolean>("open", { required: true });
 const app = useAppStore();
 const notices = useNoticeStore();
+const { t } = useI18n();
 
 async function approve(id: string) {
   notices.showTaskResult(await app.approveAccessRequest(id));
@@ -25,7 +27,7 @@ async function revoke(id: string) {
 
 function requestStats(request: { requestCount: number; lastSeenAt: string }) {
   const parts: string[] = [];
-  if (request.requestCount > 1) parts.push(`${request.requestCount} 次`, `最近 ${formatDate(request.lastSeenAt)}`);
+  if (request.requestCount > 1) parts.push(`${request.requestCount} ${t("access.times")}`, `${t("access.recent")} ${formatDate(request.lastSeenAt)}`);
   return parts;
 }
 </script>
@@ -34,40 +36,40 @@ function requestStats(request: { requestCount: number; lastSeenAt: string }) {
   <Dialog v-model:open="open">
     <DialogContent size="large" height="bounded">
       <DialogHeader class="dialog-head">
-        <DialogTitle>访问管理</DialogTitle>
-        <DialogDescription>批准新浏览器，或撤销已经授权的浏览器 session。</DialogDescription>
+        <DialogTitle>{{ t("access.manage") }}</DialogTitle>
+        <DialogDescription>{{ t("access.description") }}</DialogDescription>
       </DialogHeader>
 
       <div class="access-dialog-scroll">
         <section class="access-section">
-          <div class="section-label">待批准</div>
-          <div v-if="!app.pendingAccessRequests.length" class="empty-row">暂无新设备请求</div>
+          <div class="section-label">{{ t("access.pending") }}</div>
+          <div v-if="!app.pendingAccessRequests.length" class="empty-row">{{ t("access.emptyPending") }}</div>
           <div v-for="request in app.pendingAccessRequests" :key="request.id" class="access-row">
             <div class="access-copy">
-              <div class="access-title access-ip">来自 {{ request.ip }}</div>
-              <div class="access-agent" :title="request.userAgent || '未知浏览器'">{{ userAgentLabel(request.userAgent) }}</div>
+              <div class="access-title access-ip">{{ t("access.from") }} {{ request.ip }}</div>
+              <div class="access-agent" :title="request.userAgent || t('common.unknownBrowser')">{{ userAgentLabel(request.userAgent) }}</div>
               <div v-if="requestStats(request).length" class="access-meta">{{ requestStats(request).join(" · ") }}</div>
             </div>
             <div class="access-actions">
-              <Button size="sm" variant="secondary" @click="deny(request.id)">拒绝</Button>
-              <Button size="sm" @click="approve(request.id)">允许</Button>
+              <Button size="sm" variant="secondary" @click="deny(request.id)">{{ t("access.reject") }}</Button>
+              <Button size="sm" @click="approve(request.id)">{{ t("access.approve") }}</Button>
             </div>
           </div>
         </section>
 
         <section class="access-section">
-          <div class="section-label">已授权</div>
-          <div v-if="!app.accessSessions.length" class="empty-row">暂无已授权浏览器</div>
+          <div class="section-label">{{ t("access.authorized") }}</div>
+          <div v-if="!app.accessSessions.length" class="empty-row">{{ t("access.emptyAuthorized") }}</div>
           <div v-for="session in app.accessSessions" :key="session.id" class="access-row">
             <div class="access-copy">
               <div class="access-title session-title">
                 <ShieldCheck class="session-icon h-4 w-4" />
                 {{ session.ip }}
               </div>
-              <div class="access-agent" :title="session.userAgent || '未知浏览器'">{{ userAgentLabel(session.userAgent) }}</div>
+              <div class="access-agent" :title="session.userAgent || t('common.unknownBrowser')">{{ userAgentLabel(session.userAgent) }}</div>
               <div class="access-meta">{{ formatDate(session.createdAt) }}</div>
             </div>
-            <Button size="sm" variant="secondary" @click="revoke(session.id)">撤销</Button>
+            <Button size="sm" variant="secondary" @click="revoke(session.id)">{{ t("access.revoke") }}</Button>
           </div>
         </section>
       </div>

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"lanfolder/i18n"
 	"lanfolder/internal/share"
 )
 
@@ -17,12 +18,14 @@ type Config struct {
 	StartAtLogin    bool             `json:"startAtLogin"`
 	KeepInTray      bool             `json:"keepInTray"`
 	ShowHiddenFiles bool             `json:"showHiddenFiles"`
+	Language        string           `json:"language"`
 }
 
 func Default() Config {
 	return Config{
 		Port:       8899,
 		Permission: share.PermissionReadOnly,
+		Language:   i18n.Chinese,
 	}
 }
 
@@ -53,6 +56,7 @@ func Load() Config {
 	if !cfg.Permission.Valid() {
 		cfg.Permission = share.PermissionReadOnly
 	}
+	cfg.Language = i18n.NormalizeLanguage(cfg.Language)
 	if cfg.AutoShare && !cfg.AccessApproval {
 		cfg.AutoShare = false
 	}
@@ -74,6 +78,7 @@ func saveToPath(p string, cfg Config) error {
 	if !cfg.Permission.Valid() {
 		cfg.Permission = share.PermissionReadOnly
 	}
+	cfg.Language = i18n.NormalizeLanguage(cfg.Language)
 	if cfg.AutoShare && !cfg.AccessApproval {
 		cfg.AutoShare = false
 	}

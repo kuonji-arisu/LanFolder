@@ -19,12 +19,13 @@ func (s *Server) handleAccessStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"required":   required,
 		"authorized": authorized,
+		"language":   s.Status().Language,
 	})
 }
 
 func (s *Server) handleAccessRequest(w http.ResponseWriter, r *http.Request) {
 	if !s.accessRequired() {
-		setAccessLog(r, "访问请求无需批准", "", "", "")
+		setAccessLog(r, logActionRequestNotNeeded, "", "", "")
 		writeErrorCode(w, http.StatusBadRequest, "access_not_required", nil)
 		return
 	}
@@ -45,7 +46,7 @@ func (s *Server) handleAccessRequest(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, share.ErrAccessRequestLimited) {
 			clearAccessRequestCookie(w)
-			setAccessLog(r, "访问请求过于频繁", ip, ip, "")
+			setAccessLog(r, logActionRequestRateLimit, ip, ip, "")
 			writeErrorCode(w, http.StatusTooManyRequests, "access_request_limited", nil)
 			return
 		}
@@ -54,7 +55,7 @@ func (s *Server) handleAccessRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	setAccessRequestCookie(w, requestToken, req.ExpiresAt)
 	if created {
-		setAccessLog(r, "请求访问", req.IP, req.IP, "")
+		setAccessLog(r, logActionRequestAccess, req.IP, req.IP, "")
 		s.notifyAccessRequest()
 	}
 	status := http.StatusOK

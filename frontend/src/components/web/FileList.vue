@@ -3,11 +3,13 @@ import { Download, File, Folder, Loader2, Trash2 } from "lucide-vue-next";
 import { Card } from "@/components/ui/card";
 import { fileApi } from "@/lib/api";
 import { formatBytes, formatDate } from "@/lib/format";
+import { useI18n } from "@/lib/i18n";
 import { useNoticeStore } from "@/stores/notices";
 import { useWebFilesStore } from "@/stores/webFiles";
 
 const files = useWebFilesStore();
 const notices = useNoticeStore();
+const { t } = useI18n();
 
 async function openEntry(entry: Parameters<typeof files.openEntry>[0]) {
   notices.showTaskResult(await files.openEntry(entry));
@@ -16,7 +18,7 @@ async function openEntry(entry: Parameters<typeof files.openEntry>[0]) {
 async function deleteEntry(entry: Parameters<typeof files.deleteEntry>[0]) {
   const result = await files.deleteEntry(entry);
   notices.showTaskResult(result);
-  if (result.ok && result.value) notices.showSuccess("删除成功");
+  if (result.ok && result.value) notices.showSuccess(t("file.deleteSuccess"));
 }
 </script>
 
@@ -25,17 +27,17 @@ async function deleteEntry(entry: Parameters<typeof files.deleteEntry>[0]) {
     <Card class="file-panel">
       <div v-if="files.loading" class="state-view">
         <Loader2 class="h-5 w-5 animate-spin" />
-        <span>加载中</span>
+        <span>{{ t("common.loading") }}</span>
       </div>
 
       <div v-else-if="files.error && !files.listing" class="state-view">
         <Folder class="h-8 w-8 text-muted-foreground" />
-        <span>{{ files.error || "加载失败" }}</span>
+        <span>{{ files.error || t("file.loadFailed") }}</span>
       </div>
 
       <div v-else-if="files.listing && !files.listing.entries.length" class="state-view">
         <Folder class="h-8 w-8 text-muted-foreground" />
-        <span>当前文件夹为空</span>
+        <span>{{ t("file.emptyFolder") }}</span>
       </div>
 
       <div v-else class="file-list">
@@ -47,15 +49,15 @@ async function deleteEntry(entry: Parameters<typeof files.deleteEntry>[0]) {
             </span>
             <span class="file-copy">
               <span class="file-name">{{ entry.name }}</span>
-              <span class="file-meta">{{ entry.isDir ? "文件夹" : formatBytes(entry.size) }} · {{ formatDate(entry.modTime) }}</span>
+              <span class="file-meta">{{ entry.isDir ? t("common.folder") : formatBytes(entry.size) }} · {{ formatDate(entry.modTime) }}</span>
             </span>
           </button>
 
           <div class="file-actions">
-            <a v-if="!entry.isDir" :href="fileApi.downloadUrl(entry.path)" class="icon-button" aria-label="下载">
+            <a v-if="!entry.isDir" :href="fileApi.downloadUrl(entry.path)" class="icon-button" :aria-label="t('common.download')">
               <Download class="h-5 w-5" />
             </a>
-            <button v-if="files.canDelete" class="icon-button danger-button" aria-label="删除" @click="deleteEntry(entry)">
+            <button v-if="files.canDelete" class="icon-button danger-button" :aria-label="t('common.delete')" @click="deleteEntry(entry)">
               <Trash2 class="h-5 w-5" />
             </button>
           </div>

@@ -1,6 +1,10 @@
 package share
 
-import "time"
+import (
+	"time"
+
+	"lanfolder/i18n"
+)
 
 type Permission string
 
@@ -28,11 +32,11 @@ type PermissionOption struct {
 	Description string     `json:"description"`
 }
 
-func PermissionOptions() []PermissionOption {
+func PermissionOptions(language string) []PermissionOption {
 	return []PermissionOption{
-		{Value: PermissionReadOnly, Label: "只读", Description: "浏览和下载"},
-		{Value: PermissionUpload, Label: "可上传", Description: "浏览、下载、上传"},
-		{Value: PermissionManage, Label: "可删改", Description: "浏览、下载、上传、删除"},
+		{Value: PermissionReadOnly, Label: i18n.T(language, "permission.readonly.label", nil), Description: i18n.T(language, "permission.readonly.description", nil)},
+		{Value: PermissionUpload, Label: i18n.T(language, "permission.upload.label", nil), Description: i18n.T(language, "permission.upload.description", nil)},
+		{Value: PermissionManage, Label: i18n.T(language, "permission.manage.label", nil), Description: i18n.T(language, "permission.manage.description", nil)},
 	}
 }
 

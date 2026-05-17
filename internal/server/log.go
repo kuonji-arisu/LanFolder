@@ -4,8 +4,27 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
+
+	"lanfolder/i18n"
+)
+
+const (
+	logActionBrowse           = "log.action.browse"
+	logActionDownload         = "common.download"
+	logActionUpload           = "common.upload"
+	logActionRequestFailed    = "log.action.requestFailed"
+	logActionSendMessage      = "log.action.sendMessage"
+	logActionClearMessages    = "log.action.clearMessages"
+	logActionDelete           = "common.delete"
+	logActionMkdir            = "log.action.mkdir"
+	logActionRequestNotNeeded = "log.action.requestNotRequired"
+	logActionRequestRateLimit = "log.action.requestRateLimited"
+	logActionRequestAccess    = "log.action.requestAccess"
+	logDetailFilesPrefix      = "file.count:"
+	logRootTarget             = "log.target.root"
 )
 
 func (s *Server) logMiddleware(next http.Handler) http.Handler {
@@ -18,8 +37,28 @@ func (s *Server) logMiddleware(next http.Handler) http.Handler {
 		if !ok {
 			return
 		}
+		s.localizeLogEntry(&entry)
 		s.addLog(entry)
 	})
+}
+
+func (s *Server) localizeLogEntry(entry *LogEntry) {
+	s.mu.RLock()
+	language := s.config.Language
+	s.mu.RUnlock()
+
+	if strings.HasPrefix(entry.Action, "log.action.") || strings.HasPrefix(entry.Action, "common.") {
+		entry.Action = i18n.T(language, entry.Action, nil)
+	}
+	if entry.Target == logRootTarget {
+		entry.Target = i18n.T(language, "common.root", nil)
+	}
+	if entry.TargetPath == logRootTarget {
+		entry.TargetPath = i18n.T(language, "common.root", nil)
+	}
+	if count, ok := logFilesDetailCount(entry.Detail); ok {
+		entry.Detail = i18n.T(language, "file.count", map[string]any{"count": count})
+	}
 }
 
 func newLogEntry(r *http.Request, status int, metadata *accessLogMetadata) (LogEntry, bool) {
@@ -69,6 +108,15 @@ func setAccessLog(r *http.Request, action, target, targetPath, detail string) {
 	metadata.Detail = detail
 }
 
+func logFilesDetailCount(detail string) (int, bool) {
+	if !strings.HasPrefix(detail, logDetailFilesPrefix) {
+		return 0, false
+	}
+	value := strings.TrimPrefix(detail, logDetailFilesPrefix)
+	count, err := strconv.Atoi(value)
+	return count, err == nil
+}
+
 func readableAccessLog(r *http.Request, status int, metadata *accessLogMetadata) (string, string, string, string, bool) {
 	if metadata.Action != "" {
 		return metadata.Action, metadata.Target, metadata.TargetPath, metadata.Detail, true
@@ -77,18 +125,18 @@ func readableAccessLog(r *http.Request, status int, metadata *accessLogMetadata)
 	switch {
 	case r.Method == http.MethodGet && r.URL.Path == "/api/list":
 		target, targetPath := logTarget(r.URL.Query().Get("path"))
-		return "浏览", target, targetPath, "", true
+		return logActionBrowse, target, targetPath, "", true
 	case r.Method == http.MethodGet && r.URL.Path == "/api/download":
 		target, targetPath := logTarget(r.URL.Query().Get("path"))
-		return "下载", target, targetPath, "", true
+		return logActionDownload, target, targetPath, "", true
 	case r.Method == http.MethodPost && r.URL.Path == "/api/upload":
 		target, targetPath := logTarget(r.URL.Query().Get("path"))
-		return "上传", target, targetPath, "", true
+		return logActionUpload, target, targetPath, "", true
 	case strings.HasPrefix(r.URL.Path, "/api/access/") && r.URL.Path != "/api/access/request":
 		return "", "", "", "", false
 	case strings.HasPrefix(r.URL.Path, "/api/") && status >= http.StatusBadRequest:
 		target, targetPath := apiLogTarget(r)
-		return "请求失败", target, targetPath, "", true
+		return logActionRequestFailed, target, targetPath, "", true
 	default:
 		return "", "", "", "", false
 	}
@@ -96,7 +144,7 @@ func readableAccessLog(r *http.Request, status int, metadata *accessLogMetadata)
 
 func logTarget(path string) (string, string) {
 	full := logDisplayPath(path)
-	if full == "根目录" {
+	if full == logRootTarget {
 		return full, full
 	}
 	index := strings.LastIndex(full, "/")
@@ -109,7 +157,7 @@ func logTarget(path string) (string, string) {
 func logDisplayPath(path string) string {
 	clean := strings.Trim(strings.ReplaceAll(path, "\\", "/"), "/")
 	if clean == "" {
-		return "根目录"
+		return logRootTarget
 	}
 	return clean
 }

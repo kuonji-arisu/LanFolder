@@ -1,3 +1,5 @@
+import { translate } from "@/lib/i18n";
+
 const storageKey = "lanfolder.clientId";
 
 export function localClientId() {
@@ -14,9 +16,9 @@ export function localClientId() {
 }
 
 export function clientLabel(clientId: string, currentClientId: string) {
-  if (clientId && clientId === currentClientId) return "我";
-  if (!clientId) return "未知设备";
-  return `设备 ${shortClientId(clientId)}`;
+  if (clientId && clientId === currentClientId) return translate("client.me");
+  if (!clientId) return translate("client.unknown");
+  return `${translate("client.devicePrefix")} ${shortClientId(clientId)}`;
 }
 
 function readStoredClientId() {

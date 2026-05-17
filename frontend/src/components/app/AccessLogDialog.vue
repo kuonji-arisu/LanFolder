@@ -1,22 +1,23 @@
 <script setup lang="ts">
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatDate } from "@/lib/format";
+import { useI18n } from "@/lib/i18n";
 import { useAppStore } from "@/stores/app";
 import type { AccessLog } from "@/types/app";
 
 const open = defineModel<boolean>("open", { required: true });
 const app = useAppStore();
+const { t } = useI18n();
 
 function logTitle(log: AccessLog) {
-  if (!log.target) return log.action || "访问共享";
-  if (log.action === "上传") return `上传到 ${log.target}`;
-  return `${log.action || "访问共享"} ${log.target}`;
+  const action = log.action || t("log.action.shareAccess");
+  if (!log.target) return action;
+  return t("log.actionTarget", { action, target: log.target });
 }
 
 function logTitleHint(log: AccessLog) {
   if (!log.targetPath) return logTitle(log);
-  if (log.action === "上传") return `上传到 ${log.targetPath}`;
-  return `${log.action || "访问共享"} ${log.targetPath}`;
+  return t("log.actionTarget", { action: log.action || t("log.action.shareAccess"), target: log.targetPath });
 }
 
 function remoteLabel(log: AccessLog) {
@@ -24,17 +25,21 @@ function remoteLabel(log: AccessLog) {
   if (log.detail) parts.push(log.detail);
   return parts.filter(Boolean).join(" · ");
 }
+
+function logDescription(count: number) {
+  return t("log.description", { count });
+}
 </script>
 
 <template>
   <Dialog v-model:open="open">
     <DialogContent size="large" height="bounded">
       <DialogHeader class="dialog-head">
-        <DialogTitle>访问日志</DialogTitle>
-        <DialogDescription>{{ app.logs.length }} 条最近访问记录</DialogDescription>
+        <DialogTitle>{{ t("log.title") }}</DialogTitle>
+        <DialogDescription>{{ logDescription(app.logs.length) }}</DialogDescription>
       </DialogHeader>
 
-      <div v-if="!app.logs.length" class="empty-state">暂无访问记录</div>
+      <div v-if="!app.logs.length" class="empty-state">{{ t("log.empty") }}</div>
 
       <div v-else class="log-list">
         <div v-for="log in app.logs" :key="`${log.time}-${log.remote}-${log.path}`" class="log-row">

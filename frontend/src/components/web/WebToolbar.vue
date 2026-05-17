@@ -5,14 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { TaskResult } from "@/composables/useAsyncTask";
 import { useTheme } from "@/composables/useTheme";
+import { useI18n } from "@/lib/i18n";
 import { useNoticeStore } from "@/stores/notices";
 import { useWebFilesStore } from "@/stores/webFiles";
 
 const files = useWebFilesStore();
 const notices = useNoticeStore();
 const { theme, setTheme } = useTheme();
+const { t } = useI18n();
 const uploadInput = ref<HTMLInputElement | null>(null);
-const themeToggleLabel = computed(() => (theme.value === "dark" ? "切换到浅色" : "切换到深色"));
+const themeToggleLabel = computed(() => `${t("settings.theme.switchTo")} ${theme.value === "dark" ? t("settings.theme.light") : t("settings.theme.dark")}`);
 
 defineProps<{
   messagesOpen?: boolean;
@@ -29,7 +31,7 @@ async function runWithNotice(action: () => Promise<TaskResult<unknown>>) {
 async function handleUpload(fileList: FileList | null) {
   const result = await files.uploadFiles(fileList);
   notices.showTaskResult(result);
-  if (result.ok && result.value) notices.showSuccess("上传成功");
+  if (result.ok && result.value) notices.showSuccess(t("web.uploadSuccess"));
   if (uploadInput.value) uploadInput.value.value = "";
 }
 
@@ -56,13 +58,13 @@ function toggleTheme() {
         <Sun v-if="theme === 'dark'" class="h-5 w-5" />
         <Moon v-else class="h-5 w-5" />
       </button>
-      <button class="icon-button" :class="{ 'icon-button--active': messagesOpen }" aria-label="传递字符" @click="emit('toggleMessages')">
+      <button class="icon-button" :class="{ 'icon-button--active': messagesOpen }" :aria-label="t('web.messages')" @click="emit('toggleMessages')">
         <MessageSquareText class="h-5 w-5" />
       </button>
     </div>
 
-    <nav class="path-bar" aria-label="当前路径">
-      <button class="crumb" @click="runWithNotice(() => files.load(''))">根目录</button>
+    <nav class="path-bar" :aria-label="t('web.currentPath')">
+      <button class="crumb" @click="runWithNotice(() => files.load(''))">{{ t("common.root") }}</button>
       <template v-for="(crumb, index) in files.crumbs" :key="`${crumb}-${index}`">
         <span class="slash">/</span>
         <button class="crumb crumb-nested" @click="runWithNotice(() => files.jumpToCrumb(index))">{{ crumb }}</button>
@@ -71,20 +73,20 @@ function toggleTheme() {
 
     <div class="action-row">
       <Button variant="secondary" class="touch-button" :disabled="!files.listing?.path || files.loading" @click="runWithNotice(() => files.load(files.listing?.parentPath ?? ''))">
-        <ArrowUp class="h-4 w-4" />上级
+        <ArrowUp class="h-4 w-4" />{{ t("web.goUp") }}
       </Button>
       <template v-if="files.canUpload">
         <input ref="uploadInput" type="file" multiple class="hidden" @change="handleUpload(($event.target as HTMLInputElement).files)" />
         <Button class="touch-button" :disabled="files.loading" @click="uploadInput?.click()">
-          <UploadCloud class="h-4 w-4" />上传
+          <UploadCloud class="h-4 w-4" />{{ t("common.upload") }}
         </Button>
       </template>
     </div>
 
     <form v-if="files.canUpload" class="mkdir-row" @submit.prevent="createFolder">
-      <Input v-model="files.newFolderName" placeholder="新建文件夹名称" />
+      <Input v-model="files.newFolderName" :placeholder="t('web.newFolderPlaceholder')" />
       <Button variant="secondary" class="touch-button" :disabled="!files.newFolderName.trim() || files.loading" type="submit">
-        <Plus class="h-4 w-4" />新建
+        <Plus class="h-4 w-4" />{{ t("web.mkdir") }}
       </Button>
     </form>
   </header>

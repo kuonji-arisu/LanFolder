@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"lanfolder/i18n"
 	"lanfolder/internal/share"
 )
 
@@ -40,6 +41,7 @@ func New(staticFS fs.FS) *Server {
 			Host:       "0.0.0.0",
 			Port:       8899,
 			Permission: share.PermissionReadOnly,
+			Language:   i18n.Chinese,
 		},
 		maxLogs: 120,
 	}
@@ -55,6 +57,7 @@ func (s *Server) Start(cfg Config) error {
 	if !cfg.Permission.Valid() {
 		cfg.Permission = share.PermissionReadOnly
 	}
+	cfg.Language = i18n.NormalizeLanguage(cfg.Language)
 
 	s.mu.Lock()
 	if s.httpSrv != nil {
@@ -128,6 +131,7 @@ func (s *Server) Status() RuntimeStatus {
 		Root:           s.config.Root,
 		Permission:     s.config.Permission,
 		AccessApproval: s.config.AccessApproval,
+		Language:       s.config.Language,
 	}
 }
 

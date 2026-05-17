@@ -18,6 +18,7 @@ export class Config {
     "startAtLogin": boolean;
     "keepInTray": boolean;
     "showHiddenFiles": boolean;
+    "language": string;
 
     /** Creates a new Config instance. */
     constructor($$source: Partial<Config> = {}) {
@@ -44,6 +45,9 @@ export class Config {
         }
         if (!("showHiddenFiles" in $$source)) {
             this["showHiddenFiles"] = false;
+        }
+        if (!("language" in $$source)) {
+            this["language"] = "";
         }
 
         Object.assign(this, $$source);

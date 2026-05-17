@@ -4,12 +4,14 @@ import { Loader2, RefreshCw, Trash2 } from "lucide-vue-next";
 import MessagePanel from "@/components/messages/MessagePanel.vue";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useI18n } from "@/lib/i18n";
 import { useNoticeStore } from "@/stores/notices";
 import { useWebMessagesStore } from "@/stores/webMessages";
 
 const open = defineModel<boolean>("open", { required: true });
 const messages = useWebMessagesStore();
 const notices = useNoticeStore();
+const { t } = useI18n();
 const clearConfirmOpen = ref(false);
 
 async function refreshMessages() {
@@ -25,7 +27,7 @@ async function clearMessages() {
   notices.showTaskResult(result);
   if (result.ok) {
     clearConfirmOpen.value = false;
-    notices.showSuccess("消息已清空");
+    notices.showSuccess(t("message.clearSuccess"));
   }
 }
 </script>
@@ -35,15 +37,15 @@ async function clearMessages() {
     <DialogContent>
       <div class="message-dialog-head">
         <DialogHeader>
-          <DialogTitle>传递字符</DialogTitle>
-          <DialogDescription>共享文件旁的临时文字通道，手动刷新同步消息</DialogDescription>
+          <DialogTitle>{{ t("message.title") }}</DialogTitle>
+          <DialogDescription>{{ t("message.description") }}</DialogDescription>
         </DialogHeader>
         <div class="message-dialog-actions">
-          <Button variant="secondary" size="icon" :disabled="messages.loading" aria-label="刷新消息" @click="refreshMessages">
+          <Button variant="secondary" size="icon" :disabled="messages.loading" :aria-label="t('common.refresh')" @click="refreshMessages">
             <Loader2 v-if="messages.loading" class="h-4 w-4 animate-spin" />
             <RefreshCw v-else class="h-4 w-4" />
           </Button>
-          <Button variant="secondary" size="icon" :disabled="messages.loading || !messages.messages.length" aria-label="清空消息" @click="clearConfirmOpen = true">
+          <Button variant="secondary" size="icon" :disabled="messages.loading || !messages.messages.length" :aria-label="t('message.clearMessages')" @click="clearConfirmOpen = true">
             <Trash2 class="h-4 w-4" />
           </Button>
         </div>
@@ -53,7 +55,7 @@ async function clearMessages() {
         :messages="messages.messages"
         :current-client-id="messages.clientId"
         :loading="messages.loading"
-        empty-text="还没有传递字符"
+        :empty-text="t('message.emptyRelay')"
         @send="sendMessage"
       />
     </DialogContent>
@@ -62,14 +64,14 @@ async function clearMessages() {
   <Dialog v-model:open="clearConfirmOpen">
     <DialogContent size="sm">
       <DialogHeader>
-        <DialogTitle>清空消息</DialogTitle>
-        <DialogDescription>这会删除当前共享目录里的传递字符记录。</DialogDescription>
+        <DialogTitle>{{ t("message.clearMessages") }}</DialogTitle>
+        <DialogDescription>{{ t("message.clearDescription") }}</DialogDescription>
       </DialogHeader>
       <div class="message-clear-actions">
-        <Button variant="secondary" :disabled="messages.loading" @click="clearConfirmOpen = false">取消</Button>
+        <Button variant="secondary" :disabled="messages.loading" @click="clearConfirmOpen = false">{{ t("common.cancel") }}</Button>
         <Button :disabled="messages.loading" @click="clearMessages">
           <Loader2 v-if="messages.loading" class="h-4 w-4 animate-spin" />
-          清空
+          {{ t("common.clear") }}
         </Button>
       </div>
     </DialogContent>

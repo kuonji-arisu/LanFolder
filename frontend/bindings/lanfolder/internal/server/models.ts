@@ -64,6 +64,7 @@ export class RuntimeStatus {
     "root": string;
     "permission": share$0.Permission;
     "accessApproval": boolean;
+    "language": string;
 
     /** Creates a new RuntimeStatus instance. */
     constructor($$source: Partial<RuntimeStatus> = {}) {
@@ -84,6 +85,9 @@ export class RuntimeStatus {
         }
         if (!("accessApproval" in $$source)) {
             this["accessApproval"] = false;
+        }
+        if (!("language" in $$source)) {
+            this["language"] = "";
         }
 
         Object.assign(this, $$source);

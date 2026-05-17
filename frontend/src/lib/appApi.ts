@@ -20,6 +20,7 @@ function toWailsConfig(config: AppConfig) {
   return new WailsConfig({
     ...config,
     permission: toWailsPermission(config.permission),
+    language: config.language,
   });
 }
 

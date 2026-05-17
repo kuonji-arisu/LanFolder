@@ -11,6 +11,7 @@ import IconButton from "@/components/app/IconButton.vue";
 import PermissionSegment from "@/components/app/PermissionSegment.vue";
 import { useClipboard } from "@/composables/useClipboard";
 import { useToast } from "@/composables/useToast";
+import { useI18n } from "@/lib/i18n";
 import { useAppStore } from "@/stores/app";
 import { useNoticeStore } from "@/stores/notices";
 import type { Permission } from "@/lib/constants";
@@ -19,6 +20,7 @@ import type { TaskResult } from "@/composables/useAsyncTask";
 const app = useAppStore();
 const notices = useNoticeStore();
 const toasts = useToast();
+const { t } = useI18n();
 const { copied, copy } = useClipboard();
 const accessDialogOpen = ref(false);
 const accessLogDialogOpen = ref(false);
@@ -30,7 +32,7 @@ async function runWithNotice(action: () => Promise<TaskResult<unknown>>) {
 
 async function setPermission(permission: Permission) {
   if (permission === "manage") {
-    toasts.warning("可删改允许上传和删除，请确认网络可信。");
+    toasts.warning(t("share.manageWarning"));
   }
   await runWithNotice(() => app.setPermission(permission));
 }
@@ -44,40 +46,40 @@ async function setPermission(permission: Permission) {
           <HardDrive class="h-5 w-5" />
         </span>
         <div class="hero-copy">
-          <div class="hero-title">{{ app.isRunning ? "共享中" : "未共享" }}</div>
-          <p class="hero-hint">权限：{{ app.activePermission.label }}</p>
+          <div class="hero-title">{{ app.isRunning ? t("share.running") : t("share.stopped") }}</div>
+          <p class="hero-hint">{{ t("share.accessPermission") }}: {{ app.activePermission.label }}</p>
         </div>
       </div>
 
       <Button class="hero-action" size="sm" :variant="app.isRunning ? 'destructive' : 'default'" :disabled="app.busy" @click="runWithNotice(app.toggleSharing)">
         <Square v-if="app.isRunning" class="h-4 w-4" />
         <Play v-else class="h-4 w-4" />
-        {{ app.isRunning ? "停止" : "开始" }}
+        {{ app.isRunning ? t("share.stop") : t("share.start") }}
       </Button>
     </Card>
 
-    <FieldCard label="访问地址" :value="app.primaryAddress" mono>
+    <FieldCard :label="t('share.accessAddress')" :value="app.primaryAddress" mono>
       <span v-if="app.config.accessApproval" class="access-button-wrap">
-        <IconButton title="访问管理" :accent="Boolean(app.pendingAccessRequests.length)" @click="accessDialogOpen = true">
+        <IconButton :title="t('access.manage')" :accent="Boolean(app.pendingAccessRequests.length)" @click="accessDialogOpen = true">
           <ShieldCheck class="h-4 w-4" />
         </IconButton>
         <span v-if="accessCount" class="access-badge">{{ accessCount }}</span>
       </span>
-      <IconButton title="复制地址" accent @click="copy(app.primaryAddress)">
+      <IconButton :title="t('share.copyAddress')" accent @click="copy(app.primaryAddress)">
         <Check v-if="copied" class="h-4 w-4" />
         <Copy v-else class="h-4 w-4" />
       </IconButton>
     </FieldCard>
 
-    <FieldCard label="共享目录" :value="app.config.sharedDir || '尚未选择目录'">
-      <IconButton title="更改目录" @click="runWithNotice(app.chooseFolder)">
+    <FieldCard :label="t('share.directory')" :value="app.config.sharedDir || t('share.noFolder')">
+      <IconButton :title="t('share.changeFolder')" @click="runWithNotice(app.chooseFolder)">
         <FolderOpen class="h-4 w-4" />
       </IconButton>
-      <Button variant="secondary" :disabled="!app.config.sharedDir" @click="runWithNotice(app.openSharedFolder)">打开</Button>
+      <Button variant="secondary" :disabled="!app.config.sharedDir" @click="runWithNotice(app.openSharedFolder)">{{ t("common.open") }}</Button>
     </FieldCard>
 
     <Card class="panel">
-      <div class="field-label">访问权限</div>
+      <div class="field-label">{{ t("share.accessPermission") }}</div>
       <PermissionSegment :model-value="app.config.permission" :options="app.state?.permissions ?? []" @update:model-value="setPermission" />
       <p class="field-hint">{{ app.activePermission.description }}</p>
     </Card>

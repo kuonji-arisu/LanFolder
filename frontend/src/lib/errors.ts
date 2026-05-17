@@ -1,4 +1,5 @@
 import { formatBytes } from "@/lib/format";
+import { translate } from "@/lib/i18n";
 
 export type ErrorParams = Record<string, unknown>;
 
@@ -28,39 +29,37 @@ type WailsCallErrorPayload = {
 
 type ErrorTranslator = (params?: ErrorParams) => string;
 
-const fallbackMessage = "操作失败，请重试";
-
 const messages: Record<string, ErrorTranslator> = {
-  invalid_request: () => "请求格式无效",
-  bad_origin: () => "请求来源不被允许",
-  bad_host: () => "访问地址不被允许",
-  network_not_allowed: () => "仅允许可信局域网访问",
-  access_required: () => "请先在电脑端批准访问",
-  access_not_required: () => "当前不需要访问批准",
-  access_approval_required: () => "请先启用新设备访问批准",
-  access_request_unavailable: () => "访问请求已过期或不存在",
-  access_request_limited: () => "当前访问请求过多，请稍后再试",
+  invalid_request: () => translate("error.invalidRequest"),
+  bad_origin: () => translate("error.badOrigin"),
+  bad_host: () => translate("error.badHost"),
+  network_not_allowed: () => translate("error.networkNotAllowed"),
+  access_required: () => translate("error.accessRequired"),
+  access_not_required: () => translate("error.accessNotRequired"),
+  access_approval_required: () => translate("error.accessApprovalRequired"),
+  access_request_unavailable: () => translate("error.accessRequestUnavailable"),
+  access_request_limited: () => translate("error.accessRequestLimited"),
   request_too_large: (params) => {
     const maxBytes = typeof params?.maxBytes === "number" ? params.maxBytes : undefined;
-    return maxBytes ? `请求不能超过 ${formatBytes(maxBytes)}` : "请求太大";
+    return maxBytes ? translate("error.requestTooLarge", { maxBytes: formatBytes(maxBytes) }) : translate("error.fallback");
   },
-  invalid_path: () => "路径无效",
+  invalid_path: () => translate("error.invalidPath"),
   invalid_filename: (params) => {
     const maxBytes = typeof params?.maxBytes === "number" ? params.maxBytes : undefined;
-    return maxBytes ? `名称不能超过 ${maxBytes} 字节` : "名称过长或无效";
+    return maxBytes ? translate("error.invalidFilename", { maxBytes }) : translate("error.fallback");
   },
-  invalid_message: () => "消息不能为空，且不能超过 2000 个字符",
-  cannot_delete_root: () => "不能删除共享根目录",
-  permission_denied: () => "没有权限执行此操作",
-  not_found: () => "文件或目录不存在",
-  no_files_uploaded: () => "没有选择要上传的文件",
-  invalid_port: () => "端口必须在 1 到 65535 之间",
-  shared_dir_required: () => "请先选择共享目录",
+  invalid_message: () => translate("error.invalidMessage"),
+  cannot_delete_root: () => translate("error.cannotDeleteRoot"),
+  permission_denied: () => translate("error.permissionDenied"),
+  not_found: () => translate("error.notFound"),
+  no_files_uploaded: () => translate("error.noFilesUploaded"),
+  invalid_port: () => translate("error.invalidPort"),
+  shared_dir_required: () => translate("error.sharedDirRequired"),
   file_too_large: (params) => {
     const maxBytes = typeof params?.maxBytes === "number" ? params.maxBytes : undefined;
-    return maxBytes ? `文件不能超过 ${formatBytes(maxBytes)}` : "文件太大";
+    return maxBytes ? translate("error.fileTooLarge", { maxBytes: formatBytes(maxBytes) }) : translate("error.fallback");
   },
-  server_error: () => fallbackMessage,
+  server_error: () => translate("error.fallback"),
 };
 
 export function createAppError(code: string, options: CreateAppErrorOptions = {}): AppError {
@@ -86,11 +85,11 @@ export function normalizeError(err: unknown): AppError | null {
 
 export function errorMessage(err: unknown) {
   const error = normalizeError(err);
-  return error ? translateError(error) : fallbackMessage;
+  return error ? translateError(error) : translate("error.fallback");
 }
 
 export function translateError(error: AppError) {
-  return (messages[error.code] ?? (() => fallbackMessage))(error.params);
+  return (messages[error.code] ?? (() => translate("error.fallback")))(error.params);
 }
 
 function readPayload(value: unknown): ErrorPayload | null {

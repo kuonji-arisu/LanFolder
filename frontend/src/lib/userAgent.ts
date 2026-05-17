@@ -1,9 +1,11 @@
+import { translate } from "@/lib/i18n";
+
 export function userAgentLabel(userAgent: string) {
-  if (!userAgent) return "未知浏览器";
+  if (!userAgent) return translate("common.unknownBrowser");
 
   const browser = matchBrowser(userAgent);
   const platform = matchPlatform(userAgent);
-  return [browser, platform].filter(Boolean).join(" · ") || "未知浏览器";
+  return [browser, platform].filter(Boolean).join(" · ") || translate("common.unknownBrowser");
 }
 
 function matchBrowser(userAgent: string) {

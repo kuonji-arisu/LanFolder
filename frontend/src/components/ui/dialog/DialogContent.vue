@@ -11,6 +11,7 @@ import {
   useForwardPropsEmits,
 } from "radix-vue";
 import type { DialogContentVariants } from ".";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { dialogContentVariants } from ".";
 
@@ -28,6 +29,7 @@ const delegatedProps = computed(() => {
   return delegated;
 });
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
+const { t } = useI18n();
 </script>
 
 <template>
@@ -45,7 +47,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
       <slot />
       <DialogClose class="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-[color:var(--color-secondary-border)] bg-secondary text-sm font-medium text-secondary-foreground shadow-none ring-offset-background transition-colors hover:bg-[color:var(--color-secondary-hover)] active:bg-[color:var(--color-secondary-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0">
         <X class="h-4 w-4" />
-        <span class="sr-only">关闭</span>
+        <span class="sr-only">{{ t("app.close") }}</span>
       </DialogClose>
     </DialogContent>
   </DialogPortal>

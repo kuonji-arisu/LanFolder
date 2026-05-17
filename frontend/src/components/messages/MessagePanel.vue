@@ -4,6 +4,7 @@ import { Send } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/format";
 import { clientLabel } from "@/lib/clientId";
+import { useI18n } from "@/lib/i18n";
 import type { MessageEntry } from "@/types/app";
 
 const props = defineProps<{
@@ -20,6 +21,7 @@ const emit = defineEmits<{
   (event: "update:draft", value: string): void;
   (event: "send"): void;
 }>();
+const { t } = useI18n();
 
 const draftModel = computed({
   get: () => props.draft,
@@ -38,10 +40,10 @@ function isOwnMessage(message: MessageEntry) {
 </script>
 
 <template>
-  <section class="message-panel" aria-label="传递字符">
+  <section class="message-panel" :aria-label="t('message.aria')">
     <div class="message-list">
-      <div v-if="disabled" class="message-empty">{{ disabledText || "请先选择共享目录" }}</div>
-      <div v-else-if="!messages.length" class="message-empty">{{ emptyText || "还没有消息" }}</div>
+      <div v-if="disabled" class="message-empty">{{ disabledText || t("error.sharedDirRequired") }}</div>
+      <div v-else-if="!messages.length" class="message-empty">{{ emptyText || t("message.empty") }}</div>
       <template v-else>
         <div v-for="message in messages" :key="message.id" class="message-item" :class="{ 'message-item--own': isOwnMessage(message) }">
           <div class="message-meta">
@@ -54,9 +56,9 @@ function isOwnMessage(message: MessageEntry) {
     </div>
 
     <form class="message-form" @submit.prevent="emit('send')">
-      <textarea v-model="draftModel" class="message-input" rows="2" maxlength="2000" :disabled="disabled || loading" placeholder="输入要传递的文字" />
+      <textarea v-model="draftModel" class="message-input" rows="2" maxlength="2000" :disabled="disabled || loading" :placeholder="t('message.inputPlaceholder')" />
       <Button class="message-send" type="submit" :disabled="!canSend">
-        <Send class="h-4 w-4" />发送
+        <Send class="h-4 w-4" />{{ t("message.send") }}
       </Button>
     </form>
   </section>

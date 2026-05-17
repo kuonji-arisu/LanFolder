@@ -155,6 +155,7 @@ function appState(
       ...overrides.config,
       permission,
       port,
+      language: overrides.config?.language ?? "zh-CN",
     },
     server: {
       running: overrides.running ?? false,
@@ -163,6 +164,7 @@ function appState(
       root: "C:/Share",
       permission,
       accessApproval: overrides.config?.accessApproval ?? false,
+      language: overrides.config?.language ?? "zh-CN",
     },
     appInfo: {
       name: "LanFolder",

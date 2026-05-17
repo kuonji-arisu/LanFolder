@@ -5,6 +5,7 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 
+	"lanfolder/i18n"
 	"lanfolder/internal/desktop"
 )
 
@@ -27,11 +28,12 @@ func (s *AppService) PresentNotice(notice desktop.Notice, message string) string
 	s.mu.Lock()
 	window := s.window
 	notifier := s.notifier
+	language := s.config.Language
 	s.mu.Unlock()
-	return presentNotice(window, notifier, notice, message)
+	return presentNotice(window, notifier, notice, message, language)
 }
 
-func presentNotice(window noticeWindow, notifier noticeNotifier, notice desktop.Notice, message string) string {
+func presentNotice(window noticeWindow, notifier noticeNotifier, notice desktop.Notice, message, language string) string {
 	if window == nil {
 		return noticePresentationToast
 	}
@@ -50,7 +52,7 @@ func presentNotice(window noticeWindow, notifier noticeNotifier, notice desktop.
 
 	if err := notifier.sendNotification(notifications.NotificationOptions{
 		ID:    fmt.Sprintf("notice-%s", notice.ID),
-		Title: noticeNotificationTitle(notice),
+		Title: noticeNotificationTitle(notice, language),
 		Body:  message,
 		Data: map[string]interface{}{
 			"noticeId": notice.ID,
@@ -63,12 +65,12 @@ func presentNotice(window noticeWindow, notifier noticeNotifier, notice desktop.
 	return noticePresentationSystem
 }
 
-func noticeNotificationTitle(notice desktop.Notice) string {
+func noticeNotificationTitle(notice desktop.Notice, language string) string {
 	switch notice.Level {
 	case desktop.NoticeError:
-		return "LanFolder 操作失败"
+		return i18n.T(language, "notice.errorTitle", nil)
 	case desktop.NoticeWarning:
-		return "LanFolder 需要注意"
+		return i18n.T(language, "notice.warningTitle", nil)
 	default:
 		return "LanFolder"
 	}
