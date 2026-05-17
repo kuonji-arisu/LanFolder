@@ -38,6 +38,10 @@ async function savePort() {
   }
   portError.value = "";
   const port = validation.port;
+  if (port === app.config.port) {
+    syncPortDraft();
+    return;
+  }
   const result = await app.saveConfig({ port });
   if (!result.ok) {
     if (normalizeError(result.error)?.code !== "invalid_port") syncPortDraft();
@@ -61,12 +65,25 @@ async function saveSettingWithNotice(partial: Partial<AppConfig>) {
 <template>
   <main class="settings-view">
     <div class="settings-form">
-      <label class="settings-field">
-        <span class="field-label">端口</span>
-        <Input v-model="portDraft" type="text" inputmode="numeric" pattern="[0-9]*" :aria-invalid="Boolean(portError)" @input="handlePortInput" @change="savePort" />
-        <span v-if="portError" class="field-error">{{ portError }}</span>
-        <span v-else class="field-hint">默认 8899，修改后自动重启共享服务</span>
-      </label>
+      <div class="settings-row">
+        <div>
+          <label class="field-label" for="settings-port">端口</label>
+          <p :class="portError ? 'field-error' : 'field-hint'">{{ portError || "默认 8899，修改后自动重启共享服务" }}</p>
+        </div>
+        <Input
+          id="settings-port"
+          v-model="portDraft"
+          class="port-input"
+          type="text"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          maxlength="5"
+          :aria-invalid="Boolean(portError)"
+          @input="handlePortInput"
+          @change="savePort"
+          @keydown.enter="savePort"
+        />
+      </div>
 
       <div class="settings-row">
         <div>
@@ -153,21 +170,8 @@ async function saveSettingWithNotice(partial: Partial<AppConfig>) {
   gap: var(--space-4);
 }
 
-.settings-field {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.settings-field :deep(input) {
-  height: var(--input-height);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-elevated);
-  font-size: var(--font-size-md);
-}
-
 .settings-row {
-  min-height: 46px;
+  min-height: 35px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -181,6 +185,15 @@ async function saveSettingWithNotice(partial: Partial<AppConfig>) {
 
 .settings-row > :last-child {
   flex-shrink: 0;
+}
+
+.port-input {
+  width: 82px;
+  height: 35px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  text-align: center;
+  font-size: var(--font-size-md);
 }
 
 .switch-tooltip {
@@ -245,7 +258,7 @@ async function saveSettingWithNotice(partial: Partial<AppConfig>) {
 }
 
 .field-error {
-  margin-top: 4px;
+  margin: 4px 0 0;
   color: var(--color-danger);
   font-size: var(--font-size-xs);
 }
