@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { ArrowLeft } from "lucide-vue-next";
-import { useRouter } from "vue-router";
-import { useAppStore } from "@/stores/app";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatDate } from "@/lib/format";
+import { useAppStore } from "@/stores/app";
 import type { AccessLog } from "@/types/app";
 
+const open = defineModel<boolean>("open", { required: true });
 const app = useAppStore();
-const router = useRouter();
+const dialogContentClass =
+  "w-[calc(100vw_-_var(--space-6))] max-w-[var(--content-max-width)] h-[calc(100dvh_-_var(--space-6))] flex flex-col overflow-hidden";
 
 function logTitle(log: AccessLog) {
   if (!log.target) return log.action || "访问共享";
@@ -28,98 +29,87 @@ function remoteLabel(log: AccessLog) {
 </script>
 
 <template>
-  <main class="logs-view">
-    <div class="logs-header">
-      <button class="back-button" title="返回" @click="router.push({ name: 'share' })">
-        <ArrowLeft class="h-4 w-4" />
-      </button>
-      <p class="field-hint">{{ app.logs.length }} 条记录</p>
-    </div>
-
-    <div v-if="!app.logs.length" class="empty-state">暂无访问记录</div>
-
-    <div v-else class="log-list">
-      <div v-for="log in app.logs" :key="`${log.time}-${log.remote}-${log.path}`" class="log-row">
-        <div class="log-main">
-          <span class="log-title" :title="logTitleHint(log)">{{ logTitle(log) }}</span>
-          <span v-if="log.status >= 400" class="status-code status-code--error">{{ log.status }}</span>
+  <Dialog v-model:open="open">
+    <DialogContent :class="dialogContentClass">
+      <div class="log-dialog-body">
+        <div class="log-dialog-head">
+          <DialogHeader>
+            <DialogTitle>访问日志</DialogTitle>
+            <DialogDescription>{{ app.logs.length }} 条最近访问记录</DialogDescription>
+          </DialogHeader>
         </div>
-        <div class="log-meta">
-          <span class="log-remote">{{ remoteLabel(log) }}</span>
-          <span class="log-time">{{ formatDate(log.time) }}</span>
+
+        <div v-if="!app.logs.length" class="empty-state">暂无访问记录</div>
+
+        <div v-else class="log-list">
+          <div v-for="log in app.logs" :key="`${log.time}-${log.remote}-${log.path}`" class="log-row">
+            <div class="log-main">
+              <span class="log-title" :title="logTitleHint(log)">{{ logTitle(log) }}</span>
+              <span v-if="log.status >= 400" class="status-code status-code--error">{{ log.status }}</span>
+            </div>
+            <div class="log-meta">
+              <span class="log-remote">{{ remoteLabel(log) }}</span>
+              <span class="log-time">{{ formatDate(log.time) }}</span>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </main>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <style scoped>
-.logs-view {
+.log-dialog-body {
+  --log-dialog-head-padding: calc(var(--icon-button-size) + var(--space-2));
+
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  padding: var(--space-3);
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.logs-view::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-}
-
-.logs-header {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: 0 0 var(--space-2);
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
-.back-button {
-  width: var(--icon-button-size);
-  height: var(--icon-button-size);
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
-  background: var(--color-bg-control);
-}
-
-.back-button:hover {
-  color: var(--color-text-primary);
-  background: var(--color-bg-hover);
-}
-
-.field-hint {
-  margin: 0;
-  color: var(--color-text-tertiary);
-  font-size: var(--font-size-xs);
+.log-dialog-head {
+  padding-right: var(--log-dialog-head-padding);
 }
 
 .empty-state {
+  flex: 1;
+  min-height: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-elevated);
   display: flex;
-  min-height: 110px;
   align-items: center;
   justify-content: center;
-  margin-top: var(--space-3);
   color: var(--color-text-tertiary);
   font-size: var(--font-size-sm);
 }
 
 .log-list {
+  flex: 1;
+  min-height: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-elevated);
-  overflow: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--color-border) transparent;
+  scrollbar-width: thin;
+}
+
+.log-list::-webkit-scrollbar {
+  width: var(--space-2);
+  height: 0;
+}
+
+.log-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--color-border);
 }
 
 .log-row {
-  padding: 13px var(--space-3);
+  padding: var(--space-3);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -150,7 +140,7 @@ function remoteLabel(log: AccessLog) {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  margin-top: 6px;
+  margin-top: var(--space-1);
   color: var(--color-text-tertiary);
   font-size: var(--font-size-xs);
 }
@@ -169,7 +159,7 @@ function remoteLabel(log: AccessLog) {
 .status-code {
   flex-shrink: 0;
   border-radius: 999px;
-  padding: 3px 8px;
+  padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
 }

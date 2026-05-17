@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import { Check, Copy, FolderOpen, HardDrive, Play, ShieldCheck, Square } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import AccessLogDialog from "@/components/app/AccessLogDialog.vue";
 import AccessLogPanel from "@/components/app/AccessLogPanel.vue";
 import AccessDialog from "@/components/app/AccessDialog.vue";
 import FieldCard from "@/components/app/FieldCard.vue";
@@ -18,6 +19,7 @@ const app = useAppStore();
 const notices = useNoticeStore();
 const { copied, copy } = useClipboard();
 const accessDialogOpen = ref(false);
+const accessLogDialogOpen = ref(false);
 const accessCount = computed(() => app.pendingAccessRequests.length + app.accessSessions.length);
 
 async function runWithNotice(action: () => Promise<TaskResult<unknown>>) {
@@ -75,7 +77,8 @@ async function setPermission(permission: Permission) {
       <p class="field-hint">{{ app.activePermission.description }}</p>
     </Card>
 
-    <AccessLogPanel :logs="app.logs" />
+    <AccessLogPanel :logs="app.logs" @open="accessLogDialogOpen = true" />
+    <AccessLogDialog v-model:open="accessLogDialogOpen" />
     <AccessDialog v-model:open="accessDialogOpen" />
   </main>
 </template>

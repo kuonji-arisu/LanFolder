@@ -19,11 +19,5 @@ export const router = createRouter({
       component: () => import("@/views/SettingsView.vue"),
       meta: { title: "设置" },
     },
-    {
-      path: "/logs",
-      name: "logs",
-      component: () => import("@/views/LogsView.vue"),
-      meta: { title: "访问日志" },
-    },
   ],
 });

@@ -7,6 +7,9 @@ import type { AccessLog } from "@/types/app";
 const props = defineProps<{
   logs: AccessLog[];
 }>();
+const emit = defineEmits<{
+  open: [];
+}>();
 
 const totalCount = computed(() => props.logs.length);
 const errorCount = computed(() => props.logs.filter((log) => log.status >= 400).length);
@@ -16,10 +19,10 @@ const errorCount = computed(() => props.logs.filter((log) => log.status >= 400).
   <Card class="logs-summary">
     <div class="panel-title-row">
       <span class="field-label">最近访问日志</span>
-      <RouterLink class="view-link" :to="{ name: 'logs' }">
+      <button class="view-link" type="button" @click="emit('open')">
         查看
         <ArrowRight class="h-[13px] w-[13px]" />
-      </RouterLink>
+      </button>
     </div>
 
     <div class="summary-grid">
