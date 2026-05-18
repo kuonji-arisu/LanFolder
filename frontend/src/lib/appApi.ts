@@ -1,4 +1,4 @@
-import { AppService } from "../../bindings/lanfolder";
+import { AppService } from "../../bindings/lanfolder/internal/appservice";
 import { Config as WailsConfig } from "../../bindings/lanfolder/internal/config/models";
 import { Permission as WailsPermission } from "../../bindings/lanfolder/internal/share/models";
 import type { Permission } from "@/lib/constants";

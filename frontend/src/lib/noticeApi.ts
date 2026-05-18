@@ -3,7 +3,7 @@ import type { Notice as WailsNotice } from "../../bindings/lanfolder/internal/de
 
 export const noticeApi = {
   async drainNotices() {
-    const { AppService } = await import("../../bindings/lanfolder");
+    const { AppService } = await import("../../bindings/lanfolder/internal/appservice");
     return (await AppService.DrainNotices()) as AppNotice[];
   },
   async listenNotices(handler: (notice: AppNotice) => void) {
@@ -11,7 +11,7 @@ export const noticeApi = {
     return Events.On("app:notice", (event) => handler(event.data as AppNotice));
   },
   async presentNotice(notice: AppNotice, message: string): Promise<NoticePresentation> {
-    const { AppService } = await import("../../bindings/lanfolder");
+    const { AppService } = await import("../../bindings/lanfolder/internal/appservice");
     return (await AppService.PresentNotice(notice as unknown as WailsNotice, message)) as NoticePresentation;
   },
 };

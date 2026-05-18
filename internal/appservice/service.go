@@ -1,4 +1,4 @@
-package main
+package appservice
 
 import (
 	"context"
@@ -16,6 +16,7 @@ import (
 	"lanfolder/internal/config"
 	"lanfolder/internal/desktop"
 	"lanfolder/internal/i18n"
+	"lanfolder/internal/notice"
 	"lanfolder/internal/platform"
 	"lanfolder/internal/server"
 	"lanfolder/internal/share"
@@ -41,7 +42,7 @@ func (e commandError) Error() string {
 	return e.Code
 }
 
-func marshalCommandError(err error) []byte {
+func MarshalCommandError(err error) []byte {
 	payload := commandErrorPayload(err)
 	if payload == nil {
 		return nil
@@ -65,7 +66,7 @@ type AppService struct {
 	mu                 sync.Mutex
 	app                *application.App
 	window             application.Window
-	notifier           noticeNotifier
+	notifier           *notice.RuntimeService
 	server             *server.Server
 	config             config.Config
 	notices            []desktop.Notice
@@ -77,6 +78,66 @@ type AppService struct {
 
 const accessNoticeCooldown = 10 * time.Second
 const addressWatchInterval = 10 * time.Second
+
+type Options struct {
+	Server   *server.Server
+	Config   config.Config
+	Notifier *notice.RuntimeService
+	LANIPs   func() []string
+}
+
+func New(options Options) *AppService {
+	return &AppService{
+		server:   options.Server,
+		config:   options.Config,
+		notifier: options.Notifier,
+		lanIPs:   options.LANIPs,
+	}
+}
+
+func SetApp(service *AppService, app *application.App) {
+	service.mu.Lock()
+	service.app = app
+	service.mu.Unlock()
+}
+
+func SetWindow(service *AppService, window application.Window) {
+	service.mu.Lock()
+	service.window = window
+	service.mu.Unlock()
+}
+
+func ShowMainWindow(service *AppService) {
+	service.showMainWindow()
+}
+
+func AutoStartSharing(service *AppService) {
+	service.autoStartSharing()
+}
+
+func StartAddressWatcher(service *AppService) {
+	service.startAddressWatcher()
+}
+
+func HandleAccessRequestNotice(service *AppService) {
+	service.handleAccessRequestNotice()
+}
+
+func EmitStateChanged(service *AppService, reason string) {
+	service.emitStateChanged(reason)
+}
+
+func Language(service *AppService) string {
+	service.mu.Lock()
+	defer service.mu.Unlock()
+	return service.config.Language
+}
+
+func KeepInTray(service *AppService) bool {
+	service.mu.Lock()
+	defer service.mu.Unlock()
+	return service.config.KeepInTray
+}
 
 func (s *AppService) State() desktop.AppState {
 	s.mu.Lock()
@@ -274,6 +335,15 @@ func (s *AppService) DrainNotices() []desktop.Notice {
 	s.notices = nil
 	s.drained = true
 	return out
+}
+
+func (s *AppService) PresentNotice(noticeItem desktop.Notice, message string) string {
+	s.mu.Lock()
+	window := s.window
+	notifier := s.notifier
+	language := s.config.Language
+	s.mu.Unlock()
+	return notice.Present(window, notifier, noticeItem, message, language)
 }
 
 func (s *AppService) addNotice(level desktop.NoticeLevel, source desktop.NoticeSource, err error, message string) {

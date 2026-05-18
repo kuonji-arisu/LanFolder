@@ -7,87 +7,87 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as config$0 from "./internal/config/models.js";
+import * as config$0 from "../config/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as desktop$0 from "./internal/desktop/models.js";
+import * as desktop$0 from "../desktop/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as server$0 from "./internal/server/models.js";
+import * as server$0 from "../server/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as share$0 from "./internal/share/models.js";
+import * as share$0 from "../share/models.js";
 
 export function AccessSessions(): $CancellablePromise<share$0.AccessSession[]> {
-    return $Call.ByID(2201376577).then(($result: any) => {
+    return $Call.ByID(2635634178).then(($result: any) => {
         return $$createType1($result);
     });
 }
 
 export function ApproveAccessRequest(id: string): $CancellablePromise<void> {
-    return $Call.ByID(473904750, id);
+    return $Call.ByID(437821333, id);
 }
 
 export function ChooseFolder(): $CancellablePromise<desktop$0.AppState> {
-    return $Call.ByID(1337902351).then(($result: any) => {
+    return $Call.ByID(840332116).then(($result: any) => {
         return $$createType2($result);
     });
 }
 
 export function DenyAccessRequest(id: string): $CancellablePromise<void> {
-    return $Call.ByID(2545213615, id);
+    return $Call.ByID(2443696466, id);
 }
 
 export function DrainNotices(): $CancellablePromise<desktop$0.Notice[]> {
-    return $Call.ByID(2812011285).then(($result: any) => {
+    return $Call.ByID(1969978146).then(($result: any) => {
         return $$createType4($result);
     });
 }
 
 export function Logs(): $CancellablePromise<server$0.LogEntry[]> {
-    return $Call.ByID(391321321).then(($result: any) => {
+    return $Call.ByID(1616751446).then(($result: any) => {
         return $$createType6($result);
     });
 }
 
 export function OpenSharedFolder(): $CancellablePromise<void> {
-    return $Call.ByID(3288064515);
+    return $Call.ByID(580461836);
 }
 
 export function PendingAccessRequests(): $CancellablePromise<share$0.AccessRequest[]> {
-    return $Call.ByID(2038523565).then(($result: any) => {
+    return $Call.ByID(3435356552).then(($result: any) => {
         return $$createType8($result);
     });
 }
 
-export function PresentNotice(notice: desktop$0.Notice, message: string): $CancellablePromise<string> {
-    return $Call.ByID(1685920497, notice, message);
+export function PresentNotice(noticeItem: desktop$0.Notice, message: string): $CancellablePromise<string> {
+    return $Call.ByID(3903411448, noticeItem, message);
 }
 
 export function RevokeAccessSession(id: string): $CancellablePromise<void> {
-    return $Call.ByID(1707732686, id);
+    return $Call.ByID(1097166491, id);
 }
 
 export function SaveSettings(cfg: config$0.Config): $CancellablePromise<desktop$0.AppState> {
-    return $Call.ByID(3784651466, cfg).then(($result: any) => {
+    return $Call.ByID(1564944869, cfg).then(($result: any) => {
         return $$createType2($result);
     });
 }
 
 export function StartSharing(): $CancellablePromise<desktop$0.AppState> {
-    return $Call.ByID(3733241914).then(($result: any) => {
+    return $Call.ByID(1981638673).then(($result: any) => {
         return $$createType2($result);
     });
 }
 
 export function State(): $CancellablePromise<desktop$0.AppState> {
-    return $Call.ByID(2460789311).then(($result: any) => {
+    return $Call.ByID(2152043238).then(($result: any) => {
         return $$createType2($result);
     });
 }
 
 export function StopSharing(): $CancellablePromise<desktop$0.AppState> {
-    return $Call.ByID(2464149370).then(($result: any) => {
+    return $Call.ByID(106319555).then(($result: any) => {
         return $$createType2($result);
     });
 }

@@ -1,4 +1,4 @@
-package main
+package notice
 
 import (
 	"context"
@@ -9,15 +9,19 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 )
 
-var errNotificationUnavailable = errors.New("notification_unavailable")
+var ErrNotificationUnavailable = errors.New("notification_unavailable")
 
-type notificationRuntimeService struct {
+type RuntimeService struct {
 	notifier *notifications.NotificationService
 	mu       sync.RWMutex
 	ready    bool
 }
 
-func (s *notificationRuntimeService) ServiceStartup(ctx context.Context, options application.ServiceOptions) error {
+func NewRuntimeService(notifier *notifications.NotificationService) *RuntimeService {
+	return &RuntimeService{notifier: notifier}
+}
+
+func (s *RuntimeService) ServiceStartup(ctx context.Context, options application.ServiceOptions) error {
 	if s.notifier == nil {
 		s.setReady(false)
 		return nil
@@ -30,7 +34,7 @@ func (s *notificationRuntimeService) ServiceStartup(ctx context.Context, options
 	return nil
 }
 
-func (s *notificationRuntimeService) ServiceShutdown() error {
+func (s *RuntimeService) ServiceShutdown() error {
 	s.setReady(false)
 	if s.notifier == nil {
 		return nil
@@ -38,20 +42,20 @@ func (s *notificationRuntimeService) ServiceShutdown() error {
 	return s.notifier.ServiceShutdown()
 }
 
-func (s *notificationRuntimeService) sendNotification(options notifications.NotificationOptions) error {
+func (s *RuntimeService) sendNotification(options notifications.NotificationOptions) error {
 	s.mu.RLock()
 	ready := s.ready
 	s.mu.RUnlock()
 	if !ready {
-		return errNotificationUnavailable
+		return ErrNotificationUnavailable
 	}
 	if s.notifier == nil {
-		return errNotificationUnavailable
+		return ErrNotificationUnavailable
 	}
 	return s.notifier.SendNotification(options)
 }
 
-func (s *notificationRuntimeService) setReady(ready bool) {
+func (s *RuntimeService) setReady(ready bool) {
 	s.mu.Lock()
 	s.ready = ready
 	s.mu.Unlock()

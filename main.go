@@ -9,8 +9,10 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/events"
 	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 
+	"lanfolder/internal/appservice"
 	"lanfolder/internal/config"
 	"lanfolder/internal/i18n"
+	"lanfolder/internal/notice"
 	"lanfolder/internal/platform"
 	"lanfolder/internal/server"
 )
@@ -39,25 +41,27 @@ func main() {
 		cfg.StartAtLogin = startAtLogin
 	}
 
-	notificationRuntime := &notificationRuntimeService{notifier: notifications.New()}
-	appService := &AppService{
-		server:   server.New(staticFS),
-		config:   cfg,
-		notifier: notificationRuntime,
-	}
-	notificationRuntime.notifier.OnNotificationResponse(func(result notifications.NotificationResult) {
+	nativeNotifier := notifications.New()
+	notificationRuntime := notice.NewRuntimeService(nativeNotifier)
+	shareServer := server.New(staticFS)
+	appService := appservice.New(appservice.Options{
+		Server:   shareServer,
+		Config:   cfg,
+		Notifier: notificationRuntime,
+	})
+	nativeNotifier.OnNotificationResponse(func(result notifications.NotificationResult) {
 		if result.Error == nil {
-			appService.showMainWindow()
+			appservice.ShowMainWindow(appService)
 		}
 	})
-	appService.server.SetAccessRequestCallback(func() {
-		appService.handleAccessRequestNotice()
+	shareServer.SetAccessRequestCallback(func() {
+		appservice.HandleAccessRequestNotice(appService)
 	})
 
 	app := application.New(application.Options{
 		Name:           "LanFolder",
 		Description:    "A minimal LAN folder sharing desktop app",
-		MarshalError:   marshalCommandError,
+		MarshalError:   appservice.MarshalCommandError,
 		SingleInstance: singleInstanceOptions(appService),
 		Services: []application.Service{
 			application.NewService(appService),
@@ -70,9 +74,9 @@ func main() {
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
 	})
-	appService.app = app
-	appService.autoStartSharing()
-	appService.startAddressWatcher()
+	appservice.SetApp(appService, app)
+	appservice.AutoStartSharing(appService)
+	appservice.StartAddressWatcher(appService)
 
 	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:         "LanFolder",
@@ -88,11 +92,9 @@ func main() {
 		BackgroundColour: application.NewRGB(246, 247, 250),
 		URL:              "/",
 	})
-	appService.mu.Lock()
-	appService.window = window
-	appService.mu.Unlock()
+	appservice.SetWindow(appService, window)
 	app.Event.OnApplicationEvent(events.Common.ThemeChanged, func(event *application.ApplicationEvent) {
-		appService.emitStateChanged("theme")
+		appservice.EmitStateChanged(appService, "theme")
 	})
 	window.OnWindowEvent(events.Common.WindowFocus, func(event *application.WindowEvent) {
 		window.Flash(false)
@@ -110,27 +112,25 @@ func main() {
 	}
 }
 
-func singleInstanceOptions(appService *AppService) *application.SingleInstanceOptions {
+func singleInstanceOptions(appService *appservice.AppService) *application.SingleInstanceOptions {
 	return &application.SingleInstanceOptions{
 		UniqueID: appSingleInstanceID,
 		OnSecondInstanceLaunch: func(application.SecondInstanceData) {
-			appService.showMainWindow()
+			appservice.ShowMainWindow(appService)
 		},
 	}
 }
 
-func setupTray(app *application.App, window application.Window, appService *AppService) {
+func setupTray(app *application.App, window application.Window, appService *appservice.AppService) {
 	var forceQuit bool
 
 	tray := app.SystemTray.New().SetIcon(appIcon)
 	tray.SetTooltip("LanFolder")
 
 	menu := app.NewMenu()
-	appService.mu.Lock()
-	language := appService.config.Language
-	appService.mu.Unlock()
+	language := appservice.Language(appService)
 	menu.Add(i18n.T(language, "tray.show", nil)).OnClick(func(*application.Context) {
-		appService.showMainWindow()
+		appservice.ShowMainWindow(appService)
 	})
 	menu.AddSeparator()
 	menu.Add(i18n.T(language, "tray.quit", nil)).OnClick(func(*application.Context) {
@@ -139,13 +139,11 @@ func setupTray(app *application.App, window application.Window, appService *AppS
 	})
 	tray.SetMenu(menu)
 	tray.OnClick(func() {
-		appService.showMainWindow()
+		appservice.ShowMainWindow(appService)
 	})
 
 	window.RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {
-		appService.mu.Lock()
-		keepInTray := appService.config.KeepInTray
-		appService.mu.Unlock()
+		keepInTray := appservice.KeepInTray(appService)
 		if forceQuit || !keepInTray {
 			return
 		}

@@ -1,4 +1,4 @@
-package main
+package appservice
 
 import (
 	"encoding/json"
@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"slices"
 	"testing"
-
-	"github.com/wailsapp/wails/v3/pkg/application"
 
 	"lanfolder/internal/config"
 	"lanfolder/internal/desktop"
@@ -28,7 +26,7 @@ func TestMarshalCommandErrorSerializesErrorKey(t *testing.T) {
 		Error  string         `json:"error"`
 		Params map[string]any `json:"params"`
 	}
-	if decodeErr := json.Unmarshal(marshalCommandError(err), &body); decodeErr != nil {
+	if decodeErr := json.Unmarshal(MarshalCommandError(err), &body); decodeErr != nil {
 		t.Fatal(decodeErr)
 	}
 	if body.Error != "invalid_port" {
@@ -53,7 +51,7 @@ func TestCommandErrorPayloadReusesDesktopErrorPayload(t *testing.T) {
 }
 
 func TestMarshalCommandErrorFallsBackForUnknownErrors(t *testing.T) {
-	if data := marshalCommandError(errors.New("boom")); data != nil {
+	if data := MarshalCommandError(errors.New("boom")); data != nil {
 		t.Fatalf("unknown error marshal = %s, want nil", data)
 	}
 }
@@ -216,18 +214,4 @@ func TestAddressListKeyIgnoresOrder(t *testing.T) {
 	if first != second {
 		t.Fatalf("address keys differ for reordered addresses: %q != %q", first, second)
 	}
-}
-
-func TestSingleInstanceOptions(t *testing.T) {
-	options := singleInstanceOptions(&AppService{})
-	if options == nil {
-		t.Fatal("single instance options should not be nil")
-	}
-	if options.UniqueID != appSingleInstanceID {
-		t.Fatalf("unique ID = %q, want %q", options.UniqueID, appSingleInstanceID)
-	}
-	if options.OnSecondInstanceLaunch == nil {
-		t.Fatal("second instance callback should be set")
-	}
-	options.OnSecondInstanceLaunch(application.SecondInstanceData{})
 }

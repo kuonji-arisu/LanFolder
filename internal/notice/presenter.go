@@ -1,4 +1,4 @@
-package main
+package notice
 
 import (
 	"fmt"
@@ -10,32 +10,27 @@ import (
 )
 
 const (
-	noticePresentationToast  = "toast"
-	noticePresentationSystem = "system"
+	PresentationToast  = "toast"
+	PresentationSystem = "system"
 )
 
-type noticeWindow interface {
+type Window interface {
 	IsFocused() bool
 	IsVisible() bool
 	Flash(enabled bool)
 }
 
-type noticeNotifier interface {
+type notifier interface {
 	sendNotification(options notifications.NotificationOptions) error
 }
 
-func (s *AppService) PresentNotice(notice desktop.Notice, message string) string {
-	s.mu.Lock()
-	window := s.window
-	notifier := s.notifier
-	language := s.config.Language
-	s.mu.Unlock()
-	return presentNotice(window, notifier, notice, message, language)
+func Present(window Window, notifier *RuntimeService, notice desktop.Notice, message, language string) string {
+	return present(window, notifier, notice, message, language)
 }
 
-func presentNotice(window noticeWindow, notifier noticeNotifier, notice desktop.Notice, message, language string) string {
+func present(window Window, notifier notifier, notice desktop.Notice, message, language string) string {
 	if window == nil {
-		return noticePresentationToast
+		return PresentationToast
 	}
 
 	visible := window.IsVisible()
@@ -43,16 +38,16 @@ func presentNotice(window noticeWindow, notifier noticeNotifier, notice desktop.
 		if !window.IsFocused() {
 			window.Flash(true)
 		}
-		return noticePresentationToast
+		return PresentationToast
 	}
 
 	if notifier == nil {
-		return noticePresentationToast
+		return PresentationToast
 	}
 
 	if err := notifier.sendNotification(notifications.NotificationOptions{
 		ID:    fmt.Sprintf("notice-%s", notice.ID),
-		Title: noticeNotificationTitle(notice, language),
+		Title: notificationTitle(notice, language),
 		Body:  message,
 		Data: map[string]interface{}{
 			"noticeId": notice.ID,
@@ -60,12 +55,12 @@ func presentNotice(window noticeWindow, notifier noticeNotifier, notice desktop.
 			"source":   string(notice.Source),
 		},
 	}); err != nil {
-		return noticePresentationToast
+		return PresentationToast
 	}
-	return noticePresentationSystem
+	return PresentationSystem
 }
 
-func noticeNotificationTitle(notice desktop.Notice, language string) string {
+func notificationTitle(notice desktop.Notice, language string) string {
 	switch notice.Level {
 	case desktop.NoticeError:
 		return i18n.T(language, "notice.errorTitle", nil)
