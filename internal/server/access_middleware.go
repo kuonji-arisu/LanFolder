@@ -39,7 +39,7 @@ func accessRouteAllowed(r *http.Request) bool {
 	switch r.URL.Path {
 	case "/api/status", "/api/access/status", "/api/access/poll":
 		return r.Method == http.MethodGet || r.Method == http.MethodHead
-	case "/api/access/request":
+	case "/api/access/request", "/api/access/logout":
 		return r.Method == http.MethodPost
 	}
 	if strings.HasPrefix(r.URL.Path, "/api/") {

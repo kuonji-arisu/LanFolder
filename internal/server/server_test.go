@@ -890,6 +890,35 @@ func TestAccessApprovalApproveSetsCookieAndAllowsAPI(t *testing.T) {
 	}
 }
 
+func TestAccessLogoutClearsStaleSessionCookie(t *testing.T) {
+	root := t.TempDir()
+	_, ts := testServerWithAccess(t, root, share.PermissionReadOnly)
+	defer ts.Close()
+
+	req, err := http.NewRequest(http.MethodPost, ts.URL+"/api/access/logout", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.AddCookie(&http.Cookie{Name: sessionCookieName, Value: "stale-session"})
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("logout status = %d", resp.StatusCode)
+	}
+	cleared := false
+	for _, cookie := range resp.Cookies() {
+		if cookie.Name == sessionCookieName && cookie.MaxAge < 0 {
+			cleared = true
+		}
+	}
+	if !cleared {
+		t.Fatalf("cookies = %#v, want cleared session cookie", resp.Cookies())
+	}
+}
+
 func TestAccessApprovalDenyReturnsRejectedPoll(t *testing.T) {
 	root := t.TempDir()
 	s, ts := testServerWithAccess(t, root, share.PermissionReadOnly)
