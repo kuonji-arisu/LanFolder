@@ -84,6 +84,20 @@ describe("useNoticeStore", () => {
     await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith("请先选择共享目录"));
   });
 
+  it("shows fallback toasts for unmapped file operation failures", async () => {
+    const { toast } = await import("vue-sonner");
+    const store = useNoticeStore();
+
+    store.showTaskResult({
+      ok: false,
+      error: new Error("rename failed"),
+      message: "操作失败，请重试",
+    });
+
+    expect(store.notices[0].message).toBe("操作失败，请重试");
+    await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith("操作失败，请重试"));
+  });
+
   it("uses the common fallback for backend notices without payloads", async () => {
     const { toast } = await import("vue-sonner");
     const store = useNoticeStore();
