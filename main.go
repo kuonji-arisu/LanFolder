@@ -77,7 +77,7 @@ func main() {
 	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:         "LanFolder",
 		Width:         350,
-		Height:        600,
+		Height:        580,
 		DisableResize: true,
 		Frameless:     true,
 		Mac: application.MacWindow{
