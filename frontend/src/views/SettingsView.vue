@@ -75,7 +75,7 @@ async function saveLanguage(value: Language) {
       <div class="settings-row">
         <div>
           <label class="field-label" for="settings-port">{{ t("settings.port.label") }}</label>
-          <p :class="portError ? 'field-error' : 'field-hint'">{{ portError || t("settings.port.hint") }}</p>
+          <p v-if="portError" class="field-error">{{ portError }}</p>
         </div>
         <Input
           id="settings-port"
@@ -95,7 +95,6 @@ async function saveLanguage(value: Language) {
       <div class="settings-row">
         <div>
           <div class="field-label">{{ t("settings.theme.label") }}</div>
-          <p class="field-hint">{{ t("settings.theme.hint") }}</p>
         </div>
         <div class="segmented-toggle">
           <button :class="['theme-option', { 'theme-option--active': theme === 'light' }]" @click="setTheme('light')">
@@ -110,7 +109,6 @@ async function saveLanguage(value: Language) {
       <div class="settings-row">
         <div>
           <div class="field-label">{{ t("settings.language.label") }}</div>
-          <p class="field-hint">{{ t("settings.language.hint") }}</p>
         </div>
         <div class="segmented-toggle">
           <button
@@ -127,7 +125,6 @@ async function saveLanguage(value: Language) {
       <div class="settings-row">
         <div>
           <div class="field-label">{{ t("settings.accessApproval.label") }}</div>
-          <p class="field-hint">{{ t("settings.accessApproval.hint") }}</p>
         </div>
         <span class="switch-tooltip" :title="app.config.autoShare ? t('settings.turnOffAutoShare') : ''">
           <Switch :checked="app.config.accessApproval" :disabled="app.config.autoShare" @update:checked="saveSettingWithNotice({ accessApproval: $event })" />
@@ -137,7 +134,6 @@ async function saveLanguage(value: Language) {
       <div class="settings-row">
         <div>
           <div class="field-label">{{ t("settings.autoShare.label") }}</div>
-          <p class="field-hint">{{ t("settings.autoShare.hint") }}</p>
         </div>
         <span class="switch-tooltip" :title="app.config.accessApproval ? '' : t('settings.autoShare.disabledTitle')">
           <Switch :checked="app.config.autoShare" :disabled="!app.config.accessApproval" @update:checked="saveSettingWithNotice({ autoShare: $event })" />
@@ -147,7 +143,6 @@ async function saveLanguage(value: Language) {
       <div class="settings-row">
         <div>
           <div class="field-label">{{ t("settings.startAtLogin.label") }}</div>
-          <p class="field-hint">{{ app.state?.capabilities.startAtLogin ? t("settings.startAtLogin.hint") : t("settings.startAtLogin.unsupported") }}</p>
         </div>
         <Switch :checked="app.config.startAtLogin" :disabled="!app.state?.capabilities.startAtLogin" @update:checked="saveSettingWithNotice({ startAtLogin: $event })" />
       </div>
@@ -155,7 +150,6 @@ async function saveLanguage(value: Language) {
       <div class="settings-row">
         <div>
           <div class="field-label">{{ t("settings.keepInTray.label") }}</div>
-          <p class="field-hint">{{ t("settings.keepInTray.hint") }}</p>
         </div>
         <Switch :checked="app.config.keepInTray" @update:checked="saveSettingWithNotice({ keepInTray: $event })" />
       </div>
@@ -163,7 +157,6 @@ async function saveLanguage(value: Language) {
       <div class="settings-row">
         <div>
           <div class="field-label">{{ t("settings.hiddenFiles.label") }}</div>
-          <p class="field-hint">{{ t("settings.hiddenFiles.hint") }}</p>
         </div>
         <Switch :checked="app.config.showHiddenFiles" @update:checked="saveSettingWithNotice({ showHiddenFiles: $event })" />
       </div>
@@ -228,12 +221,6 @@ async function saveLanguage(value: Language) {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
-}
-
-.field-hint {
-  margin: 4px 0 0;
-  color: var(--color-text-tertiary);
-  font-size: var(--font-size-xs);
 }
 
 .segmented-toggle {
