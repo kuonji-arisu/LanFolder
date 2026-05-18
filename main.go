@@ -9,8 +9,8 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/events"
 	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 
-	"lanfolder/i18n"
 	"lanfolder/internal/config"
+	"lanfolder/internal/i18n"
 	"lanfolder/internal/platform"
 	"lanfolder/internal/server"
 )

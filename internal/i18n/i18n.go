@@ -1,8 +1,6 @@
 package i18n
 
 import (
-	"embed"
-	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -12,10 +10,7 @@ const (
 	Chinese = "zh-CN"
 )
 
-//go:embed *.json
-var localeFiles embed.FS
-
-var dictionaries = loadDictionaries()
+//go:generate go run ../../tools/geni18n
 
 func NormalizeLanguage(language string) string {
 	value := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(language), "_", "-"))
@@ -45,24 +40,6 @@ func T(language, key string, params map[string]any) string {
 		}
 	}
 	return key
-}
-
-func loadDictionaries() map[string]map[string]string {
-	out := map[string]map[string]string{}
-	for _, language := range []string{English, Chinese} {
-		data, err := localeFiles.ReadFile(language + ".json")
-		if err != nil {
-			out[language] = map[string]string{}
-			continue
-		}
-		var dict map[string]string
-		if err := json.Unmarshal(data, &dict); err != nil {
-			out[language] = map[string]string{}
-			continue
-		}
-		out[language] = dict
-	}
-	return out
 }
 
 func interpolate(value string, params map[string]any) string {

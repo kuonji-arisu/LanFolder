@@ -30,3 +30,4 @@
 ## Wails And Docs
 
 - When Go service models exposed to the frontend change, regenerate Wails TypeScript bindings.
+- When `locales/*.json` changes, run `go generate ./internal/i18n` so the generated Go translation catalog stays in sync.

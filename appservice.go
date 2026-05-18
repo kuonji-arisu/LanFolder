@@ -11,9 +11,9 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
-	"lanfolder/i18n"
 	"lanfolder/internal/config"
 	"lanfolder/internal/desktop"
+	"lanfolder/internal/i18n"
 	"lanfolder/internal/platform"
 	"lanfolder/internal/server"
 	"lanfolder/internal/share"

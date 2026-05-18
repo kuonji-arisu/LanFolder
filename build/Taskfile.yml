@@ -7,6 +7,16 @@ tasks:
     cmds:
       - go mod tidy
 
+  generate:i18n:
+    summary: Generates Go translation catalog from locales
+    sources:
+      - locales/*.json
+      - tools/geni18n/**/*.go
+    generates:
+      - internal/i18n/catalog_gen.go
+    cmds:
+      - go generate ./internal/i18n
+
   install:frontend:deps:
     summary: Install frontend dependencies
     dir: frontend
@@ -48,6 +58,7 @@ tasks:
     label: generate:bindings (BUILD_FLAGS={{.BUILD_FLAGS}})
     summary: Generates bindings for the frontend
     deps:
+      - task: generate:i18n
       - task: go:mod:tidy
     sources:
       - "**/*.[jt]s"

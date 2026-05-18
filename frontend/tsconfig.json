@@ -16,8 +16,8 @@
     "noEmit": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@i18n-data/*": ["../i18n/*"]
+      "@i18n-data/*": ["../locales/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "bindings", "../i18n/*.json"]
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "bindings", "../locales/*.json"]
 }

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"lanfolder/i18n"
+	"lanfolder/internal/i18n"
 )
 
 const (

@@ -37,7 +37,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),
-      "@i18n-data": resolve(__dirname, "../i18n"),
+      "@i18n-data": resolve(__dirname, "../locales"),
     },
   },
   build: {

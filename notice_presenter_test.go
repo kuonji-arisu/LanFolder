@@ -6,8 +6,8 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 
-	"lanfolder/i18n"
 	"lanfolder/internal/desktop"
+	"lanfolder/internal/i18n"
 )
 
 func TestPresentNoticeReturnsToastForFocusedVisibleWindow(t *testing.T) {

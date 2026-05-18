@@ -3,7 +3,7 @@ package share
 import (
 	"time"
 
-	"lanfolder/i18n"
+	"lanfolder/internal/i18n"
 )
 
 type Permission string

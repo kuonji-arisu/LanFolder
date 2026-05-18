@@ -120,6 +120,12 @@ wails3 dev
 wails3 build
 ```
 
+翻译文案维护在 `locales/*.json`。修改后需要重新生成 Go catalog：
+
+```bash
+go generate ./internal/i18n
+```
+
 运行检查：
 
 ```bash

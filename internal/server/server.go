@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"lanfolder/i18n"
+	"lanfolder/internal/i18n"
 	"lanfolder/internal/share"
 )
 

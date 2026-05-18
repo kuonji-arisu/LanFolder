@@ -120,6 +120,12 @@ Build:
 wails3 build
 ```
 
+Translations live in `locales/*.json`. After editing them, regenerate the Go catalog:
+
+```bash
+go generate ./internal/i18n
+```
+
 Run checks:
 
 ```bash
