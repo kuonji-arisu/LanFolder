@@ -1,8 +1,8 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
-import { Events } from "@wailsio/runtime";
 import { useAsyncTask, type TaskResult } from "@/composables/useAsyncTask";
 import { appApi } from "@/lib/appApi";
+import { appEvents } from "@/lib/appEvents";
 import { DEFAULT_PORT, type Permission } from "@/lib/constants";
 import { setLanguage } from "@/lib/i18n";
 import type { AccessLog, AccessRequest, AccessSession, AppConfig, AppState, PermissionOption } from "@/types/app";
@@ -128,7 +128,7 @@ export const useAppStore = defineStore("app", () => {
     refreshTimer = window.setInterval(() => {
       if (state.value?.server.running) void Promise.all([loadLogs(), loadAccess()]);
     }, 2500);
-    stopStateChangedListener = Events.On("app:state-changed", () => void loadSnapshot());
+    stopStateChangedListener = appEvents.onStateChanged(() => void loadSnapshot());
   }
 
   function stopAutoRefresh() {

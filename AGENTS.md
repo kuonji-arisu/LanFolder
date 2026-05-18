@@ -10,6 +10,7 @@
 
 - Go is the source of truth for platform/runtime state, filesystem behavior, LAN addresses, capabilities, and permission metadata; frontend may use permission values but must not duplicate permission labels/descriptions.
 - Frontend stores must call local API adapters, not generated Wails bindings directly.
+- Frontend stores must subscribe to Wails runtime events through local event adapters, not `@wailsio/runtime` directly.
 - State-changing desktop commands must commit frontend state from the backend `AppState` snapshot returned by the command.
 - Preserve the split between desktop Wails commands and LAN HTTP APIs.
 - Keep settings as single-setting commits; do not replace this with a whole-form workflow or optimistic shared-store updates.
