@@ -72,6 +72,7 @@ func main() {
 	})
 	appService.app = app
 	appService.autoStartSharing()
+	appService.startAddressWatcher()
 
 	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:         "LanFolder",

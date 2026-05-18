@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -70,9 +72,11 @@ type AppService struct {
 	noticeSeq          uint64
 	drained            bool
 	lastAccessNoticeAt time.Time
+	lanIPs             func() []string
 }
 
 const accessNoticeCooldown = 10 * time.Second
+const addressWatchInterval = 10 * time.Second
 
 func (s *AppService) State() desktop.AppState {
 	s.mu.Lock()
@@ -327,7 +331,7 @@ func (s *AppService) snapshot(cfg config.Config) desktop.AppState {
 }
 
 func (s *AppService) addresses(cfg config.Config) []string {
-	ips := platform.LANIPs()
+	ips := s.currentLANIPs()
 	if len(ips) == 0 {
 		ips = []string{"127.0.0.1"}
 	}
@@ -336,6 +340,42 @@ func (s *AppService) addresses(cfg config.Config) []string {
 		addrs = append(addrs, fmt.Sprintf("http://%s:%d", ip, cfg.Port))
 	}
 	return addrs
+}
+
+func (s *AppService) currentLANIPs() []string {
+	if s.lanIPs != nil {
+		return s.lanIPs()
+	}
+	return platform.LANIPs()
+}
+
+func (s *AppService) startAddressWatcher() {
+	s.mu.Lock()
+	cfg := s.config
+	s.mu.Unlock()
+	last := addressListKey(s.addresses(cfg))
+
+	go func() {
+		ticker := time.NewTicker(addressWatchInterval)
+		defer ticker.Stop()
+		for range ticker.C {
+			s.mu.Lock()
+			cfg := s.config
+			s.mu.Unlock()
+			next := addressListKey(s.addresses(cfg))
+			if next == last {
+				continue
+			}
+			last = next
+			s.emitStateChanged("addresses")
+		}
+	}()
+}
+
+func addressListKey(addresses []string) string {
+	sorted := slices.Clone(addresses)
+	slices.Sort(sorted)
+	return strings.Join(sorted, "\n")
 }
 
 func (s *AppService) emitStateChanged(reason string) {

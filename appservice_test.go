@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -179,6 +180,41 @@ func TestAccessRequestNoticeIsDebounced(t *testing.T) {
 	}
 	if notices[0].Message != "有新设备请求访问共享" {
 		t.Fatalf("notice = %#v", notices[0])
+	}
+}
+
+func TestAddressesUseCurrentLANIPs(t *testing.T) {
+	service := &AppService{
+		lanIPs: func() []string {
+			return []string{"10.0.0.100", "192.168.1.20"}
+		},
+	}
+
+	addresses := service.addresses(config.Config{Port: 8899})
+
+	want := []string{"http://10.0.0.100:8899", "http://192.168.1.20:8899"}
+	if !slices.Equal(addresses, want) {
+		t.Fatalf("addresses = %#v, want %#v", addresses, want)
+	}
+}
+
+func TestAddressesFallBackToLoopback(t *testing.T) {
+	service := &AppService{lanIPs: func() []string { return nil }}
+
+	addresses := service.addresses(config.Config{Port: 8899})
+
+	want := []string{"http://127.0.0.1:8899"}
+	if !slices.Equal(addresses, want) {
+		t.Fatalf("addresses = %#v, want %#v", addresses, want)
+	}
+}
+
+func TestAddressListKeyIgnoresOrder(t *testing.T) {
+	first := addressListKey([]string{"http://192.168.1.20:8899", "http://10.0.0.100:8899"})
+	second := addressListKey([]string{"http://10.0.0.100:8899", "http://192.168.1.20:8899"})
+
+	if first != second {
+		t.Fatalf("address keys differ for reordered addresses: %q != %q", first, second)
 	}
 }
 
