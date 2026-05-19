@@ -36,7 +36,35 @@ func TestSaveToPathReplacesExistingConfig(t *testing.T) {
 	if got.Port != 9000 || got.Permission != share.PermissionManage || !got.AccessApproval || !got.AutoShare {
 		t.Fatalf("saved config = %#v", got)
 	}
+	if got.AccessSessionLifetime != share.AccessSessionNever {
+		t.Fatalf("session lifetime = %q, want %q", got.AccessSessionLifetime, share.AccessSessionNever)
+	}
 	assertNoConfigTemps(t, dir)
+}
+
+func TestSaveToPathNormalizesInvalidAccessSessionLifetime(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.json")
+
+	if err := saveToPath(path, Config{
+		Port:                  9000,
+		Permission:            share.PermissionReadOnly,
+		AccessSessionLifetime: share.AccessSessionLifetime("forever"),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got Config
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.AccessSessionLifetime != share.AccessSessionNever {
+		t.Fatalf("session lifetime = %q, want %q", got.AccessSessionLifetime, share.AccessSessionNever)
+	}
 }
 
 func TestSaveToPathCleansTempFileWhenReplaceFails(t *testing.T) {

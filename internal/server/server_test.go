@@ -859,6 +859,9 @@ func TestAccessApprovalApproveSetsCookieAndAllowsAPI(t *testing.T) {
 	if sessionCookie == nil || !clearedRequest {
 		t.Fatalf("cookies = %#v, want session and cleared request", cookies)
 	}
+	if sessionCookie.MaxAge != 0 {
+		t.Fatalf("default session max age = %d, want browser-session cookie", sessionCookie.MaxAge)
+	}
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL+"/api/list", nil)
 	if err != nil {
@@ -887,6 +890,56 @@ func TestAccessApprovalApproveSetsCookieAndAllowsAPI(t *testing.T) {
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusUnauthorized {
 		t.Fatalf("cleared session status = %d", resp.StatusCode)
+	}
+}
+
+func TestAccessApprovalSessionCookieMaxAgeTracksConfiguredExpiry(t *testing.T) {
+	root := t.TempDir()
+	s, ts := testServerWithAccessLifetime(t, root, share.PermissionReadOnly, share.AccessSession10Minutes)
+	defer ts.Close()
+
+	requestResp := postJSON(t, ts.URL+"/api/access/request", bytes.NewBufferString(`{}`))
+	requestResp.Body.Close()
+	requestCookies := requestResp.Cookies()
+	if len(requestCookies) != 1 || requestCookies[0].Name != requestCookieName {
+		t.Fatalf("request cookies = %#v", requestCookies)
+	}
+	pending := s.PendingAccessRequests()
+	if len(pending) != 1 {
+		t.Fatalf("pending = %#v, want one request", pending)
+	}
+	if err := s.ApproveAccessRequest(pending[0].ID); err != nil {
+		t.Fatal(err)
+	}
+
+	pollReq, err := http.NewRequest(http.MethodGet, ts.URL+"/api/access/poll", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pollReq.AddCookie(requestCookies[0])
+	pollResp, err := http.DefaultClient.Do(pollReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pollResp.Body.Close()
+	if pollResp.StatusCode != http.StatusOK {
+		t.Fatalf("poll status = %d", pollResp.StatusCode)
+	}
+	var sessionCookie *http.Cookie
+	for _, cookie := range pollResp.Cookies() {
+		if cookie.Name == sessionCookieName {
+			sessionCookie = cookie
+		}
+	}
+	if sessionCookie == nil {
+		t.Fatalf("cookies = %#v, want session cookie", pollResp.Cookies())
+	}
+	if sessionCookie.MaxAge <= 0 || sessionCookie.MaxAge > int((10*time.Minute).Seconds()) {
+		t.Fatalf("session max age = %d", sessionCookie.MaxAge)
+	}
+	sessions := s.AccessSessions()
+	if len(sessions) != 1 || sessions[0].ExpiresAt == nil {
+		t.Fatalf("sessions = %#v, want expiring session", sessions)
 	}
 }
 
@@ -994,7 +1047,15 @@ func testServerWithAccess(t *testing.T, root string, permission share.Permission
 	return testServerConfigured(t, root, permission, true)
 }
 
+func testServerWithAccessLifetime(t *testing.T, root string, permission share.Permission, lifetime share.AccessSessionLifetime) (*Server, *httptest.Server) {
+	return testServerConfiguredLifetime(t, root, permission, true, lifetime)
+}
+
 func testServerConfigured(t *testing.T, root string, permission share.Permission, accessApproval bool) (*Server, *httptest.Server) {
+	return testServerConfiguredLifetime(t, root, permission, accessApproval, share.AccessSessionNever)
+}
+
+func testServerConfiguredLifetime(t *testing.T, root string, permission share.Permission, accessApproval bool, lifetime share.AccessSessionLifetime) (*Server, *httptest.Server) {
 	t.Helper()
 	if err := os.WriteFile(filepath.Join(root, "web.html"), []byte("<main>LanFolder</main>"), 0644); err != nil {
 		t.Fatal(err)
@@ -1006,7 +1067,8 @@ func testServerConfigured(t *testing.T, root string, permission share.Permission
 	if err := s.manager.Configure(root, permission, false); err != nil {
 		t.Fatal(err)
 	}
-	s.config = Config{Host: "127.0.0.1", Port: 8899, Root: root, Permission: permission, AccessApproval: accessApproval}
+	s.access.SetSessionLifetime(lifetime)
+	s.config = Config{Host: "127.0.0.1", Port: 8899, Root: root, Permission: permission, AccessApproval: accessApproval, AccessSessionLifetime: lifetime}
 	mux := http.NewServeMux()
 	s.routes(mux)
 	return s, httptest.NewServer(s.logMiddleware(s.secureMiddleware(s.accessMiddleware(mux))))

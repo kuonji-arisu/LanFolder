@@ -2,7 +2,7 @@
 
 LanFolder is intended for trusted LAN use only.
 
-It has no passwords, accounts, cloud identity, or internet-facing authentication. When new-device access approval is enabled, unknown browsers must be approved in the desktop app before they receive a temporary in-memory session cookie. When access approval is disabled, anyone who can reach the displayed LAN address can use the currently selected permission level.
+It has no passwords, accounts, cloud identity, or internet-facing authentication. When new-device access approval is enabled, unknown browsers must be approved in the desktop app before they receive a temporary in-memory session cookie. Approved sessions can be set to expire automatically, or to not auto-expire; they are still memory-only and are cleared when sharing stops, access policy changes, the server restarts, or the app exits. When access approval is disabled, anyone who can reach the displayed LAN address can use the currently selected permission level.
 
 Access approval is an HTTP LAN gate, not encrypted transport security. A device that can observe or tamper with traffic on the LAN may still see files or session cookies.
 

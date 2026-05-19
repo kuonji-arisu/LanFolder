@@ -10,22 +10,24 @@ import (
 )
 
 type Config struct {
-	SharedDir       string           `json:"sharedDir"`
-	Port            int              `json:"port"`
-	Permission      share.Permission `json:"permission"`
-	AccessApproval  bool             `json:"accessApproval"`
-	AutoShare       bool             `json:"autoShare"`
-	StartAtLogin    bool             `json:"startAtLogin"`
-	KeepInTray      bool             `json:"keepInTray"`
-	ShowHiddenFiles bool             `json:"showHiddenFiles"`
-	Language        string           `json:"language"`
+	SharedDir             string                      `json:"sharedDir"`
+	Port                  int                         `json:"port"`
+	Permission            share.Permission            `json:"permission"`
+	AccessApproval        bool                        `json:"accessApproval"`
+	AccessSessionLifetime share.AccessSessionLifetime `json:"accessSessionLifetime"`
+	AutoShare             bool                        `json:"autoShare"`
+	StartAtLogin          bool                        `json:"startAtLogin"`
+	KeepInTray            bool                        `json:"keepInTray"`
+	ShowHiddenFiles       bool                        `json:"showHiddenFiles"`
+	Language              string                      `json:"language"`
 }
 
 func Default() Config {
 	return Config{
-		Port:       8899,
-		Permission: share.PermissionReadOnly,
-		Language:   i18n.Chinese,
+		Port:                  8899,
+		Permission:            share.PermissionReadOnly,
+		AccessSessionLifetime: share.AccessSessionNever,
+		Language:              i18n.Chinese,
 	}
 }
 
@@ -56,6 +58,7 @@ func Load() Config {
 	if !cfg.Permission.Valid() {
 		cfg.Permission = share.PermissionReadOnly
 	}
+	cfg.AccessSessionLifetime = share.NormalizeAccessSessionLifetime(cfg.AccessSessionLifetime)
 	cfg.Language = i18n.NormalizeLanguage(cfg.Language)
 	if cfg.AutoShare && !cfg.AccessApproval {
 		cfg.AutoShare = false
@@ -78,6 +81,7 @@ func saveToPath(p string, cfg Config) error {
 	if !cfg.Permission.Valid() {
 		cfg.Permission = share.PermissionReadOnly
 	}
+	cfg.AccessSessionLifetime = share.NormalizeAccessSessionLifetime(cfg.AccessSessionLifetime)
 	cfg.Language = i18n.NormalizeLanguage(cfg.Language)
 	if cfg.AutoShare && !cfg.AccessApproval {
 		cfg.AutoShare = false

@@ -7,12 +7,13 @@ import (
 )
 
 type AppState struct {
-	Config       config.Config            `json:"config"`
-	Server       server.RuntimeStatus     `json:"server"`
-	AppInfo      AppInfo                  `json:"appInfo"`
-	Capabilities Capabilities             `json:"capabilities"`
-	Addresses    []string                 `json:"addresses"`
-	Permissions  []share.PermissionOption `json:"permissions"`
+	Config                 config.Config                       `json:"config"`
+	Server                 server.RuntimeStatus                `json:"server"`
+	AppInfo                AppInfo                             `json:"appInfo"`
+	Capabilities           Capabilities                        `json:"capabilities"`
+	Addresses              []string                            `json:"addresses"`
+	Permissions            []share.PermissionOption            `json:"permissions"`
+	AccessSessionLifetimes []share.AccessSessionLifetimeOption `json:"accessSessionLifetimes"`
 }
 
 type AppInfo struct {

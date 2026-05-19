@@ -22,12 +22,13 @@ func (b SnapshotBuilder) Build(cfg config.Config, status server.RuntimeStatus, a
 		cfg.StartAtLogin = enabled
 	}
 	return AppState{
-		Config:       cfg,
-		Server:       status,
-		AppInfo:      b.appInfo(),
-		Capabilities: b.capabilities(),
-		Addresses:    addresses,
-		Permissions:  share.PermissionOptions(cfg.Language),
+		Config:                 cfg,
+		Server:                 status,
+		AppInfo:                b.appInfo(),
+		Capabilities:           b.capabilities(),
+		Addresses:              addresses,
+		Permissions:            share.PermissionOptions(cfg.Language),
+		AccessSessionLifetimes: share.AccessSessionLifetimeOptions(cfg.Language),
 	}
 }
 

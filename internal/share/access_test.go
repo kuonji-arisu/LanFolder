@@ -21,7 +21,7 @@ func TestAccessPendingRequestExpiresBeforeApprove(t *testing.T) {
 	if _, err := manager.Approve(req.ID); err != ErrAccessRequestNotFound {
 		t.Fatalf("approve expired request error = %v, want %v", err, ErrAccessRequestNotFound)
 	}
-	result, sessionToken, err := manager.Poll(token)
+	result, sessionToken, _, err := manager.Poll(token)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,12 +43,15 @@ func TestAccessApproveCreatesValidSessionToken(t *testing.T) {
 	if sessions := manager.Sessions(); len(sessions) != 0 {
 		t.Fatalf("sessions before poll = %#v, want none", sessions)
 	}
-	result, token, err := manager.Poll(requestToken)
+	result, token, session, err := manager.Poll(requestToken)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if result.State != AccessPollApproved || token == "" {
 		t.Fatalf("poll approved = %#v token %q", result, token)
+	}
+	if session.ExpiresAt != nil {
+		t.Fatalf("default session expiry = %v, want none", session.ExpiresAt)
 	}
 	if !manager.Validate(token) {
 		t.Fatal("approved token should validate")
@@ -56,6 +59,46 @@ func TestAccessApproveCreatesValidSessionToken(t *testing.T) {
 	manager.Clear()
 	if manager.Validate(token) {
 		t.Fatal("cleared token should not validate")
+	}
+}
+
+func TestAccessSessionExpires(t *testing.T) {
+	manager := NewAccessManager()
+	now := time.Date(2026, 5, 16, 12, 0, 0, 0, time.UTC)
+	manager.now = func() time.Time { return now }
+	manager.SetSessionLifetime(AccessSession10Minutes)
+
+	requestToken := "request-token"
+	req, _, err := manager.CreateRequest(requestToken, "192.168.1.20", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := manager.Approve(req.ID); err != nil {
+		t.Fatal(err)
+	}
+	result, token, session, err := manager.Poll(requestToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.State != AccessPollApproved || token == "" {
+		t.Fatalf("poll approved = %#v token %q", result, token)
+	}
+	if session.ExpiresAt == nil || !session.ExpiresAt.Equal(now.Add(10*time.Minute)) {
+		t.Fatalf("session expiry = %v, want %s", session.ExpiresAt, now.Add(10*time.Minute))
+	}
+	if !manager.Validate(token) {
+		t.Fatal("approved token should validate before expiry")
+	}
+
+	now = now.Add(10*time.Minute + time.Second)
+	if manager.Validate(token) {
+		t.Fatal("expired token should not validate")
+	}
+	if sessions := manager.Sessions(); len(sessions) != 0 {
+		t.Fatalf("sessions after expiry = %#v, want none", sessions)
+	}
+	if _, ok := manager.RevokeSession(session.ID); ok {
+		t.Fatal("expired session id index should be pruned")
 	}
 }
 

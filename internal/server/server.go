@@ -38,10 +38,11 @@ func New(staticFS fs.FS) *Server {
 		invalidPolls: newFixedWindowLimiter(time.Minute, 30),
 		staticFS:     staticFS,
 		config: Config{
-			Host:       "0.0.0.0",
-			Port:       8899,
-			Permission: share.PermissionReadOnly,
-			Language:   i18n.Chinese,
+			Host:                  "0.0.0.0",
+			Port:                  8899,
+			Permission:            share.PermissionReadOnly,
+			AccessSessionLifetime: share.AccessSessionNever,
+			Language:              i18n.Chinese,
 		},
 		maxLogs: 120,
 	}
@@ -57,6 +58,7 @@ func (s *Server) Start(cfg Config) error {
 	if !cfg.Permission.Valid() {
 		cfg.Permission = share.PermissionReadOnly
 	}
+	cfg.AccessSessionLifetime = share.NormalizeAccessSessionLifetime(cfg.AccessSessionLifetime)
 	cfg.Language = i18n.NormalizeLanguage(cfg.Language)
 
 	s.mu.Lock()
@@ -68,6 +70,7 @@ func (s *Server) Start(cfg Config) error {
 		s.mu.Unlock()
 		return err
 	}
+	s.access.SetSessionLifetime(cfg.AccessSessionLifetime)
 	mux := http.NewServeMux()
 	s.routes(mux)
 	addr := net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port))
@@ -125,13 +128,14 @@ func (s *Server) Status() RuntimeStatus {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return RuntimeStatus{
-		Running:        s.httpSrv != nil,
-		Host:           s.config.Host,
-		Port:           s.config.Port,
-		Root:           s.config.Root,
-		Permission:     s.config.Permission,
-		AccessApproval: s.config.AccessApproval,
-		Language:       s.config.Language,
+		Running:               s.httpSrv != nil,
+		Host:                  s.config.Host,
+		Port:                  s.config.Port,
+		Root:                  s.config.Root,
+		Permission:            s.config.Permission,
+		AccessApproval:        s.config.AccessApproval,
+		AccessSessionLifetime: s.config.AccessSessionLifetime,
+		Language:              s.config.Language,
 	}
 }
 

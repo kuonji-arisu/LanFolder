@@ -17,6 +17,47 @@ const (
 	MaxAccessPendingPerIP = 4
 )
 
+type AccessSessionLifetime string
+
+const (
+	AccessSession10Minutes AccessSessionLifetime = "10m"
+	AccessSession30Minutes AccessSessionLifetime = "30m"
+	AccessSession1Hour     AccessSessionLifetime = "1h"
+	AccessSession1Day      AccessSessionLifetime = "24h"
+	AccessSessionNever     AccessSessionLifetime = "never"
+)
+
+func (l AccessSessionLifetime) Valid() bool {
+	switch l {
+	case AccessSession10Minutes, AccessSession30Minutes, AccessSession1Hour, AccessSession1Day, AccessSessionNever:
+		return true
+	default:
+		return false
+	}
+}
+
+func (l AccessSessionLifetime) Duration() (time.Duration, bool) {
+	switch l {
+	case AccessSession10Minutes:
+		return 10 * time.Minute, true
+	case AccessSession30Minutes:
+		return 30 * time.Minute, true
+	case AccessSession1Hour:
+		return time.Hour, true
+	case AccessSession1Day:
+		return 24 * time.Hour, true
+	default:
+		return 0, false
+	}
+}
+
+func NormalizeAccessSessionLifetime(lifetime AccessSessionLifetime) AccessSessionLifetime {
+	if lifetime.Valid() {
+		return lifetime
+	}
+	return AccessSessionNever
+}
+
 var (
 	ErrAccessRequestNotFound = errors.New("access_request_not_found")
 	ErrAccessRequestLimited  = errors.New("access_request_limited")
@@ -38,10 +79,11 @@ type AccessSession struct {
 	// IP and UserAgent are display-only metadata for the desktop approval UI.
 	// Validate treats the session cookie as a bearer token and does not bind it
 	// to either value.
-	ID        string    `json:"id"`
-	IP        string    `json:"ip"`
-	UserAgent string    `json:"userAgent"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID        string     `json:"id"`
+	IP        string     `json:"ip"`
+	UserAgent string     `json:"userAgent"`
+	CreatedAt time.Time  `json:"createdAt"`
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 }
 
 type AccessPollState string
@@ -72,6 +114,7 @@ type AccessManager struct {
 	sessions      map[[32]byte]AccessSession
 	sessionID     map[string][32]byte
 	lastRequestAt map[string]time.Time
+	sessionTTL    AccessSessionLifetime
 }
 
 func NewAccessManager() *AccessManager {
@@ -83,7 +126,14 @@ func NewAccessManager() *AccessManager {
 		sessions:      map[[32]byte]AccessSession{},
 		sessionID:     map[string][32]byte{},
 		lastRequestAt: map[string]time.Time{},
+		sessionTTL:    AccessSessionNever,
 	}
+}
+
+func (m *AccessManager) SetSessionLifetime(lifetime AccessSessionLifetime) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.sessionTTL = NormalizeAccessSessionLifetime(lifetime)
 }
 
 func (m *AccessManager) CreateRequest(requestToken, ip, userAgent string) (AccessRequest, bool, error) {
@@ -198,7 +248,7 @@ func (m *AccessManager) Deny(id string) (AccessRequest, error) {
 	return req, nil
 }
 
-func (m *AccessManager) Poll(requestToken string) (AccessPollResult, string, error) {
+func (m *AccessManager) Poll(requestToken string) (AccessPollResult, string, AccessSession, error) {
 	now := m.now()
 	hash := sha256.Sum256([]byte(requestToken))
 
@@ -207,40 +257,47 @@ func (m *AccessManager) Poll(requestToken string) (AccessPollResult, string, err
 	m.pruneExpiredLocked(now)
 	if completed, ok := m.completed[hash]; ok {
 		if completed.state == AccessPollApproved {
-			token, err := m.createSessionLocked(completed.request, now)
+			token, session, err := m.createSessionLocked(completed.request, now)
 			if err != nil {
-				return AccessPollResult{}, "", err
+				return AccessPollResult{}, "", AccessSession{}, err
 			}
 			delete(m.completed, hash)
-			return AccessPollResult{State: completed.state}, token, nil
+			return AccessPollResult{State: completed.state}, token, session, nil
 		}
 		delete(m.completed, hash)
-		return AccessPollResult{State: completed.state}, "", nil
+		return AccessPollResult{State: completed.state}, "", AccessSession{}, nil
 	}
 	if _, ok := m.pending[hash]; ok {
-		return AccessPollResult{State: AccessPollPending}, "", nil
+		return AccessPollResult{State: AccessPollPending}, "", AccessSession{}, nil
 	}
-	return AccessPollResult{State: AccessPollExpired}, "", nil
+	return AccessPollResult{State: AccessPollExpired}, "", AccessSession{}, nil
 }
 
-func (m *AccessManager) createSessionLocked(req AccessRequest, now time.Time) (string, error) {
+func (m *AccessManager) createSessionLocked(req AccessRequest, now time.Time) (string, AccessSession, error) {
 	token, err := accessRandomToken(32)
 	if err != nil {
-		return "", err
+		return "", AccessSession{}, err
 	}
 	sessionID, err := accessRandomToken(16)
 	if err != nil {
-		return "", err
+		return "", AccessSession{}, err
 	}
 	hash := sha256.Sum256([]byte(token))
-	m.sessions[hash] = AccessSession{
+	var expiresAt *time.Time
+	if ttl, ok := m.sessionTTL.Duration(); ok {
+		expires := now.Add(ttl)
+		expiresAt = &expires
+	}
+	session := AccessSession{
 		ID:        sessionID,
 		IP:        req.IP,
 		UserAgent: req.UserAgent,
 		CreatedAt: now,
+		ExpiresAt: expiresAt,
 	}
+	m.sessions[hash] = session
 	m.sessionID[sessionID] = hash
-	return token, nil
+	return token, session, nil
 }
 
 func (m *AccessManager) Validate(token string) bool {
@@ -250,6 +307,7 @@ func (m *AccessManager) Validate(token string) bool {
 	hash := sha256.Sum256([]byte(token))
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.pruneExpiredLocked(m.now())
 	session, ok := m.sessions[hash]
 	return ok && session.ID != ""
 }
@@ -261,10 +319,7 @@ func (m *AccessManager) Revoke(token string) {
 	hash := sha256.Sum256([]byte(token))
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if session, ok := m.sessions[hash]; ok {
-		delete(m.sessionID, session.ID)
-	}
-	delete(m.sessions, hash)
+	m.deleteSessionLocked(hash)
 }
 
 func (m *AccessManager) RevokeSession(id string) (AccessSession, bool) {
@@ -275,14 +330,15 @@ func (m *AccessManager) RevokeSession(id string) (AccessSession, bool) {
 		return AccessSession{}, false
 	}
 	session := m.sessions[hash]
-	delete(m.sessionID, id)
-	delete(m.sessions, hash)
+	m.deleteSessionLocked(hash)
 	return session, true
 }
 
 func (m *AccessManager) Sessions() []AccessSession {
+	now := m.now()
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.pruneExpiredLocked(now)
 	out := make([]AccessSession, 0, len(m.sessions))
 	for _, session := range m.sessions {
 		out = append(out, session)
@@ -317,11 +373,23 @@ func (m *AccessManager) pruneExpiredLocked(now time.Time) {
 			delete(m.completed, hash)
 		}
 	}
+	for hash, session := range m.sessions {
+		if session.ExpiresAt != nil && !now.Before(*session.ExpiresAt) {
+			m.deleteSessionLocked(hash)
+		}
+	}
 	for ip, last := range m.lastRequestAt {
 		if now.Sub(last) >= AccessRequestCooldown {
 			delete(m.lastRequestAt, ip)
 		}
 	}
+}
+
+func (m *AccessManager) deleteSessionLocked(hash [32]byte) {
+	if session, ok := m.sessions[hash]; ok {
+		delete(m.sessionID, session.ID)
+	}
+	delete(m.sessions, hash)
 }
 
 func (m *AccessManager) pendingCountForIPLocked(ip string) int {

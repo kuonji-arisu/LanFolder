@@ -11,6 +11,7 @@ import (
 	"lanfolder/internal/config"
 	"lanfolder/internal/desktop"
 	"lanfolder/internal/server"
+	"lanfolder/internal/share"
 )
 
 func TestCommandErrorMessageIsStableCode(t *testing.T) {
@@ -163,6 +164,16 @@ func TestSaveSettingsRejectsAutoShareWithoutAccessApproval(t *testing.T) {
 	}
 	if err.Error() != "access_approval_required" {
 		t.Fatalf("error = %v", err)
+	}
+}
+
+func TestServerConfigChangedIncludesAccessSessionLifetime(t *testing.T) {
+	previous := config.Default()
+	next := previous
+	next.AccessSessionLifetime = share.AccessSession10Minutes
+
+	if !serverConfigChanged(previous, next) {
+		t.Fatal("expected access session lifetime change to restart sharing")
 	}
 }
 

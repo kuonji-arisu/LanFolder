@@ -40,6 +40,21 @@ func PermissionOptions(language string) []PermissionOption {
 	}
 }
 
+type AccessSessionLifetimeOption struct {
+	Value AccessSessionLifetime `json:"value"`
+	Label string                `json:"label"`
+}
+
+func AccessSessionLifetimeOptions(language string) []AccessSessionLifetimeOption {
+	return []AccessSessionLifetimeOption{
+		{Value: AccessSession10Minutes, Label: i18n.T(language, "settings.accessSessionLifetime.10m", nil)},
+		{Value: AccessSession30Minutes, Label: i18n.T(language, "settings.accessSessionLifetime.30m", nil)},
+		{Value: AccessSession1Hour, Label: i18n.T(language, "settings.accessSessionLifetime.1h", nil)},
+		{Value: AccessSession1Day, Label: i18n.T(language, "settings.accessSessionLifetime.24h", nil)},
+		{Value: AccessSessionNever, Label: i18n.T(language, "settings.accessSessionLifetime.never", nil)},
+	}
+}
+
 type Entry struct {
 	Name      string    `json:"name"`
 	Path      string    `json:"path"`

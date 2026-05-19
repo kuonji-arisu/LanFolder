@@ -68,6 +68,7 @@ export class AccessSession {
     "ip": string;
     "userAgent": string;
     "createdAt": time$0.Time;
+    "expiresAt"?: time$0.Time | null;
 
     /** Creates a new AccessSession instance. */
     constructor($$source: Partial<AccessSession> = {}) {
@@ -93,6 +94,44 @@ export class AccessSession {
     static createFrom($$source: any = {}): AccessSession {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new AccessSession($$parsedSource as Partial<AccessSession>);
+    }
+}
+
+export enum AccessSessionLifetime {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    AccessSession10Minutes = "10m",
+    AccessSession30Minutes = "30m",
+    AccessSession1Hour = "1h",
+    AccessSession1Day = "24h",
+    AccessSessionNever = "never",
+};
+
+export class AccessSessionLifetimeOption {
+    "value": AccessSessionLifetime;
+    "label": string;
+
+    /** Creates a new AccessSessionLifetimeOption instance. */
+    constructor($$source: Partial<AccessSessionLifetimeOption> = {}) {
+        if (!("value" in $$source)) {
+            this["value"] = AccessSessionLifetime.$zero;
+        }
+        if (!("label" in $$source)) {
+            this["label"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AccessSessionLifetimeOption instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AccessSessionLifetimeOption {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AccessSessionLifetimeOption($$parsedSource as Partial<AccessSessionLifetimeOption>);
     }
 }
 

@@ -1,9 +1,9 @@
 import { AppService } from "../../bindings/lanfolder/internal/appservice";
 import { Config as WailsConfig } from "../../bindings/lanfolder/internal/config/models";
-import { Permission as WailsPermission } from "../../bindings/lanfolder/internal/share/models";
+import { AccessSessionLifetime as WailsAccessSessionLifetime, Permission as WailsPermission } from "../../bindings/lanfolder/internal/share/models";
 import type { Permission } from "@/lib/constants";
 import { normalizeError } from "@/lib/errors";
-import type { AccessLog, AccessRequest, AccessSession, AppConfig, AppState } from "@/types/app";
+import type { AccessLog, AccessRequest, AccessSession, AccessSessionLifetime, AppConfig, AppState } from "@/types/app";
 
 function toWailsPermission(permission: Permission) {
   switch (permission) {
@@ -16,10 +16,26 @@ function toWailsPermission(permission: Permission) {
   }
 }
 
+function toWailsAccessSessionLifetime(lifetime: AccessSessionLifetime) {
+  switch (lifetime) {
+    case "10m":
+      return WailsAccessSessionLifetime.AccessSession10Minutes;
+    case "30m":
+      return WailsAccessSessionLifetime.AccessSession30Minutes;
+    case "1h":
+      return WailsAccessSessionLifetime.AccessSession1Hour;
+    case "24h":
+      return WailsAccessSessionLifetime.AccessSession1Day;
+    default:
+      return WailsAccessSessionLifetime.AccessSessionNever;
+  }
+}
+
 function toWailsConfig(config: AppConfig) {
   return new WailsConfig({
     ...config,
     permission: toWailsPermission(config.permission),
+    accessSessionLifetime: toWailsAccessSessionLifetime(config.accessSessionLifetime),
     language: config.language,
   });
 }

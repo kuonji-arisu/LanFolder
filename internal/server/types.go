@@ -7,13 +7,14 @@ import (
 )
 
 type Config struct {
-	Host           string
-	Port           int
-	Root           string
-	Permission     share.Permission
-	ShowHidden     bool
-	AccessApproval bool
-	Language       string
+	Host                  string
+	Port                  int
+	Root                  string
+	Permission            share.Permission
+	ShowHidden            bool
+	AccessApproval        bool
+	AccessSessionLifetime share.AccessSessionLifetime
+	Language              string
 }
 
 type LogEntry struct {
@@ -30,11 +31,12 @@ type LogEntry struct {
 }
 
 type RuntimeStatus struct {
-	Running        bool             `json:"running"`
-	Host           string           `json:"host"`
-	Port           int              `json:"port"`
-	Root           string           `json:"root"`
-	Permission     share.Permission `json:"permission"`
-	AccessApproval bool             `json:"accessApproval"`
-	Language       string           `json:"language"`
+	Running               bool                        `json:"running"`
+	Host                  string                      `json:"host"`
+	Port                  int                         `json:"port"`
+	Root                  string                      `json:"root"`
+	Permission            share.Permission            `json:"permission"`
+	AccessApproval        bool                        `json:"accessApproval"`
+	AccessSessionLifetime share.AccessSessionLifetime `json:"accessSessionLifetime"`
+	Language              string                      `json:"language"`
 }

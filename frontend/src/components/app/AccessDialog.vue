@@ -30,6 +30,12 @@ function requestStats(request: { requestCount: number; lastSeenAt: string }) {
   if (request.requestCount > 1) parts.push(`${request.requestCount} ${t("access.times")}`, `${t("access.recent")} ${formatDate(request.lastSeenAt)}`);
   return parts;
 }
+
+function sessionStats(session: { createdAt: string; expiresAt?: string | null }) {
+  const parts = [t("access.authorizedAt", { time: formatDate(session.createdAt) })];
+  parts.push(session.expiresAt ? t("access.expiresAt", { time: formatDate(session.expiresAt) }) : t("access.noAutoExpire"));
+  return parts.join(" · ");
+}
 </script>
 
 <template>
@@ -67,7 +73,7 @@ function requestStats(request: { requestCount: number; lastSeenAt: string }) {
                 {{ session.ip }}
               </div>
               <div class="access-agent" :title="session.userAgent || t('common.unknownBrowser')">{{ userAgentLabel(session.userAgent) }}</div>
-              <div class="access-meta">{{ formatDate(session.createdAt) }}</div>
+              <div class="access-meta">{{ sessionStats(session) }}</div>
             </div>
             <Button size="sm" variant="secondary" @click="revoke(session.id)">{{ t("access.revoke") }}</Button>
           </div>

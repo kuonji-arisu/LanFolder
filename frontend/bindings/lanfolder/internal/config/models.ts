@@ -14,6 +14,7 @@ export class Config {
     "port": number;
     "permission": share$0.Permission;
     "accessApproval": boolean;
+    "accessSessionLifetime": share$0.AccessSessionLifetime;
     "autoShare": boolean;
     "startAtLogin": boolean;
     "keepInTray": boolean;
@@ -33,6 +34,9 @@ export class Config {
         }
         if (!("accessApproval" in $$source)) {
             this["accessApproval"] = false;
+        }
+        if (!("accessSessionLifetime" in $$source)) {
+            this["accessSessionLifetime"] = share$0.AccessSessionLifetime.$zero;
         }
         if (!("autoShare" in $$source)) {
             this["autoShare"] = false;

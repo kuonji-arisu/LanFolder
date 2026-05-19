@@ -12,6 +12,7 @@ const defaultConfig: AppConfig = {
   port: DEFAULT_PORT,
   permission: "readonly",
   accessApproval: false,
+  accessSessionLifetime: "never",
   autoShare: false,
   startAtLogin: false,
   keepInTray: false,

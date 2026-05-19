@@ -73,7 +73,7 @@ func (s *Server) handleAccessPoll(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, share.AccessPollResult{State: share.AccessPollExpired})
 		return
 	}
-	result, token, err := s.access.Poll(cookie.Value)
+	result, token, session, err := s.access.Poll(cookie.Value)
 	if err != nil {
 		writeErrorCode(w, http.StatusInternalServerError, "server_error", nil)
 		return
@@ -85,13 +85,7 @@ func (s *Server) handleAccessPoll(w http.ResponseWriter, r *http.Request) {
 	}
 	if result.State == share.AccessPollApproved && token != "" {
 		clearAccessRequestCookie(w)
-		http.SetCookie(w, &http.Cookie{
-			Name:     sessionCookieName,
-			Value:    token,
-			Path:     "/",
-			HttpOnly: true,
-			SameSite: http.SameSiteStrictMode,
-		})
+		setSessionCookie(w, token, session)
 	} else if result.State == share.AccessPollDenied || result.State == share.AccessPollExpired {
 		clearAccessRequestCookie(w)
 	}
@@ -140,6 +134,25 @@ func clearSessionCookie(w http.ResponseWriter) {
 	})
 }
 
+func setSessionCookie(w http.ResponseWriter, token string, session share.AccessSession) {
+	cookie := &http.Cookie{
+		Name:     sessionCookieName,
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+	}
+	if session.ExpiresAt != nil {
+		maxAge, ok := sessionCookieMaxAge(*session.ExpiresAt)
+		if !ok {
+			clearSessionCookie(w)
+			return
+		}
+		cookie.MaxAge = maxAge
+	}
+	http.SetCookie(w, cookie)
+}
+
 func setAccessRequestCookie(w http.ResponseWriter, token string, expiresAt time.Time) {
 	maxAge, ok := accessRequestCookieMaxAge(expiresAt)
 	if !ok {
@@ -157,6 +170,14 @@ func setAccessRequestCookie(w http.ResponseWriter, token string, expiresAt time.
 }
 
 func accessRequestCookieMaxAge(expiresAt time.Time) (int, bool) {
+	return cookieMaxAge(expiresAt)
+}
+
+func sessionCookieMaxAge(expiresAt time.Time) (int, bool) {
+	return cookieMaxAge(expiresAt)
+}
+
+func cookieMaxAge(expiresAt time.Time) (int, bool) {
 	remaining := time.Until(expiresAt)
 	if remaining <= 0 {
 		return 0, false

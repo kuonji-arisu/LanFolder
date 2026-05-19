@@ -86,6 +86,7 @@ export class AppState {
     "capabilities": Capabilities;
     "addresses": string[];
     "permissions": share$0.PermissionOption[];
+    "accessSessionLifetimes": share$0.AccessSessionLifetimeOption[];
 
     /** Creates a new AppState instance. */
     constructor($$source: Partial<AppState> = {}) {
@@ -107,6 +108,9 @@ export class AppState {
         if (!("permissions" in $$source)) {
             this["permissions"] = [];
         }
+        if (!("accessSessionLifetimes" in $$source)) {
+            this["accessSessionLifetimes"] = [];
+        }
 
         Object.assign(this, $$source);
     }
@@ -121,6 +125,7 @@ export class AppState {
         const $$createField3_0 = $$createType4;
         const $$createField4_0 = $$createType5;
         const $$createField5_0 = $$createType7;
+        const $$createField6_0 = $$createType9;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("config" in $$parsedSource) {
             $$parsedSource["config"] = $$createField0_0($$parsedSource["config"]);
@@ -139,6 +144,9 @@ export class AppState {
         }
         if ("permissions" in $$parsedSource) {
             $$parsedSource["permissions"] = $$createField5_0($$parsedSource["permissions"]);
+        }
+        if ("accessSessionLifetimes" in $$parsedSource) {
+            $$parsedSource["accessSessionLifetimes"] = $$createField6_0($$parsedSource["accessSessionLifetimes"]);
         }
         return new AppState($$parsedSource as Partial<AppState>);
     }
@@ -198,7 +206,7 @@ export class ErrorPayload {
      * Creates a new ErrorPayload instance from a string or object.
      */
     static createFrom($$source: any = {}): ErrorPayload {
-        const $$createField1_0 = $$createType8;
+        const $$createField1_0 = $$createType10;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("params" in $$parsedSource) {
             $$parsedSource["params"] = $$createField1_0($$parsedSource["params"]);
@@ -237,7 +245,7 @@ export class Notice {
      * Creates a new Notice instance from a string or object.
      */
     static createFrom($$source: any = {}): Notice {
-        const $$createField3_0 = $$createType10;
+        const $$createField3_0 = $$createType12;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("error" in $$parsedSource) {
             $$parsedSource["error"] = $$createField3_0($$parsedSource["error"]);
@@ -323,6 +331,8 @@ const $$createType4 = Capabilities.createFrom;
 const $$createType5 = $Create.Array($Create.Any);
 const $$createType6 = share$0.PermissionOption.createFrom;
 const $$createType7 = $Create.Array($$createType6);
-const $$createType8 = $Create.Map($Create.Any, $Create.Any);
-const $$createType9 = ErrorPayload.createFrom;
-const $$createType10 = $Create.Nullable($$createType9);
+const $$createType8 = share$0.AccessSessionLifetimeOption.createFrom;
+const $$createType9 = $Create.Array($$createType8);
+const $$createType10 = $Create.Map($Create.Any, $Create.Any);
+const $$createType11 = ErrorPayload.createFrom;
+const $$createType12 = $Create.Nullable($$createType11);

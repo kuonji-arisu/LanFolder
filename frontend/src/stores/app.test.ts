@@ -148,6 +148,7 @@ function appState(
     config: {
       sharedDir: "C:/Share",
       accessApproval: false,
+      accessSessionLifetime: "never",
       autoShare: false,
       startAtLogin: false,
       keepInTray: false,
@@ -164,6 +165,7 @@ function appState(
       root: "C:/Share",
       permission,
       accessApproval: overrides.config?.accessApproval ?? false,
+      accessSessionLifetime: overrides.config?.accessSessionLifetime ?? "never",
       language: overrides.config?.language ?? "zh-CN",
     },
     appInfo: {
@@ -190,6 +192,13 @@ function appState(
       { value: "readonly", label: "Read", description: "Read only" },
       { value: "upload", label: "Upload", description: "Upload files" },
       { value: "manage", label: "Manage", description: "Manage files" },
+    ],
+    accessSessionLifetimes: [
+      { value: "10m", label: "10 minutes" },
+      { value: "30m", label: "30 minutes" },
+      { value: "1h", label: "1 hour" },
+      { value: "24h", label: "1 day" },
+      { value: "never", label: "Do not auto-expire" },
     ],
   };
 }

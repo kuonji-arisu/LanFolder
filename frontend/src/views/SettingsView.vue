@@ -67,6 +67,12 @@ async function saveLanguage(value: Language) {
   if (value === app.config.language) return;
   await saveSettingWithNotice({ language: value });
 }
+
+async function saveAccessSessionLifetime(event: Event) {
+  const value = (event.target as HTMLSelectElement).value as AppConfig["accessSessionLifetime"];
+  if (value === app.config.accessSessionLifetime) return;
+  await saveSettingWithNotice({ accessSessionLifetime: value });
+}
 </script>
 
 <template>
@@ -129,6 +135,17 @@ async function saveLanguage(value: Language) {
         <span class="switch-tooltip" :title="app.config.autoShare ? t('settings.turnOffAutoShare') : ''">
           <Switch :checked="app.config.accessApproval" :disabled="app.config.autoShare" @update:checked="saveSettingWithNotice({ accessApproval: $event })" />
         </span>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div class="field-label">{{ t("settings.accessSessionLifetime.label") }}</div>
+        </div>
+        <select class="settings-select" :value="app.config.accessSessionLifetime" :disabled="!app.config.accessApproval" @change="saveAccessSessionLifetime">
+          <option v-for="option in app.state?.accessSessionLifetimes ?? []" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>
       </div>
 
       <div class="settings-row">
@@ -211,6 +228,23 @@ async function saveLanguage(value: Language) {
   background: var(--color-bg-elevated);
   text-align: center;
   font-size: var(--font-size-md);
+}
+
+.settings-select {
+  width: 150px;
+  height: 35px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  padding: 0 var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.settings-select:disabled {
+  color: var(--color-text-tertiary);
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .switch-tooltip {

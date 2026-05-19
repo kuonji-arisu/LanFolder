@@ -64,6 +64,7 @@ export class RuntimeStatus {
     "root": string;
     "permission": share$0.Permission;
     "accessApproval": boolean;
+    "accessSessionLifetime": share$0.AccessSessionLifetime;
     "language": string;
 
     /** Creates a new RuntimeStatus instance. */
@@ -85,6 +86,9 @@ export class RuntimeStatus {
         }
         if (!("accessApproval" in $$source)) {
             this["accessApproval"] = false;
+        }
+        if (!("accessSessionLifetime" in $$source)) {
+            this["accessSessionLifetime"] = share$0.AccessSessionLifetime.$zero;
         }
         if (!("language" in $$source)) {
             this["language"] = "";

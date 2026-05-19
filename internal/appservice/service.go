@@ -184,6 +184,7 @@ func (s *AppService) SaveSettings(cfg config.Config) (desktop.AppState, error) {
 	if !cfg.Permission.Valid() {
 		cfg.Permission = share.PermissionReadOnly
 	}
+	cfg.AccessSessionLifetime = share.NormalizeAccessSessionLifetime(cfg.AccessSessionLifetime)
 	cfg.Language = i18n.NormalizeLanguage(cfg.Language)
 	if cfg.AutoShare && !cfg.AccessApproval {
 		return s.snapshot(s.config), newCommandError(errAccessApprovalRequired, nil)
@@ -250,13 +251,14 @@ func (s *AppService) StopSharing() (desktop.AppState, error) {
 
 func (s *AppService) startSharingLocked() error {
 	return s.server.Start(server.Config{
-		Host:           "0.0.0.0",
-		Port:           s.config.Port,
-		Root:           s.config.SharedDir,
-		Permission:     s.config.Permission,
-		ShowHidden:     s.config.ShowHiddenFiles,
-		AccessApproval: s.config.AccessApproval,
-		Language:       s.config.Language,
+		Host:                  "0.0.0.0",
+		Port:                  s.config.Port,
+		Root:                  s.config.SharedDir,
+		Permission:            s.config.Permission,
+		ShowHidden:            s.config.ShowHiddenFiles,
+		AccessApproval:        s.config.AccessApproval,
+		AccessSessionLifetime: s.config.AccessSessionLifetime,
+		Language:              s.config.Language,
 	})
 }
 
@@ -460,5 +462,6 @@ func serverConfigChanged(previous config.Config, next config.Config) bool {
 		previous.Permission != next.Permission ||
 		previous.ShowHiddenFiles != next.ShowHiddenFiles ||
 		previous.AccessApproval != next.AccessApproval ||
+		previous.AccessSessionLifetime != next.AccessSessionLifetime ||
 		previous.Language != next.Language
 }

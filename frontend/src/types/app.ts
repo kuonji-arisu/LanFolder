@@ -1,10 +1,13 @@
 import type { Permission } from "@/lib/constants";
 
+export type AccessSessionLifetime = "10m" | "30m" | "1h" | "24h" | "never";
+
 export interface AppConfig {
   sharedDir: string;
   port: number;
   permission: Permission;
   accessApproval: boolean;
+  accessSessionLifetime: AccessSessionLifetime;
   autoShare: boolean;
   startAtLogin: boolean;
   keepInTray: boolean;
@@ -19,6 +22,7 @@ export interface ServerRuntime {
   root: string;
   permission: Permission;
   accessApproval: boolean;
+  accessSessionLifetime: AccessSessionLifetime;
   language: string;
 }
 
@@ -49,6 +53,7 @@ export interface AccessSession {
   ip: string;
   userAgent: string;
   createdAt: string;
+  expiresAt?: string | null;
 }
 
 export interface MessageEntry {
@@ -62,6 +67,11 @@ export interface PermissionOption {
   value: Permission;
   label: string;
   description: string;
+}
+
+export interface AccessSessionLifetimeOption {
+  value: AccessSessionLifetime;
+  label: string;
 }
 
 export interface WindowInfo {
@@ -102,6 +112,7 @@ export interface AppState {
   capabilities: Capabilities;
   addresses: string[];
   permissions: PermissionOption[];
+  accessSessionLifetimes: AccessSessionLifetimeOption[];
 }
 
 export type NoticeLevel = "info" | "success" | "warning" | "error";

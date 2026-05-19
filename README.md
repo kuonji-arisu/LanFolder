@@ -22,6 +22,7 @@ It is not meant to be a full file server, NAS, sync service, or internet-facing 
 - Store messages in `.lanfolder/messages.jsonl`
 - Show recent access logs in the desktop app
 - Require desktop approval for new browser access when enabled
+- Choose whether approved browser sessions expire after 10 minutes, 30 minutes, 1 hour, 1 day, or do not auto-expire
 - Hide dotfiles by default
 - Keep running in the tray if enabled
 - Start sharing automatically when access approval is enabled
@@ -56,7 +57,7 @@ LanFolder is designed for trusted local networks, such as home Wi-Fi, a private 
 
 When new-device access approval is enabled, an unknown browser can only request access. The request is tracked with a short-lived HttpOnly cookie, and the desktop app must approve it before that browser receives a temporary in-memory session cookie.
 
-Access sessions are kept in memory and are cleared when sharing stops, the shared folder or permission changes, the server restarts, or the app exits. Automatic sharing requires new-device access approval to be enabled first.
+Access sessions are kept in memory. They can be set to expire automatically after a fixed time, or to not auto-expire. In every mode, sessions are still cleared when sharing stops, the shared folder, permission, or access policy changes, the server restarts, or the app exits. Automatic sharing requires new-device access approval to be enabled first.
 
 When access approval is disabled, anyone who can reach the displayed LAN address can use the current permission level.
 
