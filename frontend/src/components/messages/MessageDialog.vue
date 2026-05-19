@@ -9,6 +9,8 @@ import { useI18n } from "@/lib/i18n";
 import { useNoticeStore } from "@/stores/notices";
 import type { MessageEntry } from "@/types/app";
 
+type DialogLayout = "default" | "bounded";
+
 const open = defineModel<boolean>("open", { required: true });
 const draft = defineModel<string>("draft", { required: true });
 const props = defineProps<{
@@ -21,6 +23,7 @@ const props = defineProps<{
   disabledText?: string;
   sendDisabledText?: string;
   emptyText?: string;
+  layout?: DialogLayout;
   loadMessages: () => Promise<TaskResult<unknown>>;
   sendMessage: () => Promise<TaskResult<unknown>>;
   clearMessages: () => Promise<TaskResult<unknown>>;
@@ -49,7 +52,7 @@ async function clearMessages() {
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent>
+    <DialogContent :size="layout === 'bounded' ? 'large' : undefined" :height="layout === 'bounded' ? 'bounded' : undefined">
       <div class="message-dialog-head">
         <DialogHeader>
           <DialogTitle>{{ t("message.title") }}</DialogTitle>
@@ -67,6 +70,7 @@ async function clearMessages() {
       </div>
       <MessagePanel
         v-model:draft="draft"
+        :class="{ 'message-panel--bounded': layout === 'bounded' }"
         :messages="messages"
         :current-client-id="currentClientId"
         :loading="loading"

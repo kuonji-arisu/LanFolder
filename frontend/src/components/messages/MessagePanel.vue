@@ -75,6 +75,7 @@ function isOwnMessage(message: MessageEntry) {
 
 <style scoped>
 .message-panel {
+  --message-list-min-height: 90px;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -82,6 +83,7 @@ function isOwnMessage(message: MessageEntry) {
 }
 
 .message-list {
+  min-height: var(--message-list-min-height);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -90,9 +92,18 @@ function isOwnMessage(message: MessageEntry) {
   padding-right: 2px;
 }
 
+.message-panel--bounded {
+  flex: 1 1 auto;
+}
+
+.message-panel--bounded .message-list {
+  flex: 1 1 auto;
+  max-height: none;
+}
+
 .message-empty {
   display: grid;
-  min-height: 90px;
+  min-height: var(--message-list-min-height);
   place-items: center;
   color: var(--color-text-tertiary);
   font-size: var(--font-size-sm);

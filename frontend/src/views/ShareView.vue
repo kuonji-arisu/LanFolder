@@ -111,6 +111,7 @@ async function setPermission(permission: Permission) {
       :can-clear="messagesEnabled"
       :disabled="!messagesEnabled"
       :disabled-text="t('error.shareNotRunning')"
+      layout="bounded"
       :load-messages="messages.load"
       :send-message="messages.send"
       :clear-messages="messages.clear"
