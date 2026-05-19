@@ -59,6 +59,7 @@ const messages: Record<string, ErrorTranslator> = {
   },
   invalid_port: () => translate("error.invalidPort"),
   shared_dir_required: () => translate("error.sharedDirRequired"),
+  share_not_running: () => translate("error.shareNotRunning"),
   file_too_large: (params) => {
     const maxBytes = typeof params?.maxBytes === "number" ? params.maxBytes : undefined;
     return maxBytes ? translate("error.fileTooLarge", { maxBytes: formatBytes(maxBytes) }) : translate("error.fallback");

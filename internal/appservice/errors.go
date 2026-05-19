@@ -10,6 +10,7 @@ import (
 var (
 	errInvalidPort              = errors.New("invalid_port")
 	errSharedDirRequired        = errors.New("shared_dir_required")
+	errShareNotRunning          = errors.New("share_not_running")
 	errAccessApprovalRequired   = errors.New("access_approval_required")
 	errAccessRequestUnavailable = errors.New("access_request_unavailable")
 )

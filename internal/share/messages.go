@@ -16,6 +16,7 @@ import (
 
 const (
 	messagesFileName    = "messages.jsonl"
+	HostClientID        = "host"
 	MaxMessageTextChars = 2000
 	maxMessages         = 120
 	maxClientIDChars    = 128
@@ -205,7 +206,18 @@ func (m *Manager) SendMessage(clientID, text string) (Message, error) {
 	if !permission.CanUpload() {
 		return Message{}, ErrPermissionDenied
 	}
+	if strings.TrimSpace(clientID) == HostClientID {
+		return Message{}, ErrInvalidMessage
+	}
 	return m.messages.Send(root, clientID, text)
+}
+
+func (m *Manager) SendHostMessage(text string) (Message, error) {
+	root, err := m.messageRoot()
+	if err != nil {
+		return Message{}, err
+	}
+	return m.messages.Send(root, HostClientID, text)
 }
 
 func (m *Manager) ClearMessages() error {
@@ -215,6 +227,14 @@ func (m *Manager) ClearMessages() error {
 	}
 	if !permission.CanDelete() {
 		return ErrPermissionDenied
+	}
+	return m.messages.Clear(root)
+}
+
+func (m *Manager) ClearHostMessages() error {
+	root, err := m.messageRoot()
+	if err != nil {
+		return err
 	}
 	return m.messages.Clear(root)
 }

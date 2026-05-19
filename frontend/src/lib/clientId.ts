@@ -1,6 +1,7 @@
 import { translate } from "@/lib/i18n";
 
 const storageKey = "lanfolder.clientId";
+export const HOST_CLIENT_ID = "host";
 
 export function localClientId() {
   const stored = readStoredClientId();
@@ -16,6 +17,7 @@ export function localClientId() {
 }
 
 export function clientLabel(clientId: string, currentClientId: string) {
+  if (clientId === HOST_CLIENT_ID) return translate("client.host");
   if (clientId && clientId === currentClientId) return translate("client.me");
   if (!clientId) return translate("client.unknown");
   return `${translate("client.devicePrefix")} ${shortClientId(clientId)}`;
@@ -23,7 +25,8 @@ export function clientLabel(clientId: string, currentClientId: string) {
 
 function readStoredClientId() {
   try {
-    return window.localStorage.getItem(storageKey) || "";
+    const stored = window.localStorage.getItem(storageKey) || "";
+    return stored === HOST_CLIENT_ID ? "" : stored;
   } catch {
     return "";
   }

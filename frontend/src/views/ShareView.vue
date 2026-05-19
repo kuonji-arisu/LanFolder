@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { Check, Copy, FolderOpen, HardDrive, Play, ShieldCheck, Square } from "lucide-vue-next";
+import { computed, ref, watch } from "vue";
+import { Check, Copy, FolderOpen, FolderPen, HardDrive, MessageSquareText, Play, ShieldCheck, Square } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import AccessLogDialog from "@/components/app/AccessLogDialog.vue";
@@ -8,23 +8,32 @@ import AccessLogPanel from "@/components/app/AccessLogPanel.vue";
 import AccessDialog from "@/components/app/AccessDialog.vue";
 import FieldCard from "@/components/app/FieldCard.vue";
 import IconButton from "@/components/app/IconButton.vue";
+import MessageDialog from "@/components/messages/MessageDialog.vue";
 import PermissionSegment from "@/components/app/PermissionSegment.vue";
 import { useClipboard } from "@/composables/useClipboard";
 import { useToast } from "@/composables/useToast";
 import { useI18n } from "@/lib/i18n";
 import { useAppStore } from "@/stores/app";
+import { useDesktopMessagesStore } from "@/stores/desktopMessages";
 import { useNoticeStore } from "@/stores/notices";
 import type { Permission } from "@/lib/constants";
 import type { TaskResult } from "@/composables/useAsyncTask";
 
 const app = useAppStore();
+const messages = useDesktopMessagesStore();
 const notices = useNoticeStore();
 const toasts = useToast();
 const { t } = useI18n();
 const { copied, copy } = useClipboard();
 const accessDialogOpen = ref(false);
 const accessLogDialogOpen = ref(false);
+const messagesOpen = ref(false);
 const accessCount = computed(() => app.pendingAccessRequests.length + app.accessSessions.length);
+const messagesEnabled = computed(() => app.isRunning && Boolean(app.config.sharedDir));
+
+watch(messagesOpen, (open) => {
+  if (open) void messages.load();
+});
 
 async function runWithNotice(action: () => Promise<TaskResult<unknown>>) {
   notices.showTaskResult(await action());
@@ -71,11 +80,16 @@ async function setPermission(permission: Permission) {
       </IconButton>
     </FieldCard>
 
-    <FieldCard :label="t('share.directory')" :value="app.config.sharedDir || t('share.noFolder')">
-      <IconButton :title="t('share.changeFolder')" @click="runWithNotice(app.chooseFolder)">
+    <FieldCard :label="t('share.directory')" :value="app.config.sharedDir || t('share.noFolder')" :value-title="app.config.sharedDir">
+      <IconButton v-if="!app.isRunning" :title="t('share.changeFolder')" @click="runWithNotice(app.chooseFolder)">
+        <FolderPen class="h-4 w-4" />
+      </IconButton>
+      <IconButton v-else :title="t('message.title')" :disabled="!messagesEnabled" :accent="messagesOpen" @click="messagesOpen = true">
+        <MessageSquareText class="h-4 w-4" />
+      </IconButton>
+      <IconButton :title="t('common.open')" :disabled="!app.config.sharedDir" @click="runWithNotice(app.openSharedFolder)">
         <FolderOpen class="h-4 w-4" />
       </IconButton>
-      <Button variant="secondary" :disabled="!app.config.sharedDir" @click="runWithNotice(app.openSharedFolder)">{{ t("common.open") }}</Button>
     </FieldCard>
 
     <Card class="panel">
@@ -87,6 +101,20 @@ async function setPermission(permission: Permission) {
     <AccessLogPanel :logs="app.logs" @open="accessLogDialogOpen = true" />
     <AccessLogDialog v-model:open="accessLogDialogOpen" />
     <AccessDialog v-model:open="accessDialogOpen" />
+    <MessageDialog
+      v-model:open="messagesOpen"
+      v-model:draft="messages.draft"
+      :messages="messages.messages"
+      :current-client-id="messages.clientId"
+      :loading="messages.loading"
+      :can-send="messagesEnabled"
+      :can-clear="messagesEnabled"
+      :disabled="!messagesEnabled"
+      :disabled-text="t('error.shareNotRunning')"
+      :load-messages="messages.load"
+      :send-message="messages.send"
+      :clear-messages="messages.clear"
+    />
   </main>
 </template>
 

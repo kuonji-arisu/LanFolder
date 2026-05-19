@@ -16,6 +16,7 @@ const props = defineProps<{
   inputDisabled?: boolean;
   emptyText?: string;
   disabledText?: string;
+  inputDisabledText?: string;
 }>();
 
 const emit = defineEmits<{
@@ -57,7 +58,14 @@ function isOwnMessage(message: MessageEntry) {
     </div>
 
     <form class="message-form" @submit.prevent="emit('send')">
-      <textarea v-model="draftModel" class="message-input" rows="2" maxlength="2000" :disabled="disabled || inputDisabled || loading" :placeholder="t('message.inputPlaceholder')" />
+      <textarea
+        v-model="draftModel"
+        class="message-input"
+        rows="2"
+        maxlength="2000"
+        :disabled="disabled || inputDisabled || loading"
+        :placeholder="inputDisabled && inputDisabledText ? inputDisabledText : t('message.inputPlaceholder')"
+      />
       <Button class="message-send" type="submit" :disabled="!canSend">
         <Send class="h-4 w-4" />{{ t("message.send") }}
       </Button>

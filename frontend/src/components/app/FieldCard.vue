@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 defineProps<{
   label: string;
   value: string;
+  valueTitle?: string;
   mono?: boolean;
 }>();
 </script>
@@ -12,7 +13,7 @@ defineProps<{
   <Card class="field-card">
     <div class="field-main">
       <div class="field-label">{{ label }}</div>
-      <div class="field-value" :class="{ mono }">{{ value }}</div>
+      <div class="field-value" :class="{ mono }" :title="valueTitle">{{ value }}</div>
     </div>
     <div class="field-actions">
       <slot />

@@ -6,12 +6,14 @@ import MessageDialog from "@/components/messages/MessageDialog.vue";
 import WebToolbar from "@/components/web/WebToolbar.vue";
 import { Toaster } from "@/components/ui/sonner";
 import { useTheme } from "@/composables/useTheme";
+import { useI18n } from "@/lib/i18n";
 import { useWebFilesStore } from "@/stores/webFiles";
 import { useWebMessagesStore } from "@/stores/webMessages";
 
 const files = useWebFilesStore();
 const messages = useWebMessagesStore();
 const { initTheme } = useTheme();
+const { t } = useI18n();
 const messagesOpen = ref(false);
 const authorized = ref(false);
 const accessReady = ref(false);
@@ -21,15 +23,8 @@ onMounted(() => {
 });
 
 watch(messagesOpen, (open) => {
-  if (open && !messages.messages.length) void messages.load();
+  if (open) void messages.load();
 });
-
-watch(
-  () => files.canUpload,
-  (canUpload) => {
-    if (!canUpload) messagesOpen.value = false;
-  },
-);
 
 function handleAuthorized() {
   authorized.value = true;
@@ -44,7 +39,19 @@ function handleAuthorized() {
 
     <template v-if="authorized && accessReady">
       <WebToolbar :messages-open="messagesOpen" @toggle-messages="messagesOpen = !messagesOpen" />
-      <MessageDialog v-model:open="messagesOpen" />
+      <MessageDialog
+        v-model:open="messagesOpen"
+        v-model:draft="messages.draft"
+        :messages="messages.messages"
+        :current-client-id="messages.clientId"
+        :loading="messages.loading"
+        :can-send="files.canUpload"
+        :can-clear="files.canDelete"
+        :send-disabled-text="t('message.sendRequiresUpload')"
+        :load-messages="messages.load"
+        :send-message="messages.send"
+        :clear-messages="messages.clear"
+      />
       <FileList />
     </template>
     <Toaster position="top-right" />

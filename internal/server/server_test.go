@@ -542,6 +542,11 @@ func TestHTTPMessagesAllowUploadAndManageActions(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(root, ".lanfolder", "messages.jsonl")); err != nil {
 		t.Fatalf("expected messages file to be created: %v", err)
 	}
+	resp = postJSON(t, ts.URL+"/api/messages", bytes.NewBufferString(`{"text":"hello","clientId":"host"}`))
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("reserved host client id send status = %d", resp.StatusCode)
+	}
 
 	resp, err := http.Get(ts.URL + "/api/messages")
 	if err != nil {

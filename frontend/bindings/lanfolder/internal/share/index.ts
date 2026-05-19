@@ -6,6 +6,7 @@ export {
     AccessSession,
     AccessSessionLifetime,
     AccessSessionLifetimeOption,
+    Message,
     Permission,
     PermissionOption
 } from "./models.js";

@@ -34,6 +34,10 @@ export function ChooseFolder(): $CancellablePromise<desktop$0.AppState> {
     });
 }
 
+export function ClearMessages(): $CancellablePromise<void> {
+    return $Call.ByID(1701951934);
+}
+
 export function DenyAccessRequest(id: string): $CancellablePromise<void> {
     return $Call.ByID(2443696466, id);
 }
@@ -50,13 +54,19 @@ export function Logs(): $CancellablePromise<server$0.LogEntry[]> {
     });
 }
 
+export function Messages(): $CancellablePromise<share$0.Message[]> {
+    return $Call.ByID(1550839685).then(($result: any) => {
+        return $$createType8($result);
+    });
+}
+
 export function OpenSharedFolder(): $CancellablePromise<void> {
     return $Call.ByID(580461836);
 }
 
 export function PendingAccessRequests(): $CancellablePromise<share$0.AccessRequest[]> {
     return $Call.ByID(3435356552).then(($result: any) => {
-        return $$createType8($result);
+        return $$createType10($result);
     });
 }
 
@@ -71,6 +81,12 @@ export function RevokeAccessSession(id: string): $CancellablePromise<void> {
 export function SaveSettings(cfg: config$0.Config): $CancellablePromise<desktop$0.AppState> {
     return $Call.ByID(1564944869, cfg).then(($result: any) => {
         return $$createType2($result);
+    });
+}
+
+export function SendMessage(text: string): $CancellablePromise<share$0.Message> {
+    return $Call.ByID(2470475806, text).then(($result: any) => {
+        return $$createType7($result);
     });
 }
 
@@ -100,5 +116,7 @@ const $$createType3 = desktop$0.Notice.createFrom;
 const $$createType4 = $Create.Array($$createType3);
 const $$createType5 = server$0.LogEntry.createFrom;
 const $$createType6 = $Create.Array($$createType5);
-const $$createType7 = share$0.AccessRequest.createFrom;
+const $$createType7 = share$0.Message.createFrom;
 const $$createType8 = $Create.Array($$createType7);
+const $$createType9 = share$0.AccessRequest.createFrom;
+const $$createType10 = $Create.Array($$createType9);

@@ -51,6 +51,14 @@ func TestCommandErrorPayloadReusesDesktopErrorPayload(t *testing.T) {
 	}
 }
 
+func TestDesktopMessagesRequireRunningShare(t *testing.T) {
+	service := New(Options{Server: server.New(nil)})
+	_, err := service.SendMessage("hello")
+	if err == nil || err.Error() != "share_not_running" {
+		t.Fatalf("SendMessage error = %v, want share_not_running", err)
+	}
+}
+
 func TestMarshalCommandErrorFallsBackForUnknownErrors(t *testing.T) {
 	if data := MarshalCommandError(errors.New("boom")); data != nil {
 		t.Fatalf("unknown error marshal = %s, want nil", data)

@@ -139,6 +139,33 @@ func (s *Server) Status() RuntimeStatus {
 	}
 }
 
+func (s *Server) HostMessages() ([]share.Message, error) {
+	if !s.Running() {
+		return nil, share.ErrInvalidRoot
+	}
+	return s.manager.ListMessages()
+}
+
+func (s *Server) SendHostMessage(text string) (share.Message, error) {
+	if !s.Running() {
+		return share.Message{}, share.ErrInvalidRoot
+	}
+	return s.manager.SendHostMessage(text)
+}
+
+func (s *Server) ClearHostMessages() error {
+	if !s.Running() {
+		return share.ErrInvalidRoot
+	}
+	return s.manager.ClearHostMessages()
+}
+
+func (s *Server) Running() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.httpSrv != nil
+}
+
 func (s *Server) Logs() []LogEntry {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
