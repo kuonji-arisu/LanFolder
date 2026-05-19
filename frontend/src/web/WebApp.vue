@@ -24,6 +24,13 @@ watch(messagesOpen, (open) => {
   if (open && !messages.messages.length) void messages.load();
 });
 
+watch(
+  () => files.canUpload,
+  (canUpload) => {
+    if (!canUpload) messagesOpen.value = false;
+  },
+);
+
 function handleAuthorized() {
   authorized.value = true;
   accessReady.value = true;
