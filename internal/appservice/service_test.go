@@ -226,3 +226,19 @@ func TestAddressListKeyIgnoresOrder(t *testing.T) {
 		t.Fatalf("address keys differ for reordered addresses: %q != %q", first, second)
 	}
 }
+
+func TestAddressWatcherStartIsIdempotent(t *testing.T) {
+	addresses := NewAddressService(func() []string { return []string{"192.168.1.20"} })
+	addresses.started = true
+	loads := 0
+	getConfig := func() config.Config {
+		loads++
+		return config.Config{Port: 8899}
+	}
+
+	addresses.StartWatcher(getConfig, func(string) {})
+
+	if loads != 0 {
+		t.Fatalf("config loads = %d, want 0", loads)
+	}
+}
