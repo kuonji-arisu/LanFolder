@@ -183,8 +183,9 @@ func createUniqueDir(dir, name string, mode os.FileMode) (string, error) {
 }
 
 func isManagedPath(rel string) bool {
-	return rel == managedDirName ||
-		strings.HasPrefix(rel, managedDirName+"/")
+	first, _, _ := strings.Cut(rel, "/")
+	first = strings.TrimRight(first, ". ")
+	return strings.EqualFold(first, managedDirName)
 }
 
 func slashRel(rel string) string {

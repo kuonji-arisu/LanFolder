@@ -113,9 +113,24 @@ func TestDeleteManagedPathsAreAlwaysRejected(t *testing.T) {
 	if err := m.Configure(root, PermissionManage, true); err != nil {
 		t.Fatal(err)
 	}
-	for _, target := range []string{".lanfolder", ".lanfolder/messages.jsonl"} {
+	for _, target := range []string{".lanfolder", ".lanfolder/messages.jsonl", ".LANFOLDER/messages.jsonl"} {
 		if err := m.Delete(target); !errors.Is(err, ErrInvalidPath) {
 			t.Fatalf("Delete(%q) error = %v, want ErrInvalidPath", target, err)
+		}
+	}
+}
+
+func TestManagedPathMatchingIsCaseInsensitive(t *testing.T) {
+	for _, rel := range []string{
+		".lanfolder",
+		".lanfolder/messages.jsonl",
+		".LANFOLDER/messages.jsonl",
+		".LanFolder/trash",
+		".lanfolder./messages.jsonl",
+		".LANFOLDER /messages.jsonl",
+	} {
+		if !isManagedPath(rel) {
+			t.Fatalf("isManagedPath(%q) = false, want true", rel)
 		}
 	}
 }
