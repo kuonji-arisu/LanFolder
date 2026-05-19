@@ -85,6 +85,10 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 	target, targetPath := logTarget(r.URL.Query().Get("path"))
 	setAccessLog(r, logActionUpload, target, targetPath, "")
+	if !s.manager.CanUpload() {
+		writeError(w, share.ErrPermissionDenied)
+		return
+	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
 	if err := r.ParseMultipartForm(multipartMemoryBytes); err != nil {
 		var maxBytesErr *http.MaxBytesError

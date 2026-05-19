@@ -71,6 +71,12 @@ func (m *Manager) Status() Status {
 	return Status{Root: m.root, Permission: m.permission}
 }
 
+func (m *Manager) CanUpload() bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.permission.CanUpload()
+}
+
 func (m *Manager) resolveExisting(rel string) (ResolvedPath, error) {
 	cleaned, err := cleanRel(rel)
 	if err != nil {

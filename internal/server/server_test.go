@@ -460,6 +460,31 @@ func TestHTTPWriteRequiresPermission(t *testing.T) {
 	resp.Body.Close()
 }
 
+func TestHTTPUploadRejectsReadOnlyBeforeParsingMultipart(t *testing.T) {
+	root := t.TempDir()
+	_, ts := testServer(t, root, share.PermissionReadOnly)
+	defer ts.Close()
+
+	req, err := http.NewRequest(http.MethodPost, ts.URL+"/api/upload", strings.NewReader("not multipart"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "multipart/form-data; boundary=missing")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	var body apiError
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusForbidden || body.Error != "permission_denied" {
+		t.Fatalf("readonly malformed upload status=%d body=%#v", resp.StatusCode, body)
+	}
+}
+
 func TestHTTPMessagesRespectPermission(t *testing.T) {
 	root := t.TempDir()
 	_, ts := testServer(t, root, share.PermissionReadOnly)
