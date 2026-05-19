@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -234,6 +235,35 @@ func TestConcurrentMessagesDoNotCorruptJSONL(t *testing.T) {
 	}
 	if len(messages) != count {
 		t.Fatalf("messages = %d, want %d", len(messages), count)
+	}
+}
+
+func TestMessagesKeepMostRecentEntries(t *testing.T) {
+	root := t.TempDir()
+	store := NewMessageStore()
+	for i := 0; i < maxMessages+5; i++ {
+		if _, err := store.Send(root, "client-1", "message-"+strconv.Itoa(i)); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	messages, err := store.List(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(messages) != maxMessages {
+		t.Fatalf("messages = %d, want %d", len(messages), maxMessages)
+	}
+	if messages[0].Text != "message-5" || messages[len(messages)-1].Text != "message-124" {
+		t.Fatalf("messages did not keep the most recent entries: first=%q last=%q", messages[0].Text, messages[len(messages)-1].Text)
+	}
+
+	data, err := os.ReadFile(filepath.Join(root, ".lanfolder", "messages.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if lines := strings.Count(strings.TrimSpace(string(data)), "\n") + 1; lines != maxMessages {
+		t.Fatalf("message file lines = %d, want %d", lines, maxMessages)
 	}
 }
 

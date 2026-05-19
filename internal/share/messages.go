@@ -17,6 +17,7 @@ import (
 const (
 	messagesFileName    = "messages.jsonl"
 	MaxMessageTextChars = 2000
+	maxMessages         = 120
 	maxClientIDChars    = 128
 )
 
@@ -37,30 +38,8 @@ func (s *MessageStore) List(root string) ([]Message, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	file, err := os.Open(messagesPath(root))
-	if errors.Is(err, os.ErrNotExist) {
-		return []Message{}, nil
-	}
+	messages, err := readMessagesFile(root)
 	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	messages := []Message{}
-	scanner := bufio.NewScanner(file)
-	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
-			continue
-		}
-		var message Message
-		if err := json.Unmarshal([]byte(line), &message); err != nil {
-			continue
-		}
-		messages = append(messages, message)
-	}
-	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
 	return messages, nil
@@ -95,20 +74,104 @@ func (s *MessageStore) Send(root, clientID, text string) (Message, error) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return Message{}, err
 	}
-	file, err := os.OpenFile(messagesPath(root), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	messages, err := readMessagesFile(root)
 	if err != nil {
 		return Message{}, err
 	}
-	defer file.Close()
-
-	data, err := json.Marshal(message)
-	if err != nil {
-		return Message{}, err
+	messages = append(messages, message)
+	if len(messages) > maxMessages {
+		messages = messages[len(messages)-maxMessages:]
 	}
-	if _, err := file.Write(append(data, '\n')); err != nil {
+	if err := writeMessagesFile(root, messages); err != nil {
 		return Message{}, err
 	}
 	return message, nil
+}
+
+func readMessagesFile(root string) ([]Message, error) {
+	file, err := os.Open(messagesPath(root))
+	if errors.Is(err, os.ErrNotExist) {
+		return []Message{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	messages := []Message{}
+	scanner := bufio.NewScanner(file)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		var message Message
+		if err := json.Unmarshal([]byte(line), &message); err != nil {
+			continue
+		}
+		messages = append(messages, message)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	if len(messages) > maxMessages {
+		messages = messages[len(messages)-maxMessages:]
+	}
+	return messages, nil
+}
+
+func writeMessagesFile(root string, messages []Message) error {
+	var builder strings.Builder
+	encoder := json.NewEncoder(&builder)
+	for _, message := range messages {
+		if err := encoder.Encode(message); err != nil {
+			return err
+		}
+	}
+	return writeMessageFileAtomic(messagesPath(root), []byte(builder.String()), 0644)
+}
+
+func writeMessageFileAtomic(path string, data []byte, perm os.FileMode) error {
+	dir := filepath.Dir(path)
+	file, err := os.CreateTemp(dir, "messages-*.tmp")
+	if err != nil {
+		return err
+	}
+	tmp := file.Name()
+	cleanup := true
+	closed := false
+	closeFile := func() error {
+		if closed {
+			return nil
+		}
+		closed = true
+		return file.Close()
+	}
+	defer func() {
+		if cleanup {
+			_ = closeFile()
+			_ = os.Remove(tmp)
+		}
+	}()
+
+	if err := file.Chmod(perm); err != nil {
+		return err
+	}
+	if _, err := file.Write(data); err != nil {
+		return err
+	}
+	if err := file.Sync(); err != nil {
+		return err
+	}
+	if err := closeFile(); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		return err
+	}
+	cleanup = false
+	return nil
 }
 
 func (s *MessageStore) Clear(root string) error {
