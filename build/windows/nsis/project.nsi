@@ -24,7 +24,7 @@ SetCompressorDictSize 64
 ## !define INFO_PROJECTNAME    "my-project" # Default "LanFolder"
 ## !define INFO_COMPANYNAME    "LanFolder" # Default "LanFolder"
 ## !define INFO_PRODUCTNAME    "LanFolder" # Default "LanFolder"
-## !define INFO_PRODUCTVERSION "1.0.0"     # Default "0.0.4"
+## !define INFO_PRODUCTVERSION "1.0.0"     # Default "0.1.0"
 ## !define INFO_COPYRIGHT      "(c) 2026, LanFolder" # Default "© 2026, LanFolder"
 ###
 ## !define PRODUCT_EXECUTABLE  "Application.exe"      # Default "${INFO_PROJECTNAME}.exe"
