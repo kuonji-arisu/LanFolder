@@ -13,6 +13,7 @@ const props = defineProps<{
   draft: string;
   loading?: boolean;
   disabled?: boolean;
+  inputDisabled?: boolean;
   emptyText?: string;
   disabledText?: string;
 }>();
@@ -28,7 +29,7 @@ const draftModel = computed({
   set: (value: string) => emit("update:draft", value),
 });
 
-const canSend = computed(() => !props.disabled && !props.loading && props.draft.trim().length > 0);
+const canSend = computed(() => !props.disabled && !props.inputDisabled && !props.loading && props.draft.trim().length > 0);
 
 function messageLabel(message: MessageEntry) {
   return clientLabel(message.clientId, props.currentClientId);
@@ -56,7 +57,7 @@ function isOwnMessage(message: MessageEntry) {
     </div>
 
     <form class="message-form" @submit.prevent="emit('send')">
-      <textarea v-model="draftModel" class="message-input" rows="2" maxlength="2000" :disabled="disabled || loading" :placeholder="t('message.inputPlaceholder')" />
+      <textarea v-model="draftModel" class="message-input" rows="2" maxlength="2000" :disabled="disabled || inputDisabled || loading" :placeholder="t('message.inputPlaceholder')" />
       <Button class="message-send" type="submit" :disabled="!canSend">
         <Send class="h-4 w-4" />{{ t("message.send") }}
       </Button>

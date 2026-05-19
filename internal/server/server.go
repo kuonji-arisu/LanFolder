@@ -87,7 +87,7 @@ func (s *Server) Start(cfg Config) error {
 		s.mu.Unlock()
 		return err
 	}
-	if err := s.manager.ClearMessages(); err != nil {
+	if err := s.manager.ResetMessages(); err != nil {
 		_ = ln.Close()
 		s.mu.Unlock()
 		return err
@@ -121,7 +121,7 @@ func (s *Server) Stop(ctx context.Context) error {
 	}
 	s.access.Clear()
 	s.invalidPolls.Clear()
-	return errors.Join(srv.Shutdown(ctx), s.manager.ClearMessages())
+	return errors.Join(srv.Shutdown(ctx), s.manager.ResetMessages())
 }
 
 func (s *Server) Status() RuntimeStatus {

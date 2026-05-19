@@ -222,6 +222,37 @@ func TestClearMessagesRemovesMessageFile(t *testing.T) {
 	}
 }
 
+func TestManagerMessagePermissions(t *testing.T) {
+	root := t.TempDir()
+	m := NewManager()
+	if err := m.Configure(root, PermissionReadOnly, false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.SendMessage("client-1", "hello"); !errors.Is(err, ErrPermissionDenied) {
+		t.Fatalf("readonly SendMessage error = %v, want ErrPermissionDenied", err)
+	}
+	if err := m.ClearMessages(); !errors.Is(err, ErrPermissionDenied) {
+		t.Fatalf("readonly ClearMessages error = %v, want ErrPermissionDenied", err)
+	}
+
+	if err := m.Configure(root, PermissionUpload, false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.SendMessage("client-1", "hello"); err != nil {
+		t.Fatalf("upload SendMessage error = %v", err)
+	}
+	if err := m.ClearMessages(); !errors.Is(err, ErrPermissionDenied) {
+		t.Fatalf("upload ClearMessages error = %v, want ErrPermissionDenied", err)
+	}
+
+	if err := m.Configure(root, PermissionManage, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.ClearMessages(); err != nil {
+		t.Fatalf("manage ClearMessages error = %v", err)
+	}
+}
+
 func TestConcurrentMessagesDoNotCorruptJSONL(t *testing.T) {
 	root := t.TempDir()
 	store := NewMessageStore()

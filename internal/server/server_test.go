@@ -147,7 +147,10 @@ func TestStopClearsMessages(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.manager.SendMessage("client-1", "hello"); err != nil {
+	if err := os.MkdirAll(filepath.Dir(messagePath), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(messagePath, []byte("{}\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(messagePath); err != nil {
@@ -457,7 +460,7 @@ func TestHTTPWriteRequiresPermission(t *testing.T) {
 	resp.Body.Close()
 }
 
-func TestHTTPMessagesWorkWithReadOnlyPermission(t *testing.T) {
+func TestHTTPMessagesRespectPermission(t *testing.T) {
 	root := t.TempDir()
 	_, ts := testServer(t, root, share.PermissionReadOnly)
 	defer ts.Close()
@@ -476,8 +479,32 @@ func TestHTTPMessagesWorkWithReadOnlyPermission(t *testing.T) {
 	}
 
 	resp = postJSON(t, ts.URL+"/api/messages", bytes.NewBufferString(`{"text":"hello","clientId":"client-1"}`))
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("readonly send message status = %d", resp.StatusCode)
+	}
+	req, err := http.NewRequest(http.MethodDelete, ts.URL+"/api/messages", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("readonly clear messages status = %d", resp.StatusCode)
+	}
+}
+
+func TestHTTPMessagesAllowUploadAndManageActions(t *testing.T) {
+	root := t.TempDir()
+	_, ts := testServer(t, root, share.PermissionUpload)
+	defer ts.Close()
+
+	resp := postJSON(t, ts.URL+"/api/messages", bytes.NewBufferString(`{"text":"hello","clientId":"client-1"}`))
 	if resp.StatusCode != http.StatusCreated {
-		t.Fatalf("send message status = %d", resp.StatusCode)
+		t.Fatalf("upload send message status = %d", resp.StatusCode)
 	}
 	var sent share.Message
 	if err := json.NewDecoder(resp.Body).Decode(&sent); err != nil {
@@ -491,7 +518,7 @@ func TestHTTPMessagesWorkWithReadOnlyPermission(t *testing.T) {
 		t.Fatalf("expected messages file to be created: %v", err)
 	}
 
-	resp, err = http.Get(ts.URL + "/api/messages")
+	resp, err := http.Get(ts.URL + "/api/messages")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -513,17 +540,41 @@ func TestHTTPMessagesWorkWithReadOnlyPermission(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("clear messages status = %d", resp.StatusCode)
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("upload clear messages status = %d", resp.StatusCode)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".lanfolder", "messages.jsonl")); !os.IsNotExist(err) {
+
+	manageRoot := t.TempDir()
+	_, manageTS := testServer(t, manageRoot, share.PermissionManage)
+	defer manageTS.Close()
+	resp = postJSON(t, manageTS.URL+"/api/messages", bytes.NewBufferString(`{"text":"manage","clientId":"client-1"}`))
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("manage send message status = %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+	if _, err := os.Stat(filepath.Join(manageRoot, ".lanfolder", "messages.jsonl")); err != nil {
+		t.Fatalf("expected manage messages file to be created: %v", err)
+	}
+	req, err = http.NewRequest(http.MethodDelete, manageTS.URL+"/api/messages", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("manage clear messages status = %d", resp.StatusCode)
+	}
+	if _, err := os.Stat(filepath.Join(manageRoot, ".lanfolder", "messages.jsonl")); !os.IsNotExist(err) {
 		t.Fatalf("expected messages file to be removed: %v", err)
 	}
 }
 
 func TestHTTPMessageRejectsLargeRequest(t *testing.T) {
 	root := t.TempDir()
-	_, ts := testServer(t, root, share.PermissionReadOnly)
+	_, ts := testServer(t, root, share.PermissionUpload)
 	defer ts.Close()
 
 	resp := postJSON(t, ts.URL+"/api/messages", bytes.NewBufferString(`{"text":"hello","clientId":"`+strings.Repeat("a", 20<<10)+`"}`))

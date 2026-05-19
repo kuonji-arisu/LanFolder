@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useI18n } from "@/lib/i18n";
 import { useNoticeStore } from "@/stores/notices";
+import { useWebFilesStore } from "@/stores/webFiles";
 import { useWebMessagesStore } from "@/stores/webMessages";
 
 const open = defineModel<boolean>("open", { required: true });
+const files = useWebFilesStore();
 const messages = useWebMessagesStore();
 const notices = useNoticeStore();
 const { t } = useI18n();
@@ -45,7 +47,7 @@ async function clearMessages() {
             <Loader2 v-if="messages.loading" class="h-4 w-4 animate-spin" />
             <RefreshCw v-else class="h-4 w-4" />
           </Button>
-          <Button variant="secondary" size="icon" :disabled="messages.loading || !messages.messages.length" :aria-label="t('message.clearMessages')" @click="clearConfirmOpen = true">
+          <Button v-if="files.canDelete" variant="secondary" size="icon" :disabled="messages.loading || !messages.messages.length" :aria-label="t('message.clearMessages')" @click="clearConfirmOpen = true">
             <Trash2 class="h-4 w-4" />
           </Button>
         </div>
@@ -55,6 +57,7 @@ async function clearMessages() {
         :messages="messages.messages"
         :current-client-id="messages.clientId"
         :loading="messages.loading"
+        :input-disabled="!files.canUpload"
         :empty-text="t('message.emptyRelay')"
         @send="sendMessage"
       />

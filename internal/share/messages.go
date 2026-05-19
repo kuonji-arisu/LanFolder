@@ -198,14 +198,28 @@ func (m *Manager) ListMessages() ([]Message, error) {
 }
 
 func (m *Manager) SendMessage(clientID, text string) (Message, error) {
-	root, err := m.messageRoot()
+	root, permission, err := m.messageRootAndPermission()
 	if err != nil {
 		return Message{}, err
+	}
+	if !permission.CanUpload() {
+		return Message{}, ErrPermissionDenied
 	}
 	return m.messages.Send(root, clientID, text)
 }
 
 func (m *Manager) ClearMessages() error {
+	root, permission, err := m.messageRootAndPermission()
+	if err != nil {
+		return err
+	}
+	if !permission.CanDelete() {
+		return ErrPermissionDenied
+	}
+	return m.messages.Clear(root)
+}
+
+func (m *Manager) ResetMessages() error {
 	root, err := m.messageRoot()
 	if err != nil {
 		return err
@@ -214,10 +228,17 @@ func (m *Manager) ClearMessages() error {
 }
 
 func (m *Manager) messageRoot() (string, error) {
+	root, _, err := m.messageRootAndPermission()
+	return root, err
+}
+
+func (m *Manager) messageRootAndPermission() (string, Permission, error) {
 	m.mu.RLock()
 	root := m.root
+	permission := m.permission
 	m.mu.RUnlock()
-	return cleanMessageRoot(root)
+	root, err := cleanMessageRoot(root)
+	return root, permission, err
 }
 
 func cleanMessageRoot(root string) (string, error) {
