@@ -53,6 +53,10 @@ const messages: Record<string, ErrorTranslator> = {
   permission_denied: () => translate("error.permissionDenied"),
   not_found: () => translate("error.notFound"),
   no_files_uploaded: () => translate("error.noFilesUploaded"),
+  multi_upload_fail: (params) => {
+    const failed = typeof params?.failed === "number" ? params.failed : undefined;
+    return failed ? translate("error.multiUploadFail", { failed }) : translate("error.fallback");
+  },
   invalid_port: () => translate("error.invalidPort"),
   shared_dir_required: () => translate("error.sharedDirRequired"),
   file_too_large: (params) => {

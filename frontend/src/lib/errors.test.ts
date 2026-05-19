@@ -14,6 +14,7 @@ describe("normalizeError", () => {
     expect(errorMessage(createAppError("file_too_large", { params: { maxBytes: 512 } }))).toBe("文件不能超过 512 B");
     expect(errorMessage(createAppError("request_too_large", { params: { maxBytes: 16 << 10 } }))).toBe("请求不能超过 16.0 KB");
     expect(errorMessage(createAppError("invalid_filename", { params: { maxBytes: 255 } }))).toBe("名称不能超过 255 字节");
+    expect(errorMessage(createAppError("multi_upload_fail", { params: { failed: 2 } }))).toBe("有 2 个文件上传失败");
   });
 
   it("maps structured command errors from Wails runtime objects", () => {

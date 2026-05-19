@@ -45,8 +45,18 @@ export const useWebFilesStore = defineStore("webFiles", () => {
   async function uploadFiles(files: FileList | null) {
     if (!files?.length) return taskSuccess(false);
     return run(async () => {
-      await fileApi.upload(currentPath.value, files);
-      await fetchListing(currentPath.value);
+      let uploadError: unknown;
+      try {
+        await fileApi.upload(currentPath.value, files);
+      } catch (err) {
+        uploadError = err;
+      }
+      try {
+        await fetchListing(currentPath.value);
+      } catch (err) {
+        if (!uploadError) throw err;
+      }
+      if (uploadError) throw uploadError;
       return true;
     });
   }

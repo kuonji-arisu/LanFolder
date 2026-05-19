@@ -46,6 +46,7 @@
   "error.invalidPath": "Invalid path",
   "error.invalidPort": "Port must be between 1 and 65535",
   "error.invalidRequest": "Invalid request format",
+  "error.multiUploadFail": "{failed} files failed to upload",
   "error.networkNotAllowed": "Only trusted LAN access is allowed",
   "error.noFilesUploaded": "No files were selected for upload",
   "error.notFound": "File or folder does not exist",

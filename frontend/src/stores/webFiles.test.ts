@@ -80,6 +80,20 @@ describe("useWebFilesStore", () => {
     expect(api.list).toHaveBeenCalledTimes(2);
   });
 
+  it("refreshes the current folder after a partial upload failure", async () => {
+    api.list.mockResolvedValue(listing(""));
+    api.upload.mockRejectedValue(createAppError("multi_upload_fail", { params: { failed: 2 }, status: 400 }));
+    const store = useWebFilesStore();
+    await store.load("");
+
+    const file = new File(["hello"], "note.txt", { type: "text/plain" });
+    const result = await store.uploadFiles([file] as unknown as FileList);
+
+    expect(result.ok).toBe(false);
+    expect(store.error).toBe("有 2 个文件上传失败");
+    expect(api.list).toHaveBeenCalledTimes(2);
+  });
+
   it("confirms deletion before deleting and refreshing", async () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     api.list.mockResolvedValue(listing("", [{ name: "note.txt", path: "note.txt", isDir: false }]));

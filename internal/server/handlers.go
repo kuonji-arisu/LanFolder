@@ -113,15 +113,31 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	setAccessLog(r, logActionUpload, target, targetPath, fmt.Sprintf("%s%d", logDetailFilesPrefix, len(files)))
 	created := make([]share.Entry, 0, len(files))
+	failed := 0
 	for _, header := range files {
 		entry, err := s.manager.SaveUpload(r.URL.Query().Get("path"), header)
 		if err != nil {
-			writeError(w, err)
-			return
+			if isWholeUploadError(err) {
+				writeError(w, err)
+				return
+			}
+			failed++
+			continue
 		}
 		created = append(created, entry)
 	}
+	if failed > 0 {
+		writeErrorCode(w, http.StatusBadRequest, "multi_upload_fail", map[string]any{"failed": failed})
+		return
+	}
 	writeJSON(w, http.StatusCreated, map[string]any{"entries": created})
+}
+
+func isWholeUploadError(err error) bool {
+	return errors.Is(err, share.ErrPermissionDenied) ||
+		errors.Is(err, share.ErrInvalidPath) ||
+		errors.Is(err, share.ErrPathEscape) ||
+		errors.Is(err, share.ErrNotFound)
 }
 
 func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {

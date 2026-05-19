@@ -228,6 +228,40 @@ func TestHTTPListMkdirUploadDeleteFlow(t *testing.T) {
 	}
 }
 
+func TestHTTPUploadReportsFileFailuresAndKeepsSuccessfulFiles(t *testing.T) {
+	root := t.TempDir()
+	_, ts := testServer(t, root, share.PermissionManage)
+	defer ts.Close()
+
+	uploadBody, contentType := multipartFilesBody(t, "files", []uploadPart{
+		{name: "note.txt", content: "hello"},
+		{name: strings.Repeat("a", share.MaxFilenameBytes+1) + ".txt", content: "too long"},
+	})
+	req, err := http.NewRequest(http.MethodPost, ts.URL+"/api/upload", uploadBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", contentType)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("upload status = %d", resp.StatusCode)
+	}
+	var body apiError
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body.Error != "multi_upload_fail" || body.Params["failed"] != float64(1) {
+		t.Fatalf("upload error body = %#v", body)
+	}
+	if got, err := os.ReadFile(filepath.Join(root, "note.txt")); err != nil || string(got) != "hello" {
+		t.Fatalf("successful file was not kept: data=%q err=%v", got, err)
+	}
+}
+
 func TestAccessLogsSkipPageStaticAssetsAndStatusPolling(t *testing.T) {
 	root := t.TempDir()
 	s, ts := testServer(t, root, share.PermissionReadOnly)
@@ -1108,14 +1142,26 @@ func postJSON(t *testing.T, url string, body io.Reader) *http.Response {
 
 func multipartBody(t *testing.T, field, name, content string) (*bytes.Buffer, string) {
 	t.Helper()
+	return multipartFilesBody(t, field, []uploadPart{{name: name, content: content}})
+}
+
+type uploadPart struct {
+	name    string
+	content string
+}
+
+func multipartFilesBody(t *testing.T, field string, parts []uploadPart) (*bytes.Buffer, string) {
+	t.Helper()
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile(field, name)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := part.Write([]byte(content)); err != nil {
-		t.Fatal(err)
+	for _, file := range parts {
+		part, err := writer.CreateFormFile(field, file.name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := part.Write([]byte(file.content)); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := writer.Close(); err != nil {
 		t.Fatal(err)

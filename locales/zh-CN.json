@@ -46,6 +46,7 @@
   "error.invalidPath": "路径无效",
   "error.invalidPort": "端口必须在 1 到 65535 之间",
   "error.invalidRequest": "请求格式无效",
+  "error.multiUploadFail": "有 {failed} 个文件上传失败",
   "error.networkNotAllowed": "仅允许可信局域网访问",
   "error.noFilesUploaded": "没有选择要上传的文件",
   "error.notFound": "文件或目录不存在",
