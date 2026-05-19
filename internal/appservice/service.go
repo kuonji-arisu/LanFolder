@@ -139,11 +139,17 @@ func (s *AppService) accessService() *AccessService {
 	return s.accessServiceLocked()
 }
 
-func (s *AppService) shareService() *ShareService {
-	if s.sharing != nil {
-		return s.sharing
+func (s *AppService) shareServiceLocked() *ShareService {
+	if s.sharing == nil {
+		s.sharing = NewShareService(s.server)
 	}
-	return NewShareService(s.server)
+	return s.sharing
+}
+
+func (s *AppService) shareService() *ShareService {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.shareServiceLocked()
 }
 
 func (s *AppService) addressServiceLocked() *AddressService {

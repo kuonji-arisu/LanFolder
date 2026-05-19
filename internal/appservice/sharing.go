@@ -85,12 +85,12 @@ func (s *AppService) StopSharing() (desktop.AppState, error) {
 	defer s.mu.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	err := s.shareService().Stop(ctx)
+	err := s.shareServiceLocked().Stop(ctx)
 	return s.snapshot(s.config), err
 }
 
 func (s *AppService) startSharingLocked() error {
-	return s.shareService().Start(s.config)
+	return s.shareServiceLocked().Start(s.config)
 }
 
 func (s *AppService) OpenSharedFolder() error {
@@ -104,7 +104,7 @@ func (s *AppService) OpenSharedFolder() error {
 }
 
 func (s *AppService) restartLocked() error {
-	return s.shareService().Restart(s.config)
+	return s.shareServiceLocked().Restart(s.config)
 }
 
 func serverConfigChanged(previous config.Config, next config.Config) bool {
