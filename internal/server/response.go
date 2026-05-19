@@ -3,12 +3,15 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 
 	"lanfolder/internal/share"
 )
 
 const maxJSONBodyBytes int64 = 16 << 10
+
+var errExtraJSONToken = errors.New("extra JSON token")
 
 type apiError struct {
 	Error  string         `json:"error"`
@@ -19,7 +22,16 @@ func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst any) error {
 	r.Body = http.MaxBytesReader(w, r.Body, maxJSONBodyBytes)
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
-	return decoder.Decode(dst)
+	if err := decoder.Decode(dst); err != nil {
+		return err
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		if err != nil {
+			return err
+		}
+		return errExtraJSONToken
+	}
+	return nil
 }
 
 func writeJSONDecodeError(w http.ResponseWriter, err error) {

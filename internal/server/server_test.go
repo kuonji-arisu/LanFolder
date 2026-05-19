@@ -552,6 +552,28 @@ func TestHTTPJSONWriteRejectsLargeRequest(t *testing.T) {
 	}
 }
 
+func TestHTTPJSONWriteRejectsTrailingTokens(t *testing.T) {
+	root := t.TempDir()
+	_, ts := testServer(t, root, share.PermissionManage)
+	defer ts.Close()
+
+	resp := postJSON(t, ts.URL+"/api/mkdir", bytes.NewBufferString(`{"path":"","name":"docs"}{"path":"","name":"more"}`))
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("trailing token status = %d", resp.StatusCode)
+	}
+	var body apiError
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body.Error != "invalid_request" {
+		t.Fatalf("trailing token error body = %#v", body)
+	}
+	if _, err := os.Stat(filepath.Join(root, "docs")); !os.IsNotExist(err) {
+		t.Fatalf("request with trailing JSON should not create folder: %v", err)
+	}
+}
+
 func TestHTTPMkdirRejectsOverlongFilename(t *testing.T) {
 	root := t.TempDir()
 	_, ts := testServer(t, root, share.PermissionManage)
