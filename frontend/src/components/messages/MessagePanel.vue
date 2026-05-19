@@ -61,7 +61,7 @@ function isOwnMessage(message: MessageEntry) {
       <textarea
         v-model="draftModel"
         class="message-input"
-        rows="2"
+        rows="1"
         maxlength="2000"
         :disabled="disabled || inputDisabled || loading"
         :placeholder="inputDisabled && inputDisabledText ? inputDisabledText : t('message.inputPlaceholder')"
@@ -134,20 +134,23 @@ function isOwnMessage(message: MessageEntry) {
 .message-form {
   display: flex;
   gap: var(--space-2);
-  align-items: stretch;
+  align-items: flex-end;
 }
 
 .message-input {
-  min-height: 54px;
+  height: 36px;
+  min-height: 36px;
   flex: 1;
   resize: none;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-control);
-  padding: 9px 11px;
+  padding: 8px 11px;
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
+  line-height: 18px;
   outline: none;
+  overflow-y: auto;
 }
 
 .message-input:focus {
@@ -159,8 +162,8 @@ function isOwnMessage(message: MessageEntry) {
 }
 
 .message-send {
-  min-height: 54px;
-  align-self: stretch;
+  height: 36px;
+  min-height: 36px;
   gap: 6px;
 }
 </style>
