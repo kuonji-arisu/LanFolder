@@ -92,11 +92,11 @@ function isOwnMessage(message: MessageEntry) {
   padding-right: 2px;
 }
 
-.message-panel--bounded {
+.message-panel--fill {
   flex: 1 1 auto;
 }
 
-.message-panel--bounded .message-list {
+.message-panel--fill .message-list {
   flex: 1 1 auto;
   max-height: none;
 }

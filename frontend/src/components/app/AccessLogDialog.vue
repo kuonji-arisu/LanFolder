@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import AppDialogContent from "@/components/app/AppDialogContent.vue";
+import AppDialogHeader from "@/components/app/AppDialogHeader.vue";
+import { Dialog, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { formatDate } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { useAppStore } from "@/stores/app";
@@ -33,11 +35,11 @@ function logDescription(count: number) {
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent size="large" height="bounded">
-      <DialogHeader class="dialog-head">
+    <AppDialogContent width="calc(100vw - var(--space-6))" max-width="var(--content-max-width)" max-height="calc(100dvh - var(--space-6))">
+      <AppDialogHeader>
         <DialogTitle>{{ t("log.title") }}</DialogTitle>
         <DialogDescription>{{ logDescription(app.logs.length) }}</DialogDescription>
-      </DialogHeader>
+      </AppDialogHeader>
 
       <div v-if="!app.logs.length" class="empty-state">{{ t("log.empty") }}</div>
 
@@ -53,15 +55,11 @@ function logDescription(count: number) {
           </div>
         </div>
       </div>
-    </DialogContent>
+    </AppDialogContent>
   </Dialog>
 </template>
 
 <style scoped>
-.dialog-head {
-  padding-right: calc(var(--icon-button-size) + var(--space-2));
-}
-
 .empty-state,
 .log-list {
   --log-entry-min-height: 64px;

@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { Loader2, RefreshCw, Trash2 } from "lucide-vue-next";
+import AppDialogContent from "@/components/app/AppDialogContent.vue";
+import AppDialogHeader from "@/components/app/AppDialogHeader.vue";
 import MessagePanel from "@/components/messages/MessagePanel.vue";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import type { TaskResult } from "@/composables/useAsyncTask";
 import { useI18n } from "@/lib/i18n";
 import { useNoticeStore } from "@/stores/notices";
 import type { MessageEntry } from "@/types/app";
-
-type DialogLayout = "default" | "bounded";
 
 const open = defineModel<boolean>("open", { required: true });
 const draft = defineModel<string>("draft", { required: true });
@@ -23,7 +23,10 @@ const props = defineProps<{
   disabledText?: string;
   sendDisabledText?: string;
   emptyText?: string;
-  layout?: DialogLayout;
+  width?: string;
+  height?: string;
+  maxWidth?: string;
+  maxHeight?: string;
   loadMessages: () => Promise<TaskResult<unknown>>;
   sendMessage: () => Promise<TaskResult<unknown>>;
   clearMessages: () => Promise<TaskResult<unknown>>;
@@ -31,6 +34,7 @@ const props = defineProps<{
 const notices = useNoticeStore();
 const { t } = useI18n();
 const clearConfirmOpen = ref(false);
+const fillAvailableHeight = computed(() => Boolean(props.height || props.maxHeight));
 
 async function refreshMessages() {
   notices.showTaskResult(await props.loadMessages());
@@ -52,13 +56,12 @@ async function clearMessages() {
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent :size="layout === 'bounded' ? 'large' : undefined" :height="layout === 'bounded' ? 'bounded' : undefined">
-      <div class="message-dialog-head">
-        <DialogHeader>
-          <DialogTitle>{{ t("message.title") }}</DialogTitle>
-          <DialogDescription>{{ t("message.description") }}</DialogDescription>
-        </DialogHeader>
-        <div class="message-dialog-actions">
+    <AppDialogContent :width="props.width" :height="props.height" :max-width="props.maxWidth" :max-height="props.maxHeight">
+      <AppDialogHeader>
+        <DialogTitle>{{ t("message.title") }}</DialogTitle>
+        <DialogDescription>{{ t("message.description") }}</DialogDescription>
+
+        <template #actions>
           <Button variant="secondary" size="icon" :disabled="loading" :aria-label="t('common.refresh')" @click="refreshMessages">
             <Loader2 v-if="loading" class="h-4 w-4 animate-spin" />
             <RefreshCw v-else class="h-4 w-4" />
@@ -66,11 +69,12 @@ async function clearMessages() {
           <Button v-if="canClear" variant="secondary" size="icon" :disabled="loading || !messages.length" :aria-label="t('message.clearMessages')" @click="clearConfirmOpen = true">
             <Trash2 class="h-4 w-4" />
           </Button>
-        </div>
-      </div>
+        </template>
+      </AppDialogHeader>
+
       <MessagePanel
         v-model:draft="draft"
-        :class="{ 'message-panel--bounded': layout === 'bounded' }"
+        :class="{ 'message-panel--fill': fillAvailableHeight }"
         :messages="messages"
         :current-client-id="currentClientId"
         :loading="loading"
@@ -81,15 +85,15 @@ async function clearMessages() {
         :empty-text="emptyText || t('message.emptyRelay')"
         @send="sendMessage"
       />
-    </DialogContent>
+    </AppDialogContent>
   </Dialog>
 
   <Dialog v-model:open="clearConfirmOpen">
-    <DialogContent size="sm">
-      <DialogHeader>
+    <AppDialogContent max-width="420px">
+      <AppDialogHeader>
         <DialogTitle>{{ t("message.clearMessages") }}</DialogTitle>
         <DialogDescription>{{ t("message.clearDescription") }}</DialogDescription>
-      </DialogHeader>
+      </AppDialogHeader>
       <div class="message-clear-actions">
         <Button variant="secondary" :disabled="loading" @click="clearConfirmOpen = false">{{ t("common.cancel") }}</Button>
         <Button :disabled="loading" @click="clearMessages">
@@ -97,20 +101,11 @@ async function clearMessages() {
           {{ t("common.clear") }}
         </Button>
       </div>
-    </DialogContent>
+    </AppDialogContent>
   </Dialog>
 </template>
 
 <style scoped>
-.message-dialog-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding-right: 44px;
-}
-
-.message-dialog-actions,
 .message-clear-actions {
   display: flex;
   align-items: center;
