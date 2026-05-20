@@ -4,6 +4,10 @@ export function useLatestAsyncTask(initialBusy = false) {
   const { busy, error, failure, run } = useAsyncTask(initialBusy);
   let latestId = 0;
 
+  function invalidate() {
+    latestId += 1;
+  }
+
   async function runLatest<T>(task: () => Promise<T>, onSuccess: (value: T) => Promise<void> | void) {
     const requestId = ++latestId;
     return run(async () => {
@@ -18,5 +22,5 @@ export function useLatestAsyncTask(initialBusy = false) {
     });
   }
 
-  return { busy, error, failure, run, runLatest };
+  return { busy, error, failure, run, runLatest, invalidate };
 }

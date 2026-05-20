@@ -21,6 +21,8 @@
 - Do not expose desktop request IDs, request codes, PINs, passwords, secrets, or login mechanisms to LAN browsers. Access polling must use the `lf_request` cookie, not a URL request ID.
 - Treat IP as LAN boundary, display, logging, and rate-limit metadata only. User-Agent is display-only metadata. Neither IP nor User-Agent may affect authorization or request identity.
 - Aggregate repeated access requests by `lf_request` with counts/last-seen metadata; do not notify or log every duplicate request.
+- For frontend stale-response or lifecycle invalidation, use `useLatestAsyncTask().runLatest()` and `invalidate()`; do not add store-local version/request counters.
+- Treat `TaskResult.value` from store actions as unstable unless the action explicitly documents a value contract; callers should usually rely on `ok`, `stale`, and `error`.
 
 ## Safety Constraints
 
