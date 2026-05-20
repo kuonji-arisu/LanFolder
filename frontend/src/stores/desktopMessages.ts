@@ -11,28 +11,66 @@ export const useDesktopMessagesStore = defineStore("desktopMessages", () => {
   const draft = ref("");
   const clientId = HOST_CLIENT_ID;
   const { busy: loading, error, run } = useAsyncTask();
+  let version = 0;
 
   async function load() {
-    return run(async () => {
-      messages.value = await appApi.messages();
-    });
+    const requestVersion = ++version;
+    return run(
+      async () => {
+        const loaded = await appApi.messages();
+        if (requestVersion === version) {
+          messages.value = loaded;
+        }
+      },
+      undefined,
+      {
+        commit: () => requestVersion === version,
+        stale: () => requestVersion !== version,
+      },
+    );
   }
 
   async function send() {
     const text = draft.value.trim();
     if (!text) return taskSuccess(undefined);
-    return run(async () => {
-      const message = await appApi.sendMessage(text);
-      messages.value = [...messages.value, message];
-      draft.value = "";
-    });
+    const requestVersion = ++version;
+    return run(
+      async () => {
+        const message = await appApi.sendMessage(text);
+        if (requestVersion === version) {
+          messages.value = [...messages.value, message];
+          draft.value = "";
+        }
+      },
+      undefined,
+      {
+        commit: () => requestVersion === version,
+        stale: () => requestVersion !== version,
+      },
+    );
   }
 
   async function clear() {
-    return run(async () => {
-      await appApi.clearMessages();
-      messages.value = [];
-    });
+    const requestVersion = ++version;
+    return run(
+      async () => {
+        await appApi.clearMessages();
+        if (requestVersion === version) {
+          messages.value = [];
+        }
+      },
+      undefined,
+      {
+        commit: () => requestVersion === version,
+        stale: () => requestVersion !== version,
+      },
+    );
+  }
+
+  function reset() {
+    version += 1;
+    messages.value = [];
+    draft.value = "";
   }
 
   return {
@@ -44,5 +82,6 @@ export const useDesktopMessagesStore = defineStore("desktopMessages", () => {
     load,
     send,
     clear,
+    reset,
   };
 });

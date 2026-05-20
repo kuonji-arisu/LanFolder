@@ -31,8 +31,9 @@ const messagesOpen = ref(false);
 const accessCount = computed(() => app.pendingAccessRequests.length + app.accessSessions.length);
 const messagesEnabled = computed(() => app.isRunning && Boolean(app.config.sharedDir));
 
-watch(messagesOpen, (open) => {
-  if (open) void messages.load();
+watch([messagesOpen, messagesEnabled], ([open, enabled]) => {
+  if (open && enabled) void messages.load();
+  if (!enabled) messages.reset();
 });
 
 async function runWithNotice(action: () => Promise<TaskResult<unknown>>) {
