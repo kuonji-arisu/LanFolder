@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DialogContentEmits, DialogContentProps } from "radix-vue";
 import type { HTMLAttributes } from "vue";
-import { computed } from "vue";
+import { computed, unref, useAttrs } from "vue";
 import { X } from "lucide-vue-next";
 import {
   DialogClose,
@@ -10,25 +10,31 @@ import {
   DialogPortal,
   useForwardPropsEmits,
 } from "radix-vue";
-import type { DialogContentVariants } from ".";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { dialogContentVariants } from ".";
+
+defineOptions({
+  inheritAttrs: false,
+});
 
 const props = defineProps<
   DialogContentProps & {
     class?: HTMLAttributes["class"];
-    size?: DialogContentVariants["size"];
-    height?: DialogContentVariants["height"];
+    showClose?: boolean;
   }
 >();
 const emits = defineEmits<DialogContentEmits>();
 
 const delegatedProps = computed(() => {
-  const { class: _, size: _size, height: _height, ...delegated } = props;
+  const { class: _, showClose: _showClose, ...delegated } = props;
   return delegated;
 });
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
+const attrs = useAttrs();
+const contentProps = computed(() => ({
+  ...unref(forwarded),
+  ...attrs,
+}));
 const { t } = useI18n();
 </script>
 
@@ -36,16 +42,19 @@ const { t } = useI18n();
   <DialogPortal>
     <DialogOverlay class="fixed inset-0 z-50 bg-black/45" />
     <DialogContent
-      v-bind="forwarded"
+      v-bind="contentProps"
       :class="
         cn(
-          dialogContentVariants({ size: props.size, height: props.height }),
+          'fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 border bg-card p-4 text-card-foreground shadow-lg duration-200 sm:rounded-lg',
           props.class,
         )
       "
     >
       <slot />
-      <DialogClose class="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-[color:var(--color-secondary-border)] bg-secondary text-sm font-medium text-secondary-foreground shadow-none ring-offset-background transition-colors hover:bg-[color:var(--color-secondary-hover)] active:bg-[color:var(--color-secondary-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0">
+      <DialogClose
+        v-if="showClose !== false"
+        class="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+      >
         <X class="h-4 w-4" />
         <span class="sr-only">{{ t("app.close") }}</span>
       </DialogClose>

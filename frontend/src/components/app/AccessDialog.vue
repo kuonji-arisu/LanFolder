@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ShieldCheck } from "lucide-vue-next";
+import AppDialogContent from "@/components/app/AppDialogContent.vue";
+import AppDialogHeader from "@/components/app/AppDialogHeader.vue";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { formatDate } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { userAgentLabel } from "@/lib/userAgent";
@@ -40,11 +42,11 @@ function sessionStats(session: { createdAt: string; expiresAt?: string | null })
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent size="large" height="bounded">
-      <DialogHeader class="dialog-head">
+    <AppDialogContent width="calc(100vw - var(--space-6))" max-width="var(--content-max-width)" max-height="calc(100dvh - var(--space-6))">
+      <AppDialogHeader>
         <DialogTitle>{{ t("access.manage") }}</DialogTitle>
         <DialogDescription>{{ t("access.description") }}</DialogDescription>
-      </DialogHeader>
+      </AppDialogHeader>
 
       <div class="access-dialog-scroll">
         <section class="access-section">
@@ -79,15 +81,11 @@ function sessionStats(session: { createdAt: string; expiresAt?: string | null })
           </div>
         </section>
       </div>
-    </DialogContent>
+    </AppDialogContent>
   </Dialog>
 </template>
 
 <style scoped>
-.dialog-head {
-  padding-right: calc(var(--icon-button-size) + var(--space-2));
-}
-
 .access-dialog-scroll {
   flex: 0 1 auto;
   min-height: 0;
