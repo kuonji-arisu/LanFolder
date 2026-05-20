@@ -30,19 +30,9 @@ const contentStyle = computed<CSSProperties>(() => ({
 <template>
   <DialogContent
     :show-close="false"
-    :class="cn('app-dialog-content', props.class)"
+    :class="cn('flex min-h-0 flex-col overflow-hidden rounded-lg', props.class)"
     :style="contentStyle"
   >
     <slot />
   </DialogContent>
 </template>
-
-<style>
-.app-dialog-content {
-  display: flex;
-  min-height: 0;
-  flex-direction: column;
-  overflow: hidden;
-  border-radius: var(--radius-lg);
-}
-</style>

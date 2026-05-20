@@ -29,7 +29,7 @@ const { t } = useI18n();
     <div class="app-dialog-actions">
       <slot name="actions" />
       <DialogClose v-if="showClose" as-child>
-        <Button variant="secondary" size="icon" :aria-label="t('app.close')">
+        <Button type="button" variant="secondary" size="icon" :aria-label="t('app.close')">
           <X class="h-4 w-4" />
           <span class="sr-only">{{ t("app.close") }}</span>
         </Button>
