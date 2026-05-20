@@ -135,6 +135,39 @@ export class AccessSessionLifetimeOption {
     }
 }
 
+export class Message {
+    "id": string;
+    "createdAt": time$0.Time;
+    "clientId": string;
+    "text": string;
+
+    /** Creates a new Message instance. */
+    constructor($$source: Partial<Message> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("createdAt" in $$source)) {
+            this["createdAt"] = null;
+        }
+        if (!("clientId" in $$source)) {
+            this["clientId"] = "";
+        }
+        if (!("text" in $$source)) {
+            this["text"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Message instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Message {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new Message($$parsedSource as Partial<Message>);
+    }
+}
+
 export enum Permission {
     /**
      * The Go zero value for the underlying type of the enum.

@@ -16,6 +16,7 @@ const props = defineProps<{
   inputDisabled?: boolean;
   emptyText?: string;
   disabledText?: string;
+  inputDisabledText?: string;
 }>();
 
 const emit = defineEmits<{
@@ -57,7 +58,14 @@ function isOwnMessage(message: MessageEntry) {
     </div>
 
     <form class="message-form" @submit.prevent="emit('send')">
-      <textarea v-model="draftModel" class="message-input" rows="2" maxlength="2000" :disabled="disabled || inputDisabled || loading" :placeholder="t('message.inputPlaceholder')" />
+      <textarea
+        v-model="draftModel"
+        class="message-input"
+        rows="1"
+        maxlength="2000"
+        :disabled="disabled || inputDisabled || loading"
+        :placeholder="inputDisabled && inputDisabledText ? inputDisabledText : t('message.inputPlaceholder')"
+      />
       <Button class="message-send" type="submit" :disabled="!canSend">
         <Send class="h-4 w-4" />{{ t("message.send") }}
       </Button>
@@ -67,6 +75,7 @@ function isOwnMessage(message: MessageEntry) {
 
 <style scoped>
 .message-panel {
+  --message-list-min-height: 90px;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -74,6 +83,7 @@ function isOwnMessage(message: MessageEntry) {
 }
 
 .message-list {
+  min-height: var(--message-list-min-height);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -82,9 +92,18 @@ function isOwnMessage(message: MessageEntry) {
   padding-right: 2px;
 }
 
+.message-panel--bounded {
+  flex: 1 1 auto;
+}
+
+.message-panel--bounded .message-list {
+  flex: 1 1 auto;
+  max-height: none;
+}
+
 .message-empty {
   display: grid;
-  min-height: 90px;
+  min-height: var(--message-list-min-height);
   place-items: center;
   color: var(--color-text-tertiary);
   font-size: var(--font-size-sm);
@@ -126,20 +145,23 @@ function isOwnMessage(message: MessageEntry) {
 .message-form {
   display: flex;
   gap: var(--space-2);
-  align-items: stretch;
+  align-items: flex-end;
 }
 
 .message-input {
-  min-height: 54px;
+  height: 36px;
+  min-height: 36px;
   flex: 1;
   resize: none;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-control);
-  padding: 9px 11px;
+  padding: 8px 11px;
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
+  line-height: 18px;
   outline: none;
+  overflow-y: auto;
 }
 
 .message-input:focus {
@@ -151,8 +173,8 @@ function isOwnMessage(message: MessageEntry) {
 }
 
 .message-send {
-  min-height: 54px;
-  align-self: stretch;
+  height: 36px;
+  min-height: 36px;
   gap: 6px;
 }
 </style>

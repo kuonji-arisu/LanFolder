@@ -33,19 +33,19 @@ LanFolder has three permission modes.
 
 ### `readonly`
 
-Devices on the LAN can browse and download files.
+Devices on the LAN can browse and download files, and read text messages sent by the desktop host.
 
 This is the safest default mode.
 
 ### `upload`
 
-Devices on the LAN can browse, download, upload files, and create folders.
+Devices on the LAN can browse, download, upload files, create folders, and send text messages.
 
 Use this when you want to receive files from trusted devices.
 
 ### `manage`
 
-Devices on the LAN can browse, download, upload, create folders, and delete files.
+Devices on the LAN can browse, download, upload, create folders, delete files, and clear text messages.
 
 Deleted files are moved into `.lanfolder/trash` instead of being removed directly.
 

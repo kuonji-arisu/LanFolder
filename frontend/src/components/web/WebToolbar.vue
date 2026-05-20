@@ -58,7 +58,7 @@ function toggleTheme() {
         <Sun v-if="theme === 'dark'" class="h-5 w-5" />
         <Moon v-else class="h-5 w-5" />
       </button>
-      <button v-if="files.canUpload" class="icon-button" :class="{ 'icon-button--active': messagesOpen }" :aria-label="t('web.messages')" @click="emit('toggleMessages')">
+      <button class="icon-button" :class="{ 'icon-button--active': messagesOpen }" :aria-label="t('web.messages')" @click="emit('toggleMessages')">
         <MessageSquareText class="h-5 w-5" />
       </button>
     </div>

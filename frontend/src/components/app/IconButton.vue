@@ -28,6 +28,16 @@ defineProps<{
   color: var(--color-text-primary);
 }
 
+.icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.icon-button:disabled:hover {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
 .icon-button--accent {
   color: var(--color-accent);
 }

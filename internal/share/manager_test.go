@@ -231,12 +231,20 @@ func TestManagerMessagePermissions(t *testing.T) {
 	if _, err := m.SendMessage("client-1", "hello"); !errors.Is(err, ErrPermissionDenied) {
 		t.Fatalf("readonly SendMessage error = %v, want ErrPermissionDenied", err)
 	}
+	if _, err := m.SendHostMessage("hello"); err != nil {
+		t.Fatalf("readonly SendHostMessage error = %v", err)
+	} else if err := m.ClearHostMessages(); err != nil {
+		t.Fatalf("readonly ClearHostMessages error = %v", err)
+	}
 	if err := m.ClearMessages(); !errors.Is(err, ErrPermissionDenied) {
 		t.Fatalf("readonly ClearMessages error = %v, want ErrPermissionDenied", err)
 	}
 
 	if err := m.Configure(root, PermissionUpload, false); err != nil {
 		t.Fatal(err)
+	}
+	if _, err := m.SendMessage(HostClientID, "hello"); !errors.Is(err, ErrInvalidMessage) {
+		t.Fatalf("upload SendMessage reserved host id error = %v, want ErrInvalidMessage", err)
 	}
 	if _, err := m.SendMessage("client-1", "hello"); err != nil {
 		t.Fatalf("upload SendMessage error = %v", err)
