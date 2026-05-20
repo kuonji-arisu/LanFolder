@@ -34,23 +34,37 @@ export const useDesktopMessagesStore = defineStore("desktopMessages", () => {
     const text = draft.value.trim();
     if (!text) return taskSuccess(undefined);
     const requestVersion = ++version;
-    return run(async () => {
-      const message = await appApi.sendMessage(text);
-      if (requestVersion === version) {
-        messages.value = [...messages.value, message];
-        draft.value = "";
-      }
-    });
+    return run(
+      async () => {
+        const message = await appApi.sendMessage(text);
+        if (requestVersion === version) {
+          messages.value = [...messages.value, message];
+          draft.value = "";
+        }
+      },
+      undefined,
+      {
+        commit: () => requestVersion === version,
+        stale: () => requestVersion !== version,
+      },
+    );
   }
 
   async function clear() {
     const requestVersion = ++version;
-    return run(async () => {
-      await appApi.clearMessages();
-      if (requestVersion === version) {
-        messages.value = [];
-      }
-    });
+    return run(
+      async () => {
+        await appApi.clearMessages();
+        if (requestVersion === version) {
+          messages.value = [];
+        }
+      },
+      undefined,
+      {
+        commit: () => requestVersion === version,
+        stale: () => requestVersion !== version,
+      },
+    );
   }
 
   function reset() {

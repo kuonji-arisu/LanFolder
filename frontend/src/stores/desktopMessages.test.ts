@@ -96,6 +96,22 @@ describe("useDesktopMessagesStore", () => {
     expect(store.draft).toBe("");
   });
 
+  it("does not let a reset in-flight send commit stale errors", async () => {
+    const pending = deferred<MessageEntry>();
+    api.sendMessage.mockReturnValue(pending.promise);
+    const store = useDesktopMessagesStore();
+    store.draft = " sent ";
+
+    const sending = store.send();
+    store.reset();
+    pending.reject(new Error("share_not_running"));
+    const result = await sending;
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.stale).toBe(true);
+    expect(store.error).toBe("");
+  });
+
   it("does not let an older clear remove newer messages", async () => {
     const pending = deferred<void>();
     api.clearMessages.mockReturnValue(pending.promise);
@@ -109,6 +125,21 @@ describe("useDesktopMessagesStore", () => {
     await clearing;
 
     expect(store.messages).toEqual([message("new", "new")]);
+  });
+
+  it("does not let a reset in-flight clear commit stale errors", async () => {
+    const pending = deferred<void>();
+    api.clearMessages.mockReturnValue(pending.promise);
+    const store = useDesktopMessagesStore();
+
+    const clearing = store.clear();
+    store.reset();
+    pending.reject(new Error("share_not_running"));
+    const result = await clearing;
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.stale).toBe(true);
+    expect(store.error).toBe("");
   });
 });
 
