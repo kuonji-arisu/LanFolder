@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { ArrowRight } from "lucide-vue-next";
-import { Card } from "@/components/ui/card";
+import InfoCard from "@/components/app/InfoCard.vue";
 import { useI18n } from "@/lib/i18n";
 import type { AccessLog } from "@/types/app";
 
@@ -18,14 +18,13 @@ const errorCount = computed(() => props.logs.filter((log) => log.status >= 400).
 </script>
 
 <template>
-  <Card class="logs-summary">
-    <div class="panel-title-row">
-      <span class="field-label">{{ t("log.recent") }}</span>
+  <InfoCard :label="t('log.recent')">
+    <template #actions>
       <button class="view-link" type="button" @click="emit('open')">
         {{ t("log.view") }}
         <ArrowRight class="h-[13px] w-[13px]" />
       </button>
-    </div>
+    </template>
 
     <div class="summary-grid">
       <div class="summary-item">
@@ -37,31 +36,10 @@ const errorCount = computed(() => props.logs.filter((log) => log.status >= 400).
         <span class="summary-label">{{ t("log.errorRequests") }}</span>
       </div>
     </div>
-  </Card>
+  </InfoCard>
 </template>
 
 <style scoped>
-.logs-summary {
-  padding: var(--space-3);
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-
-.panel-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.field-label {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
-}
-
 .view-link {
   display: inline-flex;
   align-items: center;
@@ -69,6 +47,7 @@ const errorCount = computed(() => props.logs.filter((log) => log.status >= 400).
   color: var(--color-accent);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
+  line-height: var(--font-size-sm);
   text-decoration: none;
 }
 
@@ -80,7 +59,6 @@ const errorCount = computed(() => props.logs.filter((log) => log.status >= 400).
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-2);
-  margin-top: var(--space-3);
 }
 
 .summary-item {

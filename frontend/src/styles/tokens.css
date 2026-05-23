@@ -23,6 +23,8 @@
   --popover-foreground: 240 4% 11%;
   --destructive: 6 78% 57%;
   --destructive-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 100%;
 
   --radius-sm: 4px;
   --radius-md: 8px;
@@ -52,6 +54,11 @@
 
   --titlebar-height: 40px;
   --content-max-width: 960px;
+  --layout-page-padding: var(--space-3);
+  --layout-card-gap: 10px;
+  --layout-card-padding: 18px;
+  --layout-panel-card-padding-block: 21px;
+  --layout-field-card-height: 91px;
   --touch-target: 42px;
   --input-height: 48px;
   --input-padding-x: 16px;
@@ -86,6 +93,8 @@
   --color-text-secondary: hsl(var(--muted-foreground));
   --color-text-tertiary: hsl(var(--muted-foreground) / 0.62);
   --color-text-on-accent: hsl(var(--primary-foreground));
+  --color-text-on-danger: hsl(var(--destructive-foreground));
+  --color-text-on-warning: hsl(var(--warning-foreground));
 
   --color-accent: hsl(var(--primary));
   --color-accent-hover: color-mix(in srgb, hsl(var(--primary)) 86%, black);
@@ -93,6 +102,8 @@
 
   --color-danger: hsl(var(--destructive));
   --color-danger-hover: color-mix(in srgb, hsl(var(--destructive)) 82%, black);
+  --color-warning: hsl(var(--warning));
+  --color-warning-hover: color-mix(in srgb, hsl(var(--warning)) 88%, black);
   --color-success: #27ae60;
 
   color-scheme: light;
@@ -128,6 +139,8 @@
   --popover: 240 2% 18%;
   --popover-foreground: 240 11% 96%;
   --destructive: 3 100% 61%;
+  --warning: 38 92% 54%;
+  --warning-foreground: 0 0% 100%;
 
   --color-bg-overlay: hsl(var(--card) / 0.9);
   --color-bg-hover: hsl(var(--foreground) / 0.07);
