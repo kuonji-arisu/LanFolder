@@ -6,8 +6,8 @@ import { Card } from "@/components/ui/card";
 import AccessLogDialog from "@/components/app/AccessLogDialog.vue";
 import AccessLogPanel from "@/components/app/AccessLogPanel.vue";
 import AccessDialog from "@/components/app/AccessDialog.vue";
-import FieldCard from "@/components/app/FieldCard.vue";
 import IconButton from "@/components/app/IconButton.vue";
+import InfoCard from "@/components/app/InfoCard.vue";
 import MessageDialog from "@/components/messages/MessageDialog.vue";
 import PermissionSegment from "@/components/app/PermissionSegment.vue";
 import { useClipboard } from "@/composables/useClipboard";
@@ -68,36 +68,43 @@ async function setPermission(permission: Permission) {
       </Button>
     </Card>
 
-    <FieldCard :label="t('share.accessAddress')" :value="app.primaryAddress" mono>
-      <span v-if="app.config.accessApproval" class="access-button-wrap">
-        <IconButton :title="t('access.manage')" :accent="Boolean(app.pendingAccessRequests.length)" @click="accessDialogOpen = true">
-          <ShieldCheck class="h-4 w-4" />
+    <InfoCard :label="t('share.accessAddress')" :value="app.primaryAddress" variant="field" mono>
+      <template #actions>
+        <span v-if="app.config.accessApproval" class="access-button-wrap">
+          <IconButton :title="t('access.manage')" :accent="Boolean(app.pendingAccessRequests.length)" @click="accessDialogOpen = true">
+            <ShieldCheck class="h-4 w-4" />
+          </IconButton>
+          <span v-if="accessCount" class="access-badge">{{ accessCount }}</span>
+        </span>
+        <IconButton :title="t('share.copyAddress')" accent @click="copy(app.primaryAddress)">
+          <Check v-if="copied" class="h-4 w-4" />
+          <Copy v-else class="h-4 w-4" />
         </IconButton>
-        <span v-if="accessCount" class="access-badge">{{ accessCount }}</span>
-      </span>
-      <IconButton :title="t('share.copyAddress')" accent @click="copy(app.primaryAddress)">
-        <Check v-if="copied" class="h-4 w-4" />
-        <Copy v-else class="h-4 w-4" />
-      </IconButton>
-    </FieldCard>
+      </template>
+    </InfoCard>
 
-    <FieldCard :label="t('share.directory')" :value="app.config.sharedDir || t('share.noFolder')" :value-title="app.config.sharedDir">
-      <IconButton v-if="!app.isRunning" :title="t('share.changeFolder')" @click="runWithNotice(app.chooseFolder)">
-        <FolderPen class="h-4 w-4" />
-      </IconButton>
-      <IconButton v-else :title="t('message.title')" :disabled="!messagesEnabled" :accent="messagesOpen" @click="messagesOpen = true">
-        <MessageSquareText class="h-4 w-4" />
-      </IconButton>
-      <IconButton :title="t('common.open')" :disabled="!app.config.sharedDir" @click="runWithNotice(app.openSharedFolder)">
-        <FolderOpen class="h-4 w-4" />
-      </IconButton>
-    </FieldCard>
+    <InfoCard
+      :label="t('share.directory')"
+      :value="app.config.sharedDir || t('share.noFolder')"
+      :value-title="app.config.sharedDir"
+      variant="field"
+    >
+      <template #actions>
+        <IconButton v-if="app.isRunning" :title="t('message.title')" :accent="messagesOpen" @click="messagesOpen = true">
+          <MessageSquareText class="h-4 w-4" />
+        </IconButton>
+        <IconButton :title="t('share.changeFolder')" @click="runWithNotice(app.chooseFolder)">
+          <FolderPen class="h-4 w-4" />
+        </IconButton>
+        <IconButton :title="t('common.open')" :disabled="!app.config.sharedDir" @click="runWithNotice(app.openSharedFolder)">
+          <FolderOpen class="h-4 w-4" />
+        </IconButton>
+      </template>
+    </InfoCard>
 
-    <Card class="panel">
-      <div class="field-label">{{ t("share.accessPermission") }}</div>
+    <InfoCard :label="t('share.accessPermission')">
       <PermissionSegment :model-value="app.config.permission" :options="app.state?.permissions ?? []" @update:model-value="setPermission" />
-      <p class="field-hint">{{ app.activePermission.description }}</p>
-    </Card>
+    </InfoCard>
 
     <AccessLogPanel :logs="app.logs" @open="accessLogDialogOpen = true" />
     <AccessLogDialog v-model:open="accessLogDialogOpen" />
@@ -128,9 +135,9 @@ async function setPermission(permission: Permission) {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--layout-card-gap);
   overflow-y: auto;
-  padding: var(--space-3);
+  padding: var(--layout-page-padding);
 }
 
 .view-body::-webkit-scrollbar {
@@ -138,8 +145,7 @@ async function setPermission(permission: Permission) {
   height: 0;
 }
 
-.share-hero,
-.panel {
+.share-hero {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -202,8 +208,7 @@ async function setPermission(permission: Permission) {
   color: var(--color-text-primary);
 }
 
-.hero-hint,
-.field-hint {
+.hero-hint {
   margin: 3px 0 0;
   max-width: 100%;
   overflow: hidden;
@@ -211,20 +216,6 @@ async function setPermission(permission: Permission) {
   white-space: nowrap;
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
-}
-
-.panel {
-  padding: var(--space-3);
-}
-
-.panel :deep(.segmented) {
-  margin-top: var(--space-3);
-}
-
-.field-label {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
 }
 
 .access-button-wrap {

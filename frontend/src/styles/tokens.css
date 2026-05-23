@@ -52,6 +52,11 @@
 
   --titlebar-height: 40px;
   --content-max-width: 960px;
+  --layout-page-padding: var(--space-3);
+  --layout-card-gap: 10px;
+  --layout-card-padding: 18px;
+  --layout-panel-card-padding-block: 21px;
+  --layout-field-card-height: 91px;
   --touch-target: 42px;
   --input-height: 48px;
   --input-padding-x: 16px;
@@ -86,6 +91,7 @@
   --color-text-secondary: hsl(var(--muted-foreground));
   --color-text-tertiary: hsl(var(--muted-foreground) / 0.62);
   --color-text-on-accent: hsl(var(--primary-foreground));
+  --color-text-on-danger: hsl(var(--destructive-foreground));
 
   --color-accent: hsl(var(--primary));
   --color-accent-hover: color-mix(in srgb, hsl(var(--primary)) 86%, black);

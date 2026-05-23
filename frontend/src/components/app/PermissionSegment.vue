@@ -18,7 +18,7 @@ defineEmits<{
       v-for="item in options"
       :key="item.value"
       class="segment-option"
-      :class="{ 'segment-option--active': modelValue === item.value }"
+      :class="[`segment-option--${item.value}`, { 'segment-option--active': modelValue === item.value }]"
       @click="$emit('update:modelValue', item.value)"
     >
       {{ item.label }}
@@ -35,6 +35,10 @@ defineEmits<{
 }
 
 .segment-option {
+  --segment-active-bg: var(--color-accent);
+  --segment-active-bg-hover: var(--color-accent-hover);
+  --segment-active-fg: var(--color-text-on-accent);
+
   flex: 1;
   min-height: 40px;
   display: inline-flex;
@@ -44,6 +48,12 @@ defineEmits<{
   background: transparent;
   font-size: var(--font-size-sm);
   transition: background 0.15s, color 0.15s;
+}
+
+.segment-option--manage {
+  --segment-active-bg: var(--color-danger);
+  --segment-active-bg-hover: var(--color-danger-hover);
+  --segment-active-fg: var(--color-text-on-danger);
 }
 
 .segment-option + .segment-option {
@@ -56,13 +66,13 @@ defineEmits<{
 }
 
 .segment-option--active {
-  background: var(--color-accent);
-  color: var(--color-text-on-accent);
+  background: var(--segment-active-bg);
+  color: var(--segment-active-fg);
   font-weight: var(--font-weight-medium);
 }
 
 .segment-option--active:hover {
-  background: var(--color-accent-hover);
-  color: var(--color-text-on-accent);
+  background: var(--segment-active-bg-hover);
+  color: var(--segment-active-fg);
 }
 </style>
