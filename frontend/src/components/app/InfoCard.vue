@@ -48,8 +48,7 @@ withDefaults(
   --info-card-field-height: var(--layout-field-card-height);
   --info-card-action-icon-size: 16px;
   --info-card-label-line-height: 18px;
-  --info-card-action-inline-offset: calc((var(--icon-button-size) - var(--info-card-action-icon-size)) / 2);
-  --info-card-action-block-offset: calc((var(--icon-button-size) - var(--info-card-label-line-height)) / 2);
+  --info-card-action-edge-inset: calc((var(--icon-button-size) - var(--info-card-action-icon-size)) / 2);
 
   display: grid;
   min-width: 0;
@@ -64,7 +63,8 @@ withDefaults(
 .info-card--field {
   height: var(--info-card-field-height);
   min-height: var(--info-card-field-height);
-  grid-template-rows: var(--icon-button-size) minmax(0, 1fr);
+  grid-template-rows: var(--info-card-label-line-height) minmax(0, 1fr);
+  padding-inline-end: calc(var(--info-card-padding-inline) - var(--info-card-action-edge-inset));
   gap: 0;
 }
 
@@ -79,6 +79,15 @@ withDefaults(
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: flex-start;
   gap: var(--space-2);
+}
+
+.info-card--field .info-card-header {
+  display: flex;
+  height: var(--info-card-label-line-height);
+}
+
+.info-card--field .info-card-label {
+  flex: 1;
 }
 
 .info-card-label {
@@ -102,8 +111,7 @@ withDefaults(
 }
 
 .info-card--field .info-card-actions {
-  margin-block-start: calc(var(--info-card-action-block-offset) * -1);
-  margin-inline-end: calc(var(--info-card-action-inline-offset) * -1);
+  align-self: center;
 }
 
 .info-card-body {
@@ -114,6 +122,7 @@ withDefaults(
 .info-card--field .info-card-body {
   display: flex;
   align-items: flex-end;
+  padding-inline-end: var(--info-card-action-edge-inset);
 }
 
 .info-card-value {
