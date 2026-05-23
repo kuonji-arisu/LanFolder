@@ -50,12 +50,6 @@ defineEmits<{
   transition: background 0.15s, color 0.15s;
 }
 
-.segment-option--upload {
-  --segment-active-bg: var(--color-warning);
-  --segment-active-bg-hover: var(--color-warning-hover);
-  --segment-active-fg: var(--color-text-on-warning);
-}
-
 .segment-option--manage {
   --segment-active-bg: var(--color-danger);
   --segment-active-bg-hover: var(--color-danger-hover);
